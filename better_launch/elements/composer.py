@@ -1,19 +1,40 @@
-from .node import execute_node
+from typing import Any
+from .node import Node
 
 
 # TODO should composer inherit from group?
-class Composer:
-    def __init__(self, launcher, name: str, language: str):
+class Composer(Node):
+    def __init__(
+        self,
+        launcher,
+        name: str,
+        language: str,
+        node_args: dict[str, Any] = None,
+        *,
+        remap: dict[str, str] = None,
+        env: dict[str, str] = None,
+        log_cmd: bool = True,
+        anonymous: bool = False,
+        on_exit: Callable = None,
+        max_respawns: int = 0,
+        respawn_delay: float = 0.0,
+        use_shell: bool = False,
+        emulate_tty: bool = False,
+        stderr_to_stdout: bool = False,
+        autostart: bool = False,
+        **kwargs,
+    ):
+        super().__init__(
+            launcher,
+            f"rcl{self.language}_components",
+            "component_container",
+            name,
+            node_args,
+            **kwargs,
+        )
         # NOTE: does not support referencing an already existing instance. If you want to reuse
         # the container, just keep a reference to it.
-        self.launcher = launcher
-        self.name = name
         self.language = language
-
-    def start(self):
-        package = f"rcl{self.language}_components"
-        executable = "component_container"
-        execute_node(self.launcher, package, executable, name=self.name)
 
     def add_component(self, package: str, plugin: str, **kwargs):
         # TODO call the load_node service

@@ -1,10 +1,16 @@
 
 class Group:
-    def __init__(self, launcher, ns: str = None, remap: dict[str, str] = None):
-        self.launcher = launcher
+    def __init__(self, parent, ns: str = None, remap: dict[str, str] = None):
+        self.parent = parent
         self.ns = ns or ""
         self.remap = dict(remap or {})
+        self.nodes = []
 
-    def add_node(self, pkg: str, exec: str, name: str = None, *, anonymous: bool = False, **kwargs):
-        # TODO
-        pass
+        if ns:
+            self.logger = parent.logger.getChild(ns)
+        else:
+            self.logger = parent.logger
+
+    def add_node(self, node):
+        self.nodes.append(node)
+        node.start()
