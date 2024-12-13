@@ -189,6 +189,9 @@ class Node:
     async def _execute_process(self):
         self.logger.info(f"Starting process '{self.cmd}' (cwd='{self.cwd}', env='{self.env}')")
 
+        # FIXME continue here! 
+        # launch/actions/execute_local.py:671
+        
         # TODO setup listeners for 
         # - ShutdownProcess -> on_shutdown_process_event
         # - SignalProcess -> on_signal_process_event
@@ -198,14 +201,19 @@ class Node:
         # NOTE listeners must check that the signal is intended for this node (?)
 
         try:
-            # Remappings become part of the command
+            # Attach additional node args
             final_cmd = [self.cmd]
             for key, value in self.node_args.items():
-                final_cmd.extend([f"--{key}", str(value)])
+                final_cmd.extend([key, str(value)])
+            # Remappings become part of the command's ros-args
+            # launch_ros/actions/node.py:206
+            final_cmd.append("--ros-args")
             for src, dst in self.remap.items():
+                # launch_ros/actions/node.py:481
                 final_cmd.extend(["-r", f"{src}:={dst}"])
 
             # If an env is specified ROS2 lets it completely replace the host env
+            # launch/descriptions/executable.py:199
             if self.env:
                 final_env = self.env
             else:

@@ -150,7 +150,7 @@ class BetterLaunch(metaclass=_BetterLaunchMeta):
 
     @contextmanager
     def group(self, ns: str = None):
-        group = Group(self._group_stack[-1], ns)
+        group = Group(self, self._group_stack[-1], ns)
         self._group_stack.append(group)
         try:
             yield group
