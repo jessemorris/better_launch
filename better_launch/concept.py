@@ -1,4 +1,4 @@
-from better_launch import BetterLaunch, launch_this
+from better_launch import BetterLaunch, launch_ros2
 
 
 #@launch_this
@@ -7,7 +7,6 @@ def concept(
     samples: int = 100,
     freq: float = 20,
     start_all: bool = True,
-    *,
 ):
     # Also offer a "BetterLaunchDescription" class that generates the launch description instead of 
     # starting everything immediately
@@ -28,7 +27,7 @@ def concept(
 
 
 
-@launch_this
+@launch_ros2
 def test():
     bl = BetterLaunch()
 

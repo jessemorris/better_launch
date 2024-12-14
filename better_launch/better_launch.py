@@ -1,6 +1,7 @@
 from typing import Any, Callable
 import sys
 import os
+from ast import literal_eval
 import signal
 import inspect
 import asyncio
@@ -9,12 +10,18 @@ from collections import deque
 import logging
 import osrf_pycommon.process_utils
 
+from ament_index_python.packages import get_package_share_directory
+
 try:
     # For anonymous nodes
     import wonderwords
-    __uuid_generator = lambda g=wonderwords.RandomWord(exclude_with_spaces=True): g.word()
+
+    __uuid_generator = lambda g=wonderwords.RandomWord(
+        exclude_with_spaces=True
+    ): g.word()
 except ImportError:
     import uuid
+
     __uuid_generator = lambda: uuid.uuid4().hex
 
 from elements import Group, Composer, Node
@@ -24,13 +31,52 @@ __better_launch_this_defined = "__better_launch_this_defined"
 __better_launch_instance = "__better_launch_instance"
 
 
-def launch_this(launch_func, to_global: bool = True):
+def launch_this(launch_func):
+    glob = globals()
+    if __better_launch_this_defined in glob and __better_launch_instance not in glob:
+        # Allow using launch_this only once unless we got included from another file
+        raise RuntimeError("Can only use one launch decorator")
+
+    glob[__better_launch_this_defined] = True
+
+    # Expose launch_func args through click?
+    import click
+
+    options = []
+    sig = inspect.signature(launch_func)
+    for param in sig.parameters.values():
+        default = param.default
+        options.append(click.Option(f"--{param.name}", default=default))
+
+    click_cmd = click.Command("main", callback=launch_func, options=options)
+    try:
+        click_cmd.main()
+    except SystemExit as e:
+        if e.code != 0:
+            raise
+
+    # Retrieve the BetterLaunch singleton
+    bl = BetterLaunch()
+
+    # LaunchService should not be run in parallel, so we instead collect all the
+    # actions and then run them at the end
+    if bl._deferred_ros_actions:
+        from launch import LaunchDescription, LaunchService
+
+        launch_description = LaunchDescription(bl._deferred_ros_actions)
+
+        ros2_launcher = LaunchService()
+        ros2_launcher.include_launch_description(launch_description)
+        ros2_launcher.run()
+
+
+def launch_this_ros2(launch_func, to_global: bool = True):
     # Makes your main function compatible with the ros2 launch system, e.g.
     # declares arguments, creates a stub launch description, etc.
     glob = globals()
     if __better_launch_this_defined in glob and __better_launch_instance not in glob:
         # Allow using launch_this only once unless we got included from another file
-        raise RuntimeError("@launch_this can only be used once")
+        raise RuntimeError("Can only use one launch decorator")
 
     glob[__better_launch_this_defined] = True
 
@@ -42,16 +88,31 @@ def launch_this(launch_func, to_global: bool = True):
 
         # Declare launch arguments from the function signature
         sig = inspect.signature(launch_func)
-        for param in sig.parameters:
-            default = None
+        for param in sig.parameters.values():
+            default = param.default
             if default is not inspect.Parameter.empty:
                 default = str(param.default)
 
             ld.add_action(DeclareLaunchArgument(param.name, default_value=default))
 
         def ros2_wrapper(context: LaunchContext, *args, **kwargs):
-            # args and kwargs are only for deferred function calling cases
-            launch_func(**context.launch_configurations)
+            # args and kwargs are only used by OpaqueFunction when using it like partial
+            launch_args = {}
+            for k, v in context.launch_configurations.items():
+                try:
+                    launch_args[k] = literal_eval(v)
+                except ValueError:
+                    # Probably a string
+                    # NOTE this should also make passing args to ROS2 much easier
+                    # TODO should we spin our own autocomplete?
+                    launch_args[k] = v
+
+            launch_func(**launch_args)
+
+            # Retrieve the BetterLaunch singleton
+            bl = BetterLaunch()
+            # Opaque functions are allowed to return additional actions
+            return bl._deferred_ros_actions
 
         ld.add_action(OpaqueFunction(ros2_wrapper))
         return ld
@@ -67,7 +128,7 @@ class _BetterLaunchMeta(type):
     # Important for launch file includes.
     def __call__(cls, *args, **kwargs):
         existing_instance = globals().get(__better_launch_instance, None)
-        if existing_instance:
+        if existing_instance is not None:
             return existing_instance
 
         obj = cls.__new__(cls, *args, **kwargs)
@@ -101,7 +162,7 @@ class BetterLaunch(metaclass=_BetterLaunchMeta):
             if name.endswith(".launch"):
                 name = os.path.splitext(name)[0]
 
-        # This signal handler only works on linux, see 
+        # This signal handler only works on linux, see
         # https://github.com/ros2/launch/blob/rolling/launch/launch/launch_service.py#L213
         self.asyncio_loop = osrf_pycommon.process_utils.get_loop()
         self.asyncio_loop.add_signal_handler(self._on_sigint)
@@ -122,6 +183,8 @@ class BetterLaunch(metaclass=_BetterLaunchMeta):
 
         self._composition_node = None
 
+        self._defferred_ros_actions = []
+
     def _get_namespace(self, until: int = -1):
         ns = ""
         for g in self._group_stack[:until]:
@@ -137,30 +200,50 @@ class BetterLaunch(metaclass=_BetterLaunchMeta):
         base_msg = "user interrupted with ctrl-c (SIGINT)"
         if not self.sigint_received:
             self.logger.warning(base_msg)
-            self._shutdown(reason="ctrl-c (SIGINT)", was_sigint=True)
+            self.shutdown(reason="ctrl-c (SIGINT)")
             self.sigint_received = True
         else:
             self.logger.warning("{} again, ignoring...".format(base_msg))
 
     def _on_sigterm(self, signum):
         signame = signal.Signals(signum).name
-        self.logger.error("user interrupted with ctrl-\\ ({}), terminating...".format(signame))
-        
+        self.logger.error(
+            "user interrupted with ctrl-\\ ({}), terminating...".format(signame)
+        )
+
         try:
             # Python 3.7+
             current_task = asyncio.current_task(self.asyncio_loop)
         except AttributeError:
             current_task = asyncio.Task.current_task(self.asyncio_loop)
-        
+
         self.asyncio_loop.call_soon(current_task.cancel)
+        self.shutdown("received (SIGTERM)")
 
-    def _shutdown(reason: str, was_sigint: bool = False):
-        # TODO tell all nodes to shut down
+    def shutdown(reason: str):
+        # TODO tell all nodes to shut down -> should we use an event system after all?
         pass
 
-    def find(self, pkg: str, filename: str = None, dir: str = None):
-        # TODO
-        pass
+    def find(self, package: str, file_name: str = None, file_dir: str = None):
+        package_dir = get_package_share_directory(package) if package else None
+
+        if file_name is None:
+            return package_dir
+
+        if package_dir is None:
+            return file_name
+
+        # do not look for it, it's (said to be) there
+        if file_dir is not None:
+            return os.path.join(package_dir, file_dir, file_name)
+
+        # look for it
+        for root, dirs, files in os.walk(package_dir, topdown=False):
+            if file_name in files:
+                return join(package_dir, root, file_name)
+
+        # not there
+        raise RuntimeError(f"Could not find file {file_name} in package {package}")
 
     @contextmanager
     def group(self, ns: str = None):
@@ -190,14 +273,14 @@ class BetterLaunch(metaclass=_BetterLaunchMeta):
         stderr_to_stdout: bool = False,
         **kwargs,
     ):
-        # TODO pass namespace to node
-
         if anonymous:
             name = self._get_unique_name(name)
 
         if hidden and not name.startswith("_"):
             name = "_" + name
 
+        # TODO should the node be constructed by the group, since it makes some
+        # changes to the node params?
         exec_file = self.find(pkg, exec)
         node = Node(
             self,
@@ -238,8 +321,6 @@ class BetterLaunch(metaclass=_BetterLaunchMeta):
     ):
         if self._composition_node is not None:
             raise RuntimeError("Cannot nest composition nodes")
-
-        # TODO pass namespace to node
 
         if anonymous:
             name = self._get_unique_name(name)
@@ -329,16 +410,24 @@ class BetterLaunch(metaclass=_BetterLaunchMeta):
                     # Launch file uses better_launch, too
                     try:
                         code = compile(content, launch_file, "exec")
-                        # TODO mechanism for passing instance not fully defined yet
                         global_args["_better_launcher_instance"] = self
                         exec(code, global_args, local_args)
                         return
                     except Exception as e:
-                        # TODO log
-                        raise e
+                        self.logger.error(
+                            f"Launch include '{pkg}/{launch_file}' failed: {e}"
+                        )
+                        raise
                 else:
-                    # Assume a normal ros2 launch file
-                    # TODO
-                    pass
+                    # Delegate to ros2 launch service
+                    from launch.actions import IncludeLaunchDescription
+                    from launch.launch_description_sources import (
+                        PythonLaunchDescriptionSource,
+                    )
+
+                    ros2_include = IncludeLaunchDescription(
+                        PythonLaunchDescriptionSource(file_path)
+                    )
+                    self._defferred_ros_actions.append(ros2_include)
 
     # TODO Common stuff like joint_state_publisher, robot_state_publisher, moveit, rviz, gazebo
