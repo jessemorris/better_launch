@@ -7,6 +7,7 @@ import asyncio
 from contextlib import contextmanager
 from collections import deque
 import logging
+import osrf_pycommon.process_utils
 
 try:
     # For anonymous nodes
@@ -23,7 +24,9 @@ __better_launch_this_defined = "__better_launch_this_defined"
 __better_launch_instance = "__better_launch_instance"
 
 
-def launch_this(launch_func):
+def launch_this(launch_func, to_global: bool = True):
+    # Makes your main function compatible with the ros2 launch system, e.g.
+    # declares arguments, creates a stub launch description, etc.
     glob = globals()
     if __better_launch_this_defined in glob and __better_launch_instance not in glob:
         # Allow using launch_this only once unless we got included from another file
@@ -31,33 +34,9 @@ def launch_this(launch_func):
 
     glob[__better_launch_this_defined] = True
 
-    # TODO allow using this only once
-    import click
-
-    sig = inspect.signature(launch_func)
-    options = {}
-
-    for key, param in sig.parameters.items():
-        default = param.default
-        if default is inspect.Parameter.empty:
-            default = None
-
-        options[key] = click.Option(f"--{key}", default=default)
-
-    # TODO launch automatically
-    # TODO enable autocomplete
-    cmd = click.Command(callback=launch_func, params=options)
-    return cmd
-
-
-def launch_as_ros(launch_func, to_global: bool = True):
-    # TODO should make the function compatible with the ros2 launch system, e.g.
-    # declare arguments, create a stub launch description, etc. Also should expose
-    # some kind of interface so that it can be included by other better_launch
-    # scripts.
-    def generate_launch_description(_better_launch_instance=None):
-        from launch import LaunchDescription
-        from launch.actions import DeclareLaunchArgument
+    def generate_launch_description():
+        from launch import LaunchDescription, LaunchContext
+        from launch.actions import DeclareLaunchArgument, OpaqueFunction
 
         ld = LaunchDescription()
 
@@ -65,17 +44,20 @@ def launch_as_ros(launch_func, to_global: bool = True):
         sig = inspect.signature(launch_func)
         for param in sig.parameters:
             default = None
-            if default is not Parameter.empty:
+            if default is not inspect.Parameter.empty:
                 default = str(param.default)
 
             ld.add_action(DeclareLaunchArgument(param.name, default_value=default))
 
-        # TODO custom action to execute launch_func and pass it the declared arguments
-        ld.add_action(...)
+        def ros2_wrapper(context: LaunchContext, *args, **kwargs):
+            # args and kwargs are only for deferred function calling cases
+            launch_func(**context.launch_configurations)
+
+        ld.add_action(OpaqueFunction(ros2_wrapper))
         return ld
 
     if to_global:
-        globals()["generate_launch_description"] = generate_launch_description
+        glob["generate_launch_description"] = generate_launch_description
 
     return generate_launch_description
 

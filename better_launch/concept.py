@@ -38,3 +38,8 @@ def test():
             "publisher_local_function",
             "test_node"
         )
+
+
+# Use this if you want to run your launch file without 'ros2 launch ...'
+if __name__ == "__main__":
+    test()
