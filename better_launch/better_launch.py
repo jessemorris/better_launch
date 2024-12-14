@@ -1,7 +1,9 @@
-import sys
 from typing import Any, Callable
+import sys
 import os
+import signal
 import inspect
+import asyncio
 from contextlib import contextmanager
 from collections import deque
 import logging
@@ -117,10 +119,15 @@ class BetterLaunch(metaclass=_BetterLaunchMeta):
             if name.endswith(".launch"):
                 name = os.path.splitext(name)[0]
 
+        # This signal handler only works on linux, see 
+        # https://github.com/ros2/launch/blob/rolling/launch/launch/launch_service.py#L213
+        self.asyncio_loop = osrf_pycommon.process_utils.get_loop()
+        self.asyncio_loop.add_signal_handler(self._on_sigint)
+        self.asyncio_loop.add_signal_handler(self._on_sigterm)
+
         self.logger = logging.Logger(name, level=log_level)
         self.stdout = sys.stdout
         self.stderr = sys.stderr
-        self.asyncio_loop = ...  # TODO
         self.all_args = launch_args
 
         if ns is None:
@@ -143,6 +150,31 @@ class BetterLaunch(metaclass=_BetterLaunchMeta):
 
     def _get_unique_name(self, name: str = ""):
         return name + "_" + __uuid_generator()
+
+    def _on_sigint(self, signum):
+        base_msg = "user interrupted with ctrl-c (SIGINT)"
+        if not self.sigint_received:
+            self.logger.warning(base_msg)
+            self._shutdown(reason="ctrl-c (SIGINT)", was_sigint=True)
+            self.sigint_received = True
+        else:
+            self.logger.warning("{} again, ignoring...".format(base_msg))
+
+    def _on_sigterm(self, signum):
+        signame = signal.Signals(signum).name
+        self.logger.error("user interrupted with ctrl-\\ ({}), terminating...".format(signame))
+        
+        try:
+            # Python 3.7+
+            current_task = asyncio.current_task(self.asyncio_loop)
+        except AttributeError:
+            current_task = asyncio.Task.current_task(self.asyncio_loop)
+        
+        self.asyncio_loop.call_soon(current_task.cancel)
+
+    def _shutdown(reason: str, was_sigint: bool = False):
+        # TODO tell all nodes to shut down
+        pass
 
     def find(self, pkg: str, filename: str = None, dir: str = None):
         # TODO

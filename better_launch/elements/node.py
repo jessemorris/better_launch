@@ -14,9 +14,7 @@ class _ProcessProtocol(AsyncSubprocessProtocol):
     def __init__(
         self,
         logger,
-        *,
         output_format: str = "[{this.logger.name}] {line}",
-        cache_output: bool = True,
         **kwargs,
     ):
         super().__init__(**kwargs)
@@ -26,11 +24,6 @@ class _ProcessProtocol(AsyncSubprocessProtocol):
         self.stderr_buffer = io.StringIO()
         self.output_format = output_format
 
-        if cache_output:
-            self.on_stdout = self._on_stdout_cached
-        else:
-            self.on_stdout = self._on_stdout_direct
-
     def connection_made(self, transport):
         self.pid = transport.get_pid()
         self.logger.info(f"process started with pid [{self.pid}]")
@@ -38,43 +31,28 @@ class _ProcessProtocol(AsyncSubprocessProtocol):
 
     def on_stdout_received(self, data: bytes) -> None:
         text = data.decode(errors="replace")
-        self.on_stdout(self.stdout_buffer, text)
+        self._write_output(self.logger.info, self.stdout_buffer, text)
 
     def on_stderr_received(self, data: bytes) -> None:
         text = data.decode(errors="replace")
-        self.on_stderr(self.stderr_buffer, text)
+        self._write_output(self.logger.error, self.stderr_buffer, text)
 
     def on_process_exited(self, returncode) -> None:
         pass
 
-    def _on_stdout_cached(self, buffer, text: str) -> None:
-        last_cursor = buffer.tell()
-        buffer.seek(0, os.SEEK_END)  # go to end of buffer
-        buffer.write(text)
-        buffer.seek(last_cursor)
-        new_cursor = last_cursor
-        for line in buffer:
-            if not line.endswith(os.linesep):
-                break
-            new_cursor = buffer.tell()
-            self.logger.info(
-                self.output_format.format(line=line[: -len(os.linesep)], this=self)
-            )
-        buffer.seek(new_cursor)
-
-    def _on_stdout_direct(
-        self, logger: logging.Logger, buffer: io.TextIOBase, text: str
+    def _write_output(
+        self, write_to_log: Callable, buffer: io.TextIOBase, text: str
     ) -> None:
         if buffer.closed:
             # buffer was probably closed by _flush_direct on shutdown. Output without buffering.
-            logger.info(self.output_format.format(line=text, this=self))
+            write_to_log(self.output_format.format(line=text, this=self))
         else:
             buffer.write(text)
             buffer.seek(0)
             last_line = None
             for line in buffer:
                 if line.endswith(os.linesep):
-                    logger.info(
+                    write_to_log(
                         self.output_format.format(
                             line=line[: -len(os.linesep)], this=self
                         )
@@ -87,16 +65,16 @@ class _ProcessProtocol(AsyncSubprocessProtocol):
             if last_line is not None:
                 buffer.write(last_line)
 
-    def flush_output_buffers(self):
+    def flush_output_buffers(self, finalize: bool):
         for line in self.stdout_buffer:
             self.stdout_logger.info(self.output_format.format(line=line, this=self))
 
         for line in self.stderr_buffer:
-            self.stderr_logger.info(self.output_format.format(line=line, this=self))
+            self.stderr_logger.error(self.output_format.format(line=line, this=self))
 
         # the respawned process needs to reuse these StringIO resources,
         # close them only after receiving the shutdown
-        if self.shutdown_future is None or self.shutdown_future.done():
+        if finalize:
             self.stdout_buffer.close()
             self.stderr_buffer.close()
         else:
@@ -132,9 +110,14 @@ class Node:
 
         self.completed_future = None
         self.shutdown_future = None
-        self.on_exit = on_exit
+        self.on_exit_callback = on_exit
+        self.sigterm_timer = None
+        self.sigkill_timer = None
 
         self.pid = -1
+        self.subprocess_transport = None
+        self.subprocess_protocol = None
+
         self.cmd = executable
         self.env = env or {}
         self.node_args = node_args
@@ -147,8 +130,6 @@ class Node:
         self.emulate_tty = emulate_tty
         self.stderr_to_stdout = stderr_to_stdout
 
-        # TODO register callbacks
-
         if autostart:
             self.start()
 
@@ -158,8 +139,13 @@ class Node:
 
     @property
     def is_running(self):
-        # TODO
-        pass
+        return (
+            self.subprocess_transport is not None
+            and self.shutdown_future is not None
+            and not self.shutdown_future.done()
+            and self.completed_future is not None
+            and not self.completed_future.done()
+        )
 
     @property
     def is_shutdown(self):
@@ -177,28 +163,14 @@ class Node:
             self.logger.debug(f"Node {self} is already started")
             return
 
-        try:
-            self.completed_future = self.launcher.asyncio_loop.create_future()
-            self.shutdown_future = self.launcher.asyncio_loop.create_future()
-            self.asyncio_loop.create_task(self._execute_process())
-        except Exception:
-            for event_handler in event_handlers:
-                context.unregister_event_handler(event_handler)
-            raise
+        self.completed_future = self.launcher.asyncio_loop.create_future()
+        self.shutdown_future = self.launcher.asyncio_loop.create_future()
+        self.asyncio_loop.create_task(self._execute_process())
 
     async def _execute_process(self):
-        self.logger.info(f"Starting process '{self.cmd}' (cwd='{self.cwd}', env='{self.env}')")
-
-        # FIXME continue here! 
-        # launch/actions/execute_local.py:671
-        
-        # TODO setup listeners for 
-        # - ShutdownProcess -> on_shutdown_process_event
-        # - SignalProcess -> on_signal_process_event
-        # - OnShutdown -> on_shutdown
-        # - OnProcessExit -> on_exit + flush_buffers
-        # - shutdown timed escalation
-        # NOTE listeners must check that the signal is intended for this node (?)
+        self.logger.info(
+            f"Starting process '{self.cmd}' (cwd='{self.cwd}', env='{self.env}')"
+        )
 
         try:
             # Attach additional node args
@@ -219,7 +191,7 @@ class Node:
             else:
                 final_env = dict(os.environ)
 
-            transport, subprocess_protocol = await async_execute_process(
+            transport, protocol = await async_execute_process(
                 lambda **kwargs: _ProcessProtocol(self.logger, **kwargs),
                 cmd=final_cmd,
                 cwd=None,
@@ -228,17 +200,18 @@ class Node:
                 emulate_tty=self.emulate_tty,
                 stderr_to_stdout=self.stderr_to_stdout,
             )
+            self.subprocess_transport = transport
+            self.subprocess_protocol = protocol
         except Exception:
             self.logger.error(
                 f"An exception occurred while executing process:\n{traceback.format_exc()}"
             )
-            # TODO Cancel sigterm and sigkill timers, close subprocess transport, cancel completed future
-            self.__cleanup()
+            self.cleanup()
             return
 
         self.pid = transport.get_pid()
         # Event: process started
-        returncode = await subprocess_protocol.complete
+        returncode = await protocol.complete
 
         if returncode == 0:
             self.logger.info(f"Process has finished cleanly [pid {self.pid}]")
@@ -266,111 +239,90 @@ class Node:
                 self.launcher.asyncio_loop.create_task(self._execute_process())
                 return
 
-        # TODO see above
-        self.__cleanup()
+        self.on_process_exit()
+        self.cleanup()
 
+    def on_signal(self, sig):
+        signal_name = signal.Signals(sig).name
+        cmd = self.cmd[0]
 
-    # TODO all callbacks in launch_ros check whether the event matches the process, do we need that?
-    def on_signal_process(self, sig):
-        # TODO
-        typed_event = cast(SignalProcess, context.locals.event)
-        if not typed_event.process_matcher(self):
-            # this event was not intended for this process
-            return None
-
-        if self.process_details is None:
-            raise RuntimeError("Signal event received before execution.")
-        if self._subprocess_transport is None:
-            raise RuntimeError(
-                "Signal event received before subprocess transport available."
-            )
         if self._subprocess_protocol.complete.done():
             # the process is done or is cleaning up, no need to signal
             self.logger.debug(
-                "signal '{}' not set to '{}' because it is already closing".format(
-                    typed_event.signal_name, self.process_details["name"]
-                ),
+                f"signal '{signal_name}' not set to '{cmd}' because it is already closing"
             )
-            return None
+            return
 
         if platform.system() == "Windows" and sig == signal.SIGINT:
-            # TODO(wjwwood): remove this when/if SIGINT is fixed on Windows
+            # Windows doesn't handle sigterm correctly
             self.logger.warning(
-                "'SIGINT' sent to process[{}] not supported on Windows, escalating to 'SIGTERM'".format(
-                    self.process_details["name"]
-                ),
-            )
-            typed_event = SignalProcess(
-                signal_number=signal.SIGTERM, process_matcher=lambda process: True
+                f"'SIGINT' sent to process[{cmd}] not supported on Windows, escalating to 'SIGTERM'"
             )
 
-        self.logger.info(
-            "sending signal '{}' to process[{}]".format(
-                typed_event.signal_name, self.process_details["name"]
-            )
-        )
+            sig = signal.SIGTERM
+            signal_name = signal.SIGTERM.name
+
+        self.logger.info(f"sending signal '{signal_name}' to process[{cmd}]")
 
         try:
             if sig == signal.SIGKILL:
-                self._subprocess_transport.kill()  # works on both Windows and POSIX
-                return None
+                self.subprocess_transport.kill()  # works on both Windows and POSIX
+                return
 
-            self._subprocess_transport.send_signal(sig)
-            return None
+            self.subprocess_transport.send_signal(sig)
+            return
         except ProcessLookupError:
+            signal_name = signal.Signals(sig).name
             self.logger.debug(
-                "signal '{}' not sent to '{}' because it has closed already".format(
-                    typed_event.signal_name, self.process_details["name"]
-                )
+                f"signal '{signal_name}' not sent to '{self.cmd[0]}' because it has closed already"
             )
 
     def on_shutdown(self):
-        # TODO schedule sigterm and sigkill signals
         if self.shutdown_future is None or self.shutdown_future.done():
             # Execution not started or already done, nothing to do.
-            return None
+            return
 
         if self.completed_future is None:
             # Execution not started so nothing to do, but self.shutdown_future should prevent
             # execution from starting in the future.
             self.shutdown_future.set_result(None)
-            return None
+            return
 
         if self.completed_future.done():
-            # If already done, then nothing to do.
+            # Already done, then nothing to do
             self.shutdown_future.set_result(None)
-            return None
+            return
 
-        # Defer shut down if the process is scheduled to be started
-        if self.process_details is None or self._subprocess_transport is None:
-            # Do not set shutdown result, as event is postponed
-            context.register_event_handler(  # TODO
-                OnProcessStart(
-                    on_start=lambda event, context: self._shutdown_process(
-                        context, send_sigint=send_sigint
-                    )
-                )
-            )
-            return None
+        # NOTE ROS2 is also handling a case where the subprocess is only about to start
+        # see if we can live without that
 
         self.shutdown_future.set_result(None)
 
-    def on_process_exit():
-        if self.on_exit:
-            self.on_exit()  # TODO
-        # TODO
-        flush()
+        # Send SIGTERM and SIGKILL if not shutting down fast enough
+        self.sigterm_timer = self.launcher.asyncio_loop.call_later(
+            3, lambda: self.on_signal(signal.SIGTERM)
+        )
+        self.sigkill_timer = self.launcher.asyncio_loop.call_later(
+            6, lambda: self.on_signal(signal.SIGKILL)
+        )
 
     def cleanup(self):
         # Cancel any pending timers we started.
-        if self.sigterm_timer is not None:  # TODO
+        if self.sigterm_timer is not None:
             self.sigterm_timer.cancel()
-        if self.sigkill_timer is not None:  # TODO
+        if self.sigkill_timer is not None:
             self.sigkill_timer.cancel()
 
         # Close subprocess transport if any.
-        if self._subprocess_transport is not None:  # TODO
-            self._subprocess_transport.close()
+        if self.subprocess_transport is not None:
+            self.subprocess_transport.close()
 
         # Signal that we're done to the launch system.
         self.completed_future.set_result(None)
+
+    def on_process_exit(self):
+        if self.on_exit_callback:
+            self.on_exit_callback()
+        
+        if self.subprocess_transport is not None:
+            self.subprocess_transport.flush_output_buffers()

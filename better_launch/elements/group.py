@@ -1,5 +1,6 @@
 from .node import Node
 
+
 class Group:
     def __init__(self, launcher, parent, ns: str = None, remap: dict[str, str] = None):
         self.launcher = launcher
@@ -35,7 +36,6 @@ class Group:
         return remaps
 
     def assemble_namespace(self):
-        # TODO make ns a Path object so we can use "/"
         ns = "/"
 
         root = self._root_chain[0].parent
