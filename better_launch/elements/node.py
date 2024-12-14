@@ -67,10 +67,10 @@ class _ProcessProtocol(AsyncSubprocessProtocol):
 
     def flush_output_buffers(self, finalize: bool):
         for line in self.stdout_buffer:
-            self.stdout_logger.info(self.output_format.format(line=line, this=self))
+            self.logger.info(self.output_format.format(line=line, this=self))
 
         for line in self.stderr_buffer:
-            self.stderr_logger.error(self.output_format.format(line=line, this=self))
+            self.logger.error(self.output_format.format(line=line, this=self))
 
         # the respawned process needs to reuse these StringIO resources,
         # close them only after receiving the shutdown
@@ -118,10 +118,13 @@ class Node:
         self.subprocess_transport = None
         self.subprocess_protocol = None
 
+        self.name = name
         self.cmd = executable
         self.env = env or {}
         self.node_args = node_args
-        self.remap = remap
+        self.remap = remap or {}
+        # launch_ros/actions/node.py:495
+        self.remap["__node"] = name
 
         self.respawn_retries = 0
         self.max_respawns = max_respawns
@@ -221,6 +224,8 @@ class Node:
             )
 
         # Event: process terminated
+        self.on_process_exit()
+
         # Respawn the process if necessary
         if (
             not self.is_shutdown
@@ -230,39 +235,36 @@ class Node:
         ):
             self.respawn_retries += 1
             if self.respawn_delay > 0.0:
-                # wait for a timeout to respawn the process
-                # and handle shutdown event with future
-                # to make sure `ros2 launch` exit in time
+                # Wait for a timeout to respawn the process. The shutdown future helps to
+                # shortcut the wait if required
                 await asyncio.wait([self.shutdown_future], timeout=self.respawn_delay)
 
             if not self.shutdown_future.done():
                 self.launcher.asyncio_loop.create_task(self._execute_process())
                 return
 
-        self.on_process_exit()
         self.cleanup()
 
     def on_signal(self, sig):
         signal_name = signal.Signals(sig).name
-        cmd = self.cmd[0]
 
         if self._subprocess_protocol.complete.done():
             # the process is done or is cleaning up, no need to signal
             self.logger.debug(
-                f"signal '{signal_name}' not set to '{cmd}' because it is already closing"
+                f"'{signal_name}' not set to '{self.name}' because it is already closing"
             )
             return
 
         if platform.system() == "Windows" and sig == signal.SIGINT:
             # Windows doesn't handle sigterm correctly
             self.logger.warning(
-                f"'SIGINT' sent to process[{cmd}] not supported on Windows, escalating to 'SIGTERM'"
+                f"'SIGINT' sent to process[{self.name}] not supported on Windows, escalating to 'SIGTERM'"
             )
 
             sig = signal.SIGTERM
             signal_name = signal.SIGTERM.name
 
-        self.logger.info(f"sending signal '{signal_name}' to process[{cmd}]")
+        self.logger.info(f"Sending signal '{signal_name}' to process [{self.name}]")
 
         try:
             if sig == signal.SIGKILL:
@@ -274,7 +276,7 @@ class Node:
         except ProcessLookupError:
             signal_name = signal.Signals(sig).name
             self.logger.debug(
-                f"signal '{signal_name}' not sent to '{self.cmd[0]}' because it has closed already"
+                f"'{signal_name}' not sent to '{self.name}' because it has closed already"
             )
 
     def on_shutdown(self):
@@ -317,12 +319,21 @@ class Node:
         if self.subprocess_transport is not None:
             self.subprocess_transport.close()
 
+        if self.subprocess_protocol is not None:
+            finalize = self.shutdown_future is not None and self.shutdown_future.done()
+            self.subprocess_protocol.flush_output_buffers(finalize=finalize)
+
         # Signal that we're done to the launch system.
         self.completed_future.set_result(None)
 
     def on_process_exit(self):
         if self.on_exit_callback:
             self.on_exit_callback()
-        
+
         if self.subprocess_transport is not None:
             self.subprocess_transport.flush_output_buffers()
+
+    def __repr__(self):
+        return (
+            f"{self.name} [cmd {self.cmd}, pid {self.pid}, running {self.is_running}]"
+        )
