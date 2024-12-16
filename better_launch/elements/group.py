@@ -5,6 +5,7 @@ class Group:
     def __init__(self, launcher, parent, ns: str = None, remap: dict[str, str] = None):
         self.launcher = launcher
         self.parent = parent
+        self.children = []
         self.ns = ns or ""
         self.remap = dict(remap or {})
         self.nodes = []
@@ -46,6 +47,9 @@ class Group:
             ns += "/" + g.ns.strip("/")
 
         return ns
+
+    def add_group(self, group: "Group"):
+        self.children.append(group)
 
     def add_node(self, node: Node):
         # Assemble additional node remaps from our group branch

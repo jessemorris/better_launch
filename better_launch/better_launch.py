@@ -48,6 +48,7 @@ def launch_this(launch_func):
         default = param.default
         options.append(click.Option(f"--{param.name}", default=default))
 
+    # All BL nodes and includes are async once started
     click_cmd = click.Command("main", callback=launch_func, options=options)
     try:
         click_cmd.main()
@@ -65,9 +66,9 @@ def launch_this(launch_func):
 
         launch_description = LaunchDescription(bl._deferred_ros_actions)
 
-        ros2_launcher = LaunchService()
-        ros2_launcher.include_launch_description(launch_description)
-        ros2_launcher.run()
+        bl._ros2_launcher = LaunchService(noninteractive=True)
+        bl._ros2_launcher.include_launch_description(launch_description)
+        bl._ros2_launcher.run()
 
 
 def launch_this_ros2(launch_func, to_global: bool = True):
@@ -172,44 +173,64 @@ class BetterLaunch(metaclass=_BetterLaunchMeta):
         self.stdout = sys.stdout
         self.stderr = sys.stderr
         self.all_args = launch_args
+        self.sigint_received = False
 
         if ns is None:
             ns = "/"
         elif not ns.startswith("/"):
             ns = "/" + ns
 
+        self._group_root = Group(self, ns)
         self._group_stack = deque()
-        self._group_stack.append(Group(self, ns))
+        self._group_stack.append(self._group_root)
 
         self._composition_node = None
 
-        self._defferred_ros_actions = []
+        # Stores additional actions for the ROS2 launch system, 
+        # e.g. includes of regular (not better-launch) launch files
+        self._deferred_ros_actions = []
+        self._ros2_launcher = None
 
-    def _get_namespace(self, until: int = -1):
-        ns = ""
-        for g in self._group_stack[:until]:
-            if g.ns:
-                ns += "/" + g.ns.strip("/")
-
-        return ns
-
-    def _get_unique_name(self, name: str = ""):
+    def get_unique_name(self, name: str = ""):
         return name + "_" + __uuid_generator()
 
+    def all_groups(self):
+        # Assemble all groups
+        groups: list[Group] = [self._group_root]
+        queue: list[Group] = [self._group_root]
+        
+        # Simplified breadth first search since we don't expect any loops
+        while queue:
+            g = queue.pop()
+            groups.extend(g.children)
+            queue.extend(g.children)
+
+        return groups
+
+    def all_nodes(self):
+        nodes = []
+        groups = self.all_groups()
+
+        for g in groups:
+            nodes.extend(g.nodes)
+        
+        return nodes
+
     def _on_sigint(self, signum):
-        base_msg = "user interrupted with ctrl-c (SIGINT)"
+        signame = signal.Signals(signum).name
         if not self.sigint_received:
-            self.logger.warning(base_msg)
-            self.shutdown(reason="ctrl-c (SIGINT)")
+            self.logger.warning(f"Received ({signame}), forwarding to child processes...")
+            self.shutdown("user interrupt", signum)
             self.sigint_received = True
         else:
-            self.logger.warning("{} again, ignoring...".format(base_msg))
+            self.logger.warning(f"Received ({signame}) again, ignoring")
 
     def _on_sigterm(self, signum):
         signame = signal.Signals(signum).name
-        self.logger.error(
-            "user interrupted with ctrl-\\ ({}), terminating...".format(signame)
-        )
+        self.logger.error(f"Using ({signame}) can result in orphaned processes!")
+        
+        # Final chance for the processes to shut down
+        self.shutdown(f"received ({signame})", signum)
 
         try:
             # Python 3.7+
@@ -217,12 +238,17 @@ class BetterLaunch(metaclass=_BetterLaunchMeta):
         except AttributeError:
             current_task = asyncio.Task.current_task(self.asyncio_loop)
 
-        self.asyncio_loop.call_soon(current_task.cancel)
-        self.shutdown("received (SIGTERM)")
+        self.asyncio_loop.call_later(0.5, current_task.cancel)
+        self.shutdown(f"received ({signame})", signum)
 
-    def shutdown(reason: str):
-        # TODO tell all nodes to shut down -> should we use an event system after all?
-        pass
+    def shutdown(self, reason: str, signum: int = signal.SIGTERM):
+        # Tell all nodes to shut down
+        for n in self.all_nodes():
+            n.shutdown(reason, signum)
+
+        # If we launched extra ROS2 actions tell the launch service to shut down, too
+        if self._ros2_launcher is not None:
+            self._ros2_launcher.shutdown()
 
     def find(self, package: str, file_name: str = None, file_dir: str = None):
         package_dir = get_package_share_directory(package) if package else None
@@ -247,7 +273,8 @@ class BetterLaunch(metaclass=_BetterLaunchMeta):
 
     @contextmanager
     def group(self, ns: str = None):
-        group = Group(self, self._group_stack[-1], ns)
+        group = Group(self, self._group_root, ns)
+        self._group_stack[-1].add_group(group)
         self._group_stack.append(group)
         try:
             yield group
@@ -274,7 +301,7 @@ class BetterLaunch(metaclass=_BetterLaunchMeta):
         **kwargs,
     ):
         if anonymous:
-            name = self._get_unique_name(name)
+            name = self.get_unique_name(name)
 
         if hidden and not name.startswith("_"):
             name = "_" + name
@@ -298,7 +325,7 @@ class BetterLaunch(metaclass=_BetterLaunchMeta):
             **kwargs,
         )
 
-        self._group_stack[-1].add_node(node)
+        self._group_root.add_node(node)
         return node
 
     @contextmanager
@@ -323,7 +350,7 @@ class BetterLaunch(metaclass=_BetterLaunchMeta):
             raise RuntimeError("Cannot nest composition nodes")
 
         if anonymous:
-            name = self._get_unique_name(name)
+            name = self.get_unique_name(name)
 
         if hidden and not name.startswith("_"):
             name = "_" + name
@@ -344,7 +371,7 @@ class BetterLaunch(metaclass=_BetterLaunchMeta):
         )
 
         try:
-            self._group_stack[-1].add_node(comp)
+            self._group_root.add_node(comp)
             self._composition_node = comp
             yield comp
         finally:
@@ -372,7 +399,7 @@ class BetterLaunch(metaclass=_BetterLaunchMeta):
             raise RuntimeError("Cannot add component outside a compose() node")
 
         if anonymous:
-            name = self._get_unique_name(name)
+            name = self.get_unique_name(name)
 
         if hidden and not name.startswith("_"):
             name = "_" + name
@@ -428,6 +455,6 @@ class BetterLaunch(metaclass=_BetterLaunchMeta):
                     ros2_include = IncludeLaunchDescription(
                         PythonLaunchDescriptionSource(file_path)
                     )
-                    self._defferred_ros_actions.append(ros2_include)
+                    self._deferred_ros_actions.append(ros2_include)
 
     # TODO Common stuff like joint_state_publisher, robot_state_publisher, moveit, rviz, gazebo

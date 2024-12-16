@@ -209,7 +209,7 @@ class Node:
             self.logger.error(
                 f"An exception occurred while executing process:\n{traceback.format_exc()}"
             )
-            self.cleanup()
+            self._cleanup()
             return
 
         self.pid = transport.get_pid()
@@ -224,7 +224,7 @@ class Node:
             )
 
         # Event: process terminated
-        self.on_process_exit()
+        self._on_process_exit()
 
         # Respawn the process if necessary
         if (
@@ -243,43 +243,57 @@ class Node:
                 self.launcher.asyncio_loop.create_task(self._execute_process())
                 return
 
-        self.cleanup()
+        self._on_shutdown()
+        self._cleanup()
 
-    def on_signal(self, sig):
-        signal_name = signal.Signals(sig).name
+    def shutdown(self, reason: str, signum: int = signal.SIGTERM):
+        signame = signal.Signals(signum).name
+        self.logger.warning(f"{self.name} received shutdown request: {reason} ({signame})")
+        self._on_signal(signum)
+
+    def _on_signal(self, signum):
+        signame = signal.Signals(signum).name
 
         if self._subprocess_protocol.complete.done():
             # the process is done or is cleaning up, no need to signal
             self.logger.debug(
-                f"'{signal_name}' not set to '{self.name}' because it is already closing"
+                f"'{signame}' not set to '{self.name}' because it is already closing"
             )
             return
 
-        if platform.system() == "Windows" and sig == signal.SIGINT:
+        if platform.system() == "Windows" and signum == signal.SIGINT:
             # Windows doesn't handle sigterm correctly
             self.logger.warning(
                 f"'SIGINT' sent to process[{self.name}] not supported on Windows, escalating to 'SIGTERM'"
             )
 
-            sig = signal.SIGTERM
-            signal_name = signal.SIGTERM.name
+            signum = signal.SIGTERM
+            signame = signal.SIGTERM.name
 
-        self.logger.info(f"Sending signal '{signal_name}' to process [{self.name}]")
+        self.logger.info(f"Sending signal '{signame}' to process [{self.name}]")
 
         try:
-            if sig == signal.SIGKILL:
+            if signum == signal.SIGKILL:
                 self.subprocess_transport.kill()  # works on both Windows and POSIX
                 return
 
-            self.subprocess_transport.send_signal(sig)
+            self.subprocess_transport.send_signal(signum)
             return
         except ProcessLookupError:
-            signal_name = signal.Signals(sig).name
+            signame = signal.Signals(signum).name
             self.logger.debug(
-                f"'{signal_name}' not sent to '{self.name}' because it has closed already"
+                f"'{signame}' not sent to '{self.name}' because it has closed already"
             )
 
-    def on_shutdown(self):
+    def _on_process_exit(self):
+        # Note that the process might be restarted. The final call will be _on_shutdown
+        if self.on_exit_callback:
+            self.on_exit_callback()
+
+        if self.subprocess_transport is not None:
+            self.subprocess_transport.flush_output_buffers()
+
+    def _on_shutdown(self):
         if self.shutdown_future is None or self.shutdown_future.done():
             # Execution not started or already done, nothing to do.
             return
@@ -302,13 +316,13 @@ class Node:
 
         # Send SIGTERM and SIGKILL if not shutting down fast enough
         self.sigterm_timer = self.launcher.asyncio_loop.call_later(
-            3, lambda: self.on_signal(signal.SIGTERM)
+            3, lambda: self._on_signal(signal.SIGTERM)
         )
         self.sigkill_timer = self.launcher.asyncio_loop.call_later(
-            6, lambda: self.on_signal(signal.SIGKILL)
+            6, lambda: self._on_signal(signal.SIGKILL)
         )
 
-    def cleanup(self):
+    def _cleanup(self):
         # Cancel any pending timers we started.
         if self.sigterm_timer is not None:
             self.sigterm_timer.cancel()
@@ -325,13 +339,6 @@ class Node:
 
         # Signal that we're done to the launch system.
         self.completed_future.set_result(None)
-
-    def on_process_exit(self):
-        if self.on_exit_callback:
-            self.on_exit_callback()
-
-        if self.subprocess_transport is not None:
-            self.subprocess_transport.flush_output_buffers()
 
     def __repr__(self):
         return (
