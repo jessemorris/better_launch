@@ -1,6 +1,5 @@
 import asyncio
 import io
-import logging
 import os
 import platform
 import signal
@@ -8,6 +7,8 @@ import traceback
 from typing import Any, Callable
 from osrf_pycommon.process_utils import async_execute_process
 from osrf_pycommon.process_utils import AsyncSubprocessProtocol
+
+from composition_interfaces.srv import LoadNode
 
 
 class _ProcessProtocol(AsyncSubprocessProtocol):
@@ -104,9 +105,8 @@ class Node:
     ):
         self.launcher = launcher
 
-        # TODO get logger from parent instead of root
+        # TODO get logger from parent instead of root, add handlers as required
         self.logger = launcher.logger.getChild(name)
-        self.stdout_logger, self.stderr_logger = launcher.get_output_loggers(name)
 
         self.completed_future = None
         self.shutdown_future = None
@@ -133,12 +133,39 @@ class Node:
         self.emulate_tty = emulate_tty
         self.stderr_to_stdout = stderr_to_stdout
 
+        self._load_node_client = None
+
         if autostart:
             self.start()
 
     def add_component(self, pkg, plugin, name, **kwargs):
-        # TODO
-        pass
+        if not self._load_node_client:
+            self._load_node_client = self.launcher.ros_adapter.create_client(
+                LoadNode, f"{self.name}/_container/load_node"
+            )
+            self._load_node_client.wait_for_service(timeout_sec=1.0)
+        
+        # From launch_ros/actions/load_composable_nodes.py:247
+        req = LoadNode.Request()
+        req.package_name = pkg
+        req.plugin_name = plugin
+        req.node_name = name
+        req.node_namespace = ...  # TODO
+        req.remap_rules = {k:v for k,v in self.remap.items() if not k.startswith("_")}
+        req.parameters = []  # TODO 
+        req.extra_arguments = []
+
+        self.logger.info(f"Loading composable node {pkg}/{plugin}...")
+        # TODO make this async so that we can check for e.g. shutdown while waiting
+        res = self._load_node_client.call(req)
+
+        if res.success:
+            if res.full_node_name:
+                name = res.full_node_name
+            self.logger.info(f"Loaded {pkg}/{plugin} as {name}")
+        else:
+            self.logger.error(f"Loading {pkg}/{plugin} failed: {res.error_message}")
+            #raise RuntimeError(res.error_message)
 
     @property
     def is_running(self):
@@ -152,7 +179,7 @@ class Node:
 
     @property
     def is_shutdown(self):
-        return self.launcher.is_shutdown()
+        return self.launcher.is_shutdown
 
     def start(self):
         if self.is_shutdown:
@@ -168,7 +195,7 @@ class Node:
 
         self.completed_future = self.launcher.asyncio_loop.create_future()
         self.shutdown_future = self.launcher.asyncio_loop.create_future()
-        self.asyncio_loop.create_task(self._execute_process())
+        self.launcher.asyncio_loop.create_task(self._execute_process())
 
     async def _execute_process(self):
         self.logger.info(

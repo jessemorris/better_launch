@@ -12,16 +12,17 @@ class Group:
 
         self._root_chain = self._get_chain_from_root()
 
+        pl = parent.logger if parent else launcher.logger
         if ns:
-            self.logger = parent.logger.getChild(ns)
+            self.logger = pl.getChild(ns)
         else:
-            self.logger = parent.logger
+            self.logger = pl
 
     def _get_chain_from_root(self, include_root: bool = False):
         # The launcher doesn't keep the group tree, but we can rebuild at least our own branch
         chain = []
         g = self
-        while g is not None and g is not self.launcher:
+        while g is not None:
             chain.append(g)
             g = g.parent
 

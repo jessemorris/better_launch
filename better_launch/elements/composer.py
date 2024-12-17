@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Any, Callable
 from .node import Node
 
 

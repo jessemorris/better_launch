@@ -1,4 +1,4 @@
-from better_launch import BetterLaunch, launch_ros2
+from better_launch import BetterLaunch, launch_this
 
 
 #@launch_this
@@ -27,7 +27,7 @@ def concept(
 
 
 
-@launch_ros2
+@launch_this
 def test():
     bl = BetterLaunch()
 
@@ -37,8 +37,3 @@ def test():
             "publisher_local_function",
             "test_node"
         )
-
-
-# Use this if you want to run your launch file without 'ros2 launch ...'
-if __name__ == "__main__":
-    test()

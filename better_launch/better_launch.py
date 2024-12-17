@@ -10,7 +10,7 @@ from collections import deque
 import logging
 import osrf_pycommon.process_utils
 
-from ament_index_python.packages import get_package_share_directory
+from ament_index_python.packages import get_package_prefix
 
 try:
     # For anonymous nodes
@@ -25,19 +25,20 @@ except ImportError:
     __uuid_generator = lambda: uuid.uuid4().hex
 
 from elements import Group, Composer, Node
+from ros_adapter import ROSAdapter
 
 
-__better_launch_this_defined = "__better_launch_this_defined"
-__better_launch_instance = "__better_launch_instance"
+_is_launcher_defined = "__better_launch_this_defined"
+_has_bl_instance = "__better_launch_instance"
 
 
 def launch_this(launch_func):
     glob = globals()
-    if __better_launch_this_defined in glob and __better_launch_instance not in glob:
+    if _is_launcher_defined in glob and _has_bl_instance not in glob:
         # Allow using launch_this only once unless we got included from another file
         raise RuntimeError("Can only use one launch decorator")
 
-    glob[__better_launch_this_defined] = True
+    glob[_is_launcher_defined] = True
 
     # Expose launch_func args through click?
     import click
@@ -49,7 +50,7 @@ def launch_this(launch_func):
         options.append(click.Option(f"--{param.name}", default=default))
 
     # All BL nodes and includes are async once started
-    click_cmd = click.Command("main", callback=launch_func, options=options)
+    click_cmd = click.Command("main", callback=launch_func, params=options)
     try:
         click_cmd.main()
     except SystemExit as e:
@@ -75,11 +76,11 @@ def launch_this_ros2(launch_func, to_global: bool = True):
     # Makes your main function compatible with the ros2 launch system, e.g.
     # declares arguments, creates a stub launch description, etc.
     glob = globals()
-    if __better_launch_this_defined in glob and __better_launch_instance not in glob:
+    if _is_launcher_defined in glob and _has_bl_instance not in glob:
         # Allow using launch_this only once unless we got included from another file
         raise RuntimeError("Can only use one launch decorator")
 
-    glob[__better_launch_this_defined] = True
+    glob[_is_launcher_defined] = True
 
     def generate_launch_description():
         from launch import LaunchDescription, LaunchContext
@@ -128,7 +129,7 @@ class _BetterLaunchMeta(type):
     # Allows reusing an already existing BetterLaunch instance.
     # Important for launch file includes.
     def __call__(cls, *args, **kwargs):
-        existing_instance = globals().get(__better_launch_instance, None)
+        existing_instance = globals().get(_has_bl_instance, None)
         if existing_instance is not None:
             return existing_instance
 
@@ -150,7 +151,7 @@ class BetterLaunch(metaclass=_BetterLaunchMeta):
             try:
                 # Get the caller's locals
                 launch_args = {
-                    k: v for k, v in frame.f_back.f_locals if not k.startswith("_")
+                    k: v for k, v in frame.f_back.f_locals.items() if not k.startswith("_")
                 }
             finally:
                 del frame
@@ -166,21 +167,25 @@ class BetterLaunch(metaclass=_BetterLaunchMeta):
         # This signal handler only works on linux, see
         # https://github.com/ros2/launch/blob/rolling/launch/launch/launch_service.py#L213
         self.asyncio_loop = osrf_pycommon.process_utils.get_loop()
-        self.asyncio_loop.add_signal_handler(self._on_sigint)
-        self.asyncio_loop.add_signal_handler(self._on_sigterm)
+        self.asyncio_loop.add_signal_handler(signal.SIGINT, self._on_sigint)
+        self.asyncio_loop.add_signal_handler(signal.SIGTERM, self._on_sigterm)
+
+        # For those cases where we need to interact with ROS somehow (e.g. service calls)
+        self.ros_adapter = ROSAdapter()
 
         self.logger = logging.Logger(name, level=log_level)
         self.stdout = sys.stdout
         self.stderr = sys.stderr
         self.all_args = launch_args
         self.sigint_received = False
+        self.is_shutdown = False
 
         if ns is None:
             ns = "/"
         elif not ns.startswith("/"):
             ns = "/" + ns
 
-        self._group_root = Group(self, ns)
+        self._group_root = Group(self, None, ns)
         self._group_stack = deque()
         self._group_stack.append(self._group_root)
 
@@ -242,6 +247,9 @@ class BetterLaunch(metaclass=_BetterLaunchMeta):
         self.shutdown(f"received ({signame})", signum)
 
     def shutdown(self, reason: str, signum: int = signal.SIGTERM):
+        self.is_shutdown = True
+        self.ros_adapter.shutdown()
+
         # Tell all nodes to shut down
         for n in self.all_nodes():
             n.shutdown(reason, signum)
@@ -251,7 +259,7 @@ class BetterLaunch(metaclass=_BetterLaunchMeta):
             self._ros2_launcher.shutdown()
 
     def find(self, package: str, file_name: str = None, file_dir: str = None):
-        package_dir = get_package_share_directory(package) if package else None
+        package_dir = get_package_prefix(package) if package else None
 
         if file_name is None:
             return package_dir
@@ -259,14 +267,14 @@ class BetterLaunch(metaclass=_BetterLaunchMeta):
         if package_dir is None:
             return file_name
 
-        # do not look for it, it's (said to be) there
+        # look in specific subolder
         if file_dir is not None:
-            return os.path.join(package_dir, file_dir, file_name)
+            package_dir = os.path.join(package_dir, file_dir)
 
         # look for it
         for root, dirs, files in os.walk(package_dir, topdown=False):
             if file_name in files:
-                return join(package_dir, root, file_name)
+                return os.path.join(package_dir, root, file_name)
 
         # not there
         raise RuntimeError(f"Could not find file {file_name} in package {package}")
