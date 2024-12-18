@@ -199,7 +199,7 @@ class Node:
 
     async def _execute_process(self):
         self.logger.info(
-            f"Starting process '{self.cmd}' (cwd='{self.cwd}', env='{self.env}')"
+            f"Starting process '{self.cmd}' (env='{self.env}')"
         )
 
         try:

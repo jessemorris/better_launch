@@ -1,6 +1,7 @@
 from typing import Any, Callable
 import sys
 import os
+import platform
 from ast import literal_eval
 import signal
 import inspect
@@ -25,7 +26,8 @@ except ImportError:
     __uuid_generator = lambda: uuid.uuid4().hex
 
 from elements import Group, Composer, Node
-from ros_adapter import ROSAdapter
+from utils.ros_adapter import ROSAdapter
+from utils.async_signal_manager import AsyncSafeSignalManager
 
 
 _is_launcher_defined = "__better_launch_this_defined"
@@ -164,18 +166,18 @@ class BetterLaunch(metaclass=_BetterLaunchMeta):
             if name.endswith(".launch"):
                 name = os.path.splitext(name)[0]
 
-        # This signal handler only works on linux, see
-        # https://github.com/ros2/launch/blob/rolling/launch/launch/launch_service.py#L213
+        # Handling signals is complicated with asyncio, we use the ros2/launch signal manager 
         self.asyncio_loop = osrf_pycommon.process_utils.get_loop()
-        self.asyncio_loop.add_signal_handler(signal.SIGINT, self._on_sigint)
-        self.asyncio_loop.add_signal_handler(signal.SIGTERM, self._on_sigterm)
+        self._signal_manager = AsyncSafeSignalManager(self.asyncio_loop)
+        self._signal_manager.handle(signal.SIGINT, self._on_sigint)
+        self._signal_manager.handle(signal.SIGTERM, self._on_sigterm)
+        if platform.system() != 'Windows':
+            self._signal_manager.handle(signal.SIGQUIT, self._on_sigterm)
 
         # For those cases where we need to interact with ROS somehow (e.g. service calls)
         self.ros_adapter = ROSAdapter()
 
         self.logger = logging.Logger(name, level=log_level)
-        self.stdout = sys.stdout
-        self.stderr = sys.stderr
         self.all_args = launch_args
         self.sigint_received = False
         self.is_shutdown = False
@@ -221,21 +223,19 @@ class BetterLaunch(metaclass=_BetterLaunchMeta):
         
         return nodes
 
-    def _on_sigint(self, signum):
-        signame = signal.Signals(signum).name
+    def _on_sigint(self):
         if not self.sigint_received:
-            self.logger.warning(f"Received ({signame}), forwarding to child processes...")
-            self.shutdown("user interrupt", signum)
+            self.logger.warning(f"Received (SIGINT), forwarding to child processes...")
+            self.shutdown("user interrupt", signal.SIGINT)
             self.sigint_received = True
         else:
-            self.logger.warning(f"Received ({signame}) again, ignoring")
+            self.logger.warning(f"Received (SIGINT) again, ignoring")
 
-    def _on_sigterm(self, signum):
-        signame = signal.Signals(signum).name
-        self.logger.error(f"Using ({signame}) can result in orphaned processes!")
+    def _on_sigterm(self):
+        self.logger.error(f"Using (SIGTERM) can result in orphaned processes!")
         
         # Final chance for the processes to shut down
-        self.shutdown(f"received ({signame})", signum)
+        self.shutdown(f"received (SIGTERM)", signal.SIGTERM)
 
         try:
             # Python 3.7+
@@ -244,7 +244,6 @@ class BetterLaunch(metaclass=_BetterLaunchMeta):
             current_task = asyncio.Task.current_task(self.asyncio_loop)
 
         self.asyncio_loop.call_later(0.5, current_task.cancel)
-        self.shutdown(f"received ({signame})", signum)
 
     def shutdown(self, reason: str, signum: int = signal.SIGTERM):
         self.is_shutdown = True

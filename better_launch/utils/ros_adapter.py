@@ -21,14 +21,14 @@ class ROSAdapter:
         self.ros_context = None
         self.ros_node = None
         self.ros_executor = None
-        self._is_running = False
+        self._thread = None
 
         if autostart:
             self.start()
 
     def start(self):
         """Start ROS adapter."""
-        if self._is_running:
+        if self._thread and self._thread.is_alive():
             raise RuntimeError("Cannot start a ROS adapter that is already running")
 
         self.ros_context = rclpy.Context()
@@ -38,9 +38,9 @@ class ROSAdapter:
         )
         self.ros_executor = SingleThreadedExecutor(context=self.ros_context)
 
-        self._is_running = True
-        self.ros_executor_thread = threading.Thread(daemon=True, target=self._run)
-        self.ros_executor_thread.start()
+        # TODO Cannot run in a daemon thread for some reason
+        self._thread = threading.Thread(target=self._run)
+        self._thread.start()
 
     def _run(self):
         try:
@@ -53,10 +53,11 @@ class ROSAdapter:
 
     def shutdown(self):
         """Shutdown ROS adapter."""
-        if not self._is_running:
-            raise RuntimeError("Cannot shutdown a ROS adapter that is not running")
+        if not self._thread or not self._thread.is_alive():
+            return
         
-        self._is_running = False
-        self.ros_executor_thread.join()
+        print("shutting down")
+        self.ros_executor.shutdown()
+        self._thread.join()
         self.ros_node.destroy_node()
         rclpy.shutdown(context=self.__ros_context)

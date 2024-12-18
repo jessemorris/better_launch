@@ -32,6 +32,7 @@ def test():
     bl = BetterLaunch()
 
     with bl.group("test"):
+        print(bl.all_groups())
         bl.node(
             "examples_rclpy_minimal_publisher",
             "publisher_local_function",
