@@ -2,11 +2,11 @@ from .node import Node
 
 
 class Group:
-    def __init__(self, launcher, parent, ns: str = None, remap: dict[str, str] = None):
+    def __init__(self, launcher, parent, ns: str, remap: dict[str, str] = None):
         self.launcher = launcher
         self.parent = parent
         self.children = []
-        self.ns = ns or ""
+        self.ns = ns
         self.remap = dict(remap or {})
         self.nodes = []
 
@@ -26,7 +26,7 @@ class Group:
             chain.append(g)
             g = g.parent
 
-        if include_root:
+        if include_root and g:
             chain.append(g)
 
         return list(reversed(chain))
@@ -38,14 +38,17 @@ class Group:
         return remaps
 
     def assemble_namespace(self):
-        ns = "/"
+        ns = ""
 
         root = self._root_chain[0].parent
         if root:
-            ns = root.ns
+            ns = root.ns.strip("/")
 
         for g in self._root_chain:
             ns += "/" + g.ns.strip("/")
+
+        while "//" in ns:
+            ns = ns.replace("//", "/")
 
         return ns
 
@@ -66,3 +69,6 @@ class Group:
 
         self.nodes.append(node)
         node.start()
+
+    def __repr__(self):
+        return self.assemble_namespace()

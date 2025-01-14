@@ -33,6 +33,7 @@ def test():
 
     with bl.group("test"):
         print(bl.all_groups())
+        # TODO for some reason the node is started twice??
         bl.node(
             "examples_rclpy_minimal_publisher",
             "publisher_local_function",

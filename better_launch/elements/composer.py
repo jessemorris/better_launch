@@ -21,7 +21,7 @@ class Composer(Node):
         use_shell: bool = False,
         emulate_tty: bool = False,
         stderr_to_stdout: bool = False,
-        autostart: bool = False,
+        autostart: bool = True,
         **kwargs,
     ):
         super().__init__(

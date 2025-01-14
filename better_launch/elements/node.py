@@ -101,9 +101,10 @@ class Node:
         use_shell: bool = False,
         emulate_tty: bool = False,
         stderr_to_stdout: bool = False,
-        autostart: bool = False,
+        autostart: bool = True,
     ):
         self.launcher = launcher
+        self.my_task = None
 
         # TODO get logger from parent instead of root, add handlers as required
         self.logger = launcher.logger.getChild(name)
@@ -118,10 +119,16 @@ class Node:
         self.subprocess_transport = None
         self.subprocess_protocol = None
 
+        if not name:
+            raise ValueError("Name cannot be empty")
+
+        if not executable:
+            raise ValueError("No executable provided")
+
         self.name = name
         self.cmd = executable
         self.env = env or {}
-        self.node_args = node_args
+        self.node_args = node_args or {}
         self.remap = remap or {}
         # launch_ros/actions/node.py:495
         self.remap["__node"] = name
@@ -195,7 +202,7 @@ class Node:
 
         self.completed_future = self.launcher.asyncio_loop.create_future()
         self.shutdown_future = self.launcher.asyncio_loop.create_future()
-        self.launcher.asyncio_loop.create_task(self._execute_process())
+        self.my_task = self.launcher.asyncio_loop.create_task(self._execute_process())
 
     async def _execute_process(self):
         self.logger.info(
@@ -226,7 +233,7 @@ class Node:
                 cmd=final_cmd,
                 cwd=None,
                 env=final_env,
-                shell=self.run_in_shell,
+                shell=self.use_shell,
                 emulate_tty=self.emulate_tty,
                 stderr_to_stdout=self.stderr_to_stdout,
             )
@@ -365,7 +372,13 @@ class Node:
             self.subprocess_protocol.flush_output_buffers(finalize=finalize)
 
         # Signal that we're done to the launch system.
-        self.completed_future.set_result(None)
+        if self.completed_future is not None:
+            try:
+                self.completed_future.set_result(None)
+            except asyncio.exceptions.InvalidStateError:
+                self.completed_future.cancel("Cancelled by cleanup")
+        
+        self.my_task = None
 
     def __repr__(self):
         return (

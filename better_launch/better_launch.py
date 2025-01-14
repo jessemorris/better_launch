@@ -51,30 +51,21 @@ def launch_this(launch_func):
         default = param.default
         options.append(click.Option(f"--{param.name}", default=default))
 
+    def run():
+        launch_func()
+        # Retrieve the BetterLaunch singleton and run it
+        BetterLaunch()._execute()
+
     # All BL nodes and includes are async once started
-    click_cmd = click.Command("main", callback=launch_func, params=options)
+    click_cmd = click.Command("main", callback=run, params=options)
     try:
         click_cmd.main()
     except SystemExit as e:
         if e.code != 0:
             raise
 
-    # Retrieve the BetterLaunch singleton
-    bl = BetterLaunch()
 
-    # LaunchService should not be run in parallel, so we instead collect all the
-    # actions and then run them at the end
-    if bl._deferred_ros_actions:
-        from launch import LaunchDescription, LaunchService
-
-        launch_description = LaunchDescription(bl._deferred_ros_actions)
-
-        bl._ros2_launcher = LaunchService(noninteractive=True)
-        bl._ros2_launcher.include_launch_description(launch_description)
-        bl._ros2_launcher.run()
-
-
-def launch_this_ros2(launch_func, to_global: bool = True):
+def launch_this_from_launchdescription(launch_func, to_global: bool = True):
     # Makes your main function compatible with the ros2 launch system, e.g.
     # declares arguments, creates a stub launch description, etc.
     glob = globals()
@@ -136,6 +127,7 @@ class _BetterLaunchMeta(type):
             return existing_instance
 
         obj = cls.__new__(cls, *args, **kwargs)
+        globals()[_has_bl_instance] = obj
         obj.__init__(*args, **kwargs)
         return obj
 
@@ -167,7 +159,7 @@ class BetterLaunch(metaclass=_BetterLaunchMeta):
                 name = os.path.splitext(name)[0]
 
         # Handling signals is complicated with asyncio, we use the ros2/launch signal manager 
-        self.asyncio_loop = osrf_pycommon.process_utils.get_loop()
+        self.asyncio_loop: asyncio.AbstractEventLoop = osrf_pycommon.process_utils.get_loop()
         self._signal_manager = AsyncSafeSignalManager(self.asyncio_loop)
         self._signal_manager.handle(signal.SIGINT, self._on_sigint)
         self._signal_manager.handle(signal.SIGTERM, self._on_sigterm)
@@ -193,18 +185,22 @@ class BetterLaunch(metaclass=_BetterLaunchMeta):
 
         self._composition_node = None
 
-        # Stores additional actions for the ROS2 launch system, 
-        # e.g. includes of regular (not better-launch) launch files
-        self._deferred_ros_actions = []
+        # Allows to run traditional ros2 launch descriptions
         self._ros2_launcher = None
+
+    def _execute(self):
+        if self._ros2_launcher is not None:
+            self.asyncio_loop.create_task(asyncio.coroutine(self._ros2_launcher.run))
+
+        self.asyncio_loop.run_forever()
 
     def get_unique_name(self, name: str = ""):
         return name + "_" + __uuid_generator()
 
     def all_groups(self):
         # Assemble all groups
-        groups: list[Group] = [self._group_root]
-        queue: list[Group] = [self._group_root]
+        groups: list[Group] = [self.group_root]
+        queue: list[Group] = [self.group_root]
         
         # Simplified breadth first search since we don't expect any loops
         while queue:
@@ -222,6 +218,14 @@ class BetterLaunch(metaclass=_BetterLaunchMeta):
             nodes.extend(g.nodes)
         
         return nodes
+
+    @property
+    def group_root(self):
+        return self._group_stack[0]
+
+    @property
+    def group_tip(self):
+        return self._group_stack[-1]
 
     def _on_sigint(self):
         if not self.sigint_received:
@@ -280,8 +284,11 @@ class BetterLaunch(metaclass=_BetterLaunchMeta):
 
     @contextmanager
     def group(self, ns: str = None):
-        group = Group(self, self._group_root, ns)
-        self._group_stack[-1].add_group(group)
+        if self._composition_node:
+            raise RuntimeError("Cannot add groups inside a composition node")
+
+        group = Group(self, self.group_tip, ns)
+        self.group_tip.add_group(group)
         self._group_stack.append(group)
         try:
             yield group
@@ -307,6 +314,9 @@ class BetterLaunch(metaclass=_BetterLaunchMeta):
         stderr_to_stdout: bool = False,
         **kwargs,
     ):
+        if self._composition_node:
+            raise RuntimeError("Cannot add nodes inside a composition node")
+        
         if anonymous:
             name = self.get_unique_name(name)
 
@@ -329,10 +339,11 @@ class BetterLaunch(metaclass=_BetterLaunchMeta):
             use_shell=use_shell,
             emulate_tty=emulate_tty,
             stderr_to_stdout=stderr_to_stdout,
+            autostart=True,
             **kwargs,
         )
 
-        self._group_root.add_node(node)
+        self.group_tip.add_node(node)
         return node
 
     @contextmanager
@@ -378,7 +389,7 @@ class BetterLaunch(metaclass=_BetterLaunchMeta):
         )
 
         try:
-            self._group_root.add_node(comp)
+            self.group_tip.add_node(comp)
             self._composition_node = comp
             yield comp
         finally:
@@ -462,6 +473,15 @@ class BetterLaunch(metaclass=_BetterLaunchMeta):
                     ros2_include = IncludeLaunchDescription(
                         PythonLaunchDescriptionSource(file_path)
                     )
-                    self._deferred_ros_actions.append(ros2_include)
+
+                    self.launchdescription(ros2_include)
+
+    def launchdescription(self, launch_description):
+        from launch import LaunchService
+
+        if self._ros2_launcher is None:
+            self._ros2_launcher = LaunchService(noninteractive=True)
+
+        self._ros2_launcher.include_launch_description(launch_description)
 
     # TODO Common stuff like joint_state_publisher, robot_state_publisher, moveit, rviz, gazebo
