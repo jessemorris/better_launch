@@ -8,8 +8,6 @@ from typing import Any, Callable
 from osrf_pycommon.process_utils import async_execute_process
 from osrf_pycommon.process_utils import AsyncSubprocessProtocol
 
-from composition_interfaces.srv import LoadNode
-
 
 class _ProcessProtocol(AsyncSubprocessProtocol):
     def __init__(
@@ -101,7 +99,7 @@ class Node:
         use_shell: bool = False,
         emulate_tty: bool = False,
         stderr_to_stdout: bool = False,
-        autostart: bool = True,
+        start_immediately: bool = True,
     ):
         self.launcher = launcher
         self.my_task = None
@@ -142,37 +140,8 @@ class Node:
 
         self._load_node_client = None
 
-        if autostart:
+        if start_immediately:
             self.start()
-
-    def add_component(self, pkg, plugin, name, **kwargs):
-        if not self._load_node_client:
-            self._load_node_client = self.launcher.ros_adapter.create_client(
-                LoadNode, f"{self.name}/_container/load_node"
-            )
-            self._load_node_client.wait_for_service(timeout_sec=1.0)
-        
-        # From launch_ros/actions/load_composable_nodes.py:247
-        req = LoadNode.Request()
-        req.package_name = pkg
-        req.plugin_name = plugin
-        req.node_name = name
-        req.node_namespace = ...  # TODO
-        req.remap_rules = {k:v for k,v in self.remap.items() if not k.startswith("_")}
-        req.parameters = []  # TODO 
-        req.extra_arguments = []
-
-        self.logger.info(f"Loading composable node {pkg}/{plugin}...")
-        # TODO make this async so that we can check for e.g. shutdown while waiting
-        res = self._load_node_client.call(req)
-
-        if res.success:
-            if res.full_node_name:
-                name = res.full_node_name
-            self.logger.info(f"Loaded {pkg}/{plugin} as {name}")
-        else:
-            self.logger.error(f"Loading {pkg}/{plugin} failed: {res.error_message}")
-            #raise RuntimeError(res.error_message)
 
     @property
     def is_running(self):

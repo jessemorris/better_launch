@@ -56,19 +56,7 @@ class Group:
         self.children.append(group)
 
     def add_node(self, node: Node):
-        # Assemble additional node remaps from our group branch
-        remaps = self.assemble_remaps()
-        remaps.update(node.remap)
-
-        # Why do I hear mad hatter music???
-        # launch_ros/actions/node.py:497
-        ns = self.assemble_namespace()
-        remaps["__ns"] = ns
-
-        node.remap = remaps
-
         self.nodes.append(node)
-        node.start()
 
     def __repr__(self):
         return self.assemble_namespace()

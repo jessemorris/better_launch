@@ -65,7 +65,7 @@ def launch_this(launch_func):
             raise
 
 
-def launch_this_from_launchdescription(launch_func, to_global: bool = True):
+def ros2_opaque_function(launch_func, make_global: bool = True):
     # Makes your main function compatible with the ros2 launch system, e.g.
     # declares arguments, creates a stub launch description, etc.
     glob = globals()
@@ -102,6 +102,7 @@ def launch_this_from_launchdescription(launch_func, to_global: bool = True):
                     # TODO should we spin our own autocomplete?
                     launch_args[k] = v
 
+            # TODO start asyncio loop
             launch_func(**launch_args)
 
             # Retrieve the BetterLaunch singleton
@@ -112,7 +113,7 @@ def launch_this_from_launchdescription(launch_func, to_global: bool = True):
         ld.add_action(OpaqueFunction(ros2_wrapper))
         return ld
 
-    if to_global:
+    if make_global:
         glob["generate_launch_description"] = generate_launch_description
 
     return generate_launch_description
@@ -312,6 +313,7 @@ class BetterLaunch(metaclass=_BetterLaunchMeta):
         use_shell: bool = False,
         emulate_tty: bool = False,
         stderr_to_stdout: bool = False,
+        start_immediately: bool = True,
         **kwargs,
     ):
         if self._composition_node:
@@ -323,15 +325,24 @@ class BetterLaunch(metaclass=_BetterLaunchMeta):
         if hidden and not name.startswith("_"):
             name = "_" + name
 
-        # TODO should the node be constructed by the group, since it makes some
-        # changes to the node params?
+        # Assemble additional node remaps from our group branch
+        g = self.group_tip
+        remaps = g.assemble_remaps()
+        if remap:
+            remaps.update(remap)
+
+        # Why do I hear mad hatter music???
+        # launch_ros/actions/node.py:497
+        ns = g.assemble_namespace()
+        remaps["__ns"] = ns
+
         exec_file = self.find(pkg, exec)
         node = Node(
             self,
             exec_file,
             name,
             node_args,
-            remap=remap,
+            remap=remaps,
             env=env,
             on_exit=on_exit,
             max_respawns=max_respawns,
@@ -339,11 +350,11 @@ class BetterLaunch(metaclass=_BetterLaunchMeta):
             use_shell=use_shell,
             emulate_tty=emulate_tty,
             stderr_to_stdout=stderr_to_stdout,
-            autostart=True,
+            start_immediately=start_immediately,
             **kwargs,
         )
 
-        self.group_tip.add_node(node)
+        g.add_node(node)
         return node
 
     @contextmanager
@@ -373,6 +384,17 @@ class BetterLaunch(metaclass=_BetterLaunchMeta):
         if hidden and not name.startswith("_"):
             name = "_" + name
 
+        # TODO remaps are probably not useful for a composer node
+        # Assemble additional node remaps from our group branch
+        g = self.group_tip
+        remaps = g.assemble_remaps()
+        remaps.update(remap)
+
+        # Why do I hear mad hatter music???
+        # launch_ros/actions/node.py:497
+        ns = g.assemble_namespace()
+        remaps["__ns"] = ns
+
         comp = Composer(
             self,
             name,
@@ -385,11 +407,12 @@ class BetterLaunch(metaclass=_BetterLaunchMeta):
             use_shell=use_shell,
             emulate_tty=emulate_tty,
             stderr_to_stdout=stderr_to_stdout,
+            start_immediately=True,  # always start, otherwise adding components is troublesome
             **kwargs,
         )
 
         try:
-            self.group_tip.add_node(comp)
+            g.add_node(comp)
             self._composition_node = comp
             yield comp
         finally:
@@ -416,16 +439,13 @@ class BetterLaunch(metaclass=_BetterLaunchMeta):
         if self._composition_node is None:
             raise RuntimeError("Cannot add component outside a compose() node")
 
-        if anonymous:
-            name = self.get_unique_name(name)
-
-        if hidden and not name.startswith("_"):
-            name = "_" + name
-
+        # TODO arguments
         self._composition_node.add_component(
             pkg,
             plugin,
             name,
+            anonymous=anonymous,
+            hidden=hidden,
             remap=remap,
             env=env,
             on_exit=on_exit,
@@ -452,7 +472,7 @@ class BetterLaunch(metaclass=_BetterLaunchMeta):
             with open(file_path) as f:
                 content = f.read()
                 if "better_launch" in content:
-                    # Launch file uses better_launch, too
+                    # Assume launch file uses better_launch, too
                     try:
                         code = compile(content, launch_file, "exec")
                         global_args["_better_launcher_instance"] = self
@@ -484,4 +504,4 @@ class BetterLaunch(metaclass=_BetterLaunchMeta):
 
         self._ros2_launcher.include_launch_description(launch_description)
 
-    # TODO Common stuff like joint_state_publisher, robot_state_publisher, moveit, rviz, gazebo
+    # TODO Create convenience module for common stuff like joint_state_publisher, robot_state_publisher, moveit, rviz, gazebo (see simple_launch)
