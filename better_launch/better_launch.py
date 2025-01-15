@@ -1,5 +1,4 @@
 from typing import Any, Callable
-import sys
 import os
 import platform
 from ast import literal_eval
@@ -27,7 +26,6 @@ except ImportError:
 
 from elements import Group, Composer, Node
 from utils.ros_adapter import ROSAdapter
-from utils.async_signal_manager import AsyncSafeSignalManager
 
 
 _is_launcher_defined = "__better_launch_this_defined"
@@ -54,7 +52,7 @@ def launch_this(launch_func):
     def run():
         launch_func()
         # Retrieve the BetterLaunch singleton and run it
-        BetterLaunch()._execute()
+        BetterLaunch().execute()
 
     # All BL nodes and includes are async once started
     click_cmd = click.Command("main", callback=run, params=options)
@@ -161,19 +159,19 @@ class BetterLaunch(metaclass=_BetterLaunchMeta):
 
         # Handling signals is complicated with asyncio, we use the ros2/launch signal manager 
         self.asyncio_loop: asyncio.AbstractEventLoop = osrf_pycommon.process_utils.get_loop()
-        self._signal_manager = AsyncSafeSignalManager(self.asyncio_loop)
-        self._signal_manager.handle(signal.SIGINT, self._on_sigint)
-        self._signal_manager.handle(signal.SIGTERM, self._on_sigterm)
+        
+        self.asyncio_loop.add_signal_handler(signal.SIGINT, self._on_sigint)
+        self.asyncio_loop.add_signal_handler(signal.SIGTERM, self._on_sigterm)
         if platform.system() != 'Windows':
-            self._signal_manager.handle(signal.SIGQUIT, self._on_sigterm)
+            self.asyncio_loop.add_signal_handler(signal.SIGQUIT, self._on_sigterm)
 
         # For those cases where we need to interact with ROS somehow (e.g. service calls)
         self.ros_adapter = ROSAdapter()
+        self._shutdown_future = self.asyncio_loop.create_future()
 
         self.logger = logging.Logger(name, level=log_level)
         self.all_args = launch_args
         self.sigint_received = False
-        self.is_shutdown = False
 
         if ns is None:
             ns = "/"
@@ -189,12 +187,12 @@ class BetterLaunch(metaclass=_BetterLaunchMeta):
         # Allows to run traditional ros2 launch descriptions
         self._ros2_launcher = None
 
-    def _execute(self):
+    def execute(self):
         if self._ros2_launcher is not None:
             self.asyncio_loop.create_task(asyncio.coroutine(self._ros2_launcher.run))
 
-        self.asyncio_loop.run_forever()
-
+        return self.asyncio_loop.run_until_complete(self._shutdown_future)
+        
     def get_unique_name(self, name: str = ""):
         return name + "_" + __uuid_generator()
 
@@ -234,13 +232,17 @@ class BetterLaunch(metaclass=_BetterLaunchMeta):
             self.shutdown("user interrupt", signal.SIGINT)
             self.sigint_received = True
         else:
-            self.logger.warning(f"Received (SIGINT) again, ignoring")
+            self.logger.warning(f"Received (SIGINT) again, escalating to sigterm")
+            self._on_sigterm()
 
     def _on_sigterm(self):
         self.logger.error(f"Using (SIGTERM) can result in orphaned processes!")
         
-        # Final chance for the processes to shut down
+        # Final chance for the processes to shut down, but we will no longer wait
         self.shutdown(f"received (SIGTERM)", signal.SIGTERM)
+
+        if not self.is_shutdown():
+            self._shutdown_future.cancel()
 
         try:
             # Python 3.7+
@@ -250,8 +252,11 @@ class BetterLaunch(metaclass=_BetterLaunchMeta):
 
         self.asyncio_loop.call_later(0.5, current_task.cancel)
 
+    @property
+    def is_shutdown(self):
+        return self._shutdown_future.done()
+
     def shutdown(self, reason: str, signum: int = signal.SIGTERM):
-        self.is_shutdown = True
         self.ros_adapter.shutdown()
 
         # Tell all nodes to shut down
@@ -261,6 +266,11 @@ class BetterLaunch(metaclass=_BetterLaunchMeta):
         # If we launched extra ROS2 actions tell the launch service to shut down, too
         if self._ros2_launcher is not None:
             self._ros2_launcher.shutdown()
+
+        try:
+            self._shutdown_future.set_result(None)
+        except asyncio.exceptions.InvalidStateError:
+            pass
 
     def find(self, package: str, file_name: str = None, file_dir: str = None):
         package_dir = get_package_prefix(package) if package else None

@@ -257,7 +257,7 @@ class Node:
     def _on_signal(self, signum):
         signame = signal.Signals(signum).name
 
-        if self._subprocess_protocol.complete.done():
+        if self.subprocess_protocol.complete.done():
             # the process is done or is cleaning up, no need to signal
             self.logger.debug(
                 f"'{signame}' not set to '{self.name}' because it is already closing"
