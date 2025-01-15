@@ -1,4 +1,5 @@
 from typing import Any, Callable
+from logging import Logger
 from composition_interfaces.srv import LoadNode
 
 from .node import Node
@@ -12,6 +13,7 @@ class Composer(Node):
         language: str,
         node_args: dict[str, Any] = None,
         *,
+        logger: Logger = None,
         remap: dict[str, str] = None,
         env: dict[str, str] = None,
         on_exit: Callable = None,
@@ -29,14 +31,15 @@ class Composer(Node):
             "component_container",
             name,
             node_args,
-            remap,
-            env,
-            on_exit,
-            max_respawns,
-            respawn_delay,
-            use_shell,
-            emulate_tty,
-            stderr_to_stdout,
+            logger=logger,
+            remap=remap,
+            env=env,
+            on_exit=on_exit,
+            max_respawns=max_respawns,
+            respawn_delay=respawn_delay,
+            use_shell=use_shell,
+            emulate_tty=emulate_tty,
+            stderr_to_stdout=stderr_to_stdout,
             start_immediately=True,
         )
 
@@ -66,11 +69,13 @@ class Composer(Node):
 
         remaps = {}
         if apply_composer_remaps:
-            remaps.update({k: v for k, v in self.remap.items() if not k.startswith("_")})
+            remaps.update(
+                {k: v for k, v in self.remap.items() if not k.startswith("_")}
+            )
         if remap:
             remaps.update(remap)
         req.remap_rules = remaps
-        
+
         composer_args = {}
         composer_args.update(extra_composer_args)
         composer_args["use_intra_process_comms"] = use_intra_process_comms

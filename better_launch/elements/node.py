@@ -5,6 +5,7 @@ import platform
 import signal
 import traceback
 from typing import Any, Callable
+from logging import Logger
 from osrf_pycommon.process_utils import async_execute_process
 from osrf_pycommon.process_utils import AsyncSubprocessProtocol
 
@@ -91,6 +92,7 @@ class Node:
         name: str,
         node_args: dict[str, Any] = None,
         *,
+        logger: Logger = None,
         remap: dict[str, str] = None,
         env: dict[str, str] = None,
         on_exit: Callable = None,
@@ -104,8 +106,9 @@ class Node:
         self.launcher = launcher
         self.my_task = None
 
-        # TODO get logger from parent instead of root, add handlers as required
-        self.logger = launcher.logger.getChild(name)
+        if not logger:
+            logger = launcher.logger
+        self.logger = logger.getChild(name)
 
         self.completed_future = None
         self.shutdown_future = None
@@ -178,9 +181,7 @@ class Node:
         self.my_task = self.launcher.asyncio_loop.create_task(self._execute_process())
 
     async def _execute_process(self):
-        self.logger.info(
-            f"Starting process '{self.cmd}' (env='{self.env}')"
-        )
+        self.logger.info(f"Starting process '{self.cmd}' (env='{self.env}')")
 
         try:
             # Attach additional node args
@@ -255,7 +256,9 @@ class Node:
 
     def shutdown(self, reason: str, signum: int = signal.SIGTERM):
         signame = signal.Signals(signum).name
-        self.logger.warning(f"{self.name} received shutdown request: {reason} ({signame})")
+        self.logger.warning(
+            f"{self.name} received shutdown request: {reason} ({signame})"
+        )
         self._on_signal(signum)
 
     def _on_signal(self, signum):
@@ -350,7 +353,7 @@ class Node:
                 self.completed_future.set_result(None)
             except asyncio.exceptions.InvalidStateError:
                 self.completed_future.cancel("Cancelled by cleanup")
-        
+
         self.my_task = None
 
     def __repr__(self):

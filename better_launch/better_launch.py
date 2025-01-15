@@ -144,7 +144,9 @@ class BetterLaunch(metaclass=_BetterLaunchMeta):
             try:
                 # Get the caller's locals
                 launch_args = {
-                    k: v for k, v in frame.f_back.f_locals.items() if not k.startswith("_")
+                    k: v
+                    for k, v in frame.f_back.f_locals.items()
+                    if not k.startswith("_")
                 }
             finally:
                 del frame
@@ -157,12 +159,15 @@ class BetterLaunch(metaclass=_BetterLaunchMeta):
             if name.endswith(".launch"):
                 name = os.path.splitext(name)[0]
 
-        # Handling signals is complicated with asyncio, we use the ros2/launch signal manager 
-        self.asyncio_loop: asyncio.AbstractEventLoop = osrf_pycommon.process_utils.get_loop()
-        
+        # Handling signals is complicated with asyncio, we use the ros2/launch signal manager
+        self.asyncio_loop: asyncio.AbstractEventLoop = (
+            osrf_pycommon.process_utils.get_loop()
+        )
+
         self.asyncio_loop.add_signal_handler(signal.SIGINT, self._on_sigint)
         self.asyncio_loop.add_signal_handler(signal.SIGTERM, self._on_sigterm)
-        if platform.system() != 'Windows':
+        
+        if platform.system() != "Windows":
             self.asyncio_loop.add_signal_handler(signal.SIGQUIT, self._on_sigterm)
 
         # For those cases where we need to interact with ROS somehow (e.g. service calls)
@@ -193,7 +198,7 @@ class BetterLaunch(metaclass=_BetterLaunchMeta):
 
         # TODO exception handling
         return self.asyncio_loop.run_until_complete(self._shutdown_future)
-        
+
     def get_unique_name(self, name: str = ""):
         return name + "_" + __uuid_generator()
 
@@ -201,7 +206,7 @@ class BetterLaunch(metaclass=_BetterLaunchMeta):
         # Assemble all groups
         groups: list[Group] = [self.group_root]
         queue: list[Group] = [self.group_root]
-        
+
         # Simplified breadth first search since we don't expect any loops
         while queue:
             g = queue.pop()
@@ -216,15 +221,15 @@ class BetterLaunch(metaclass=_BetterLaunchMeta):
 
         for g in groups:
             nodes.extend(g.nodes)
-        
+
         return nodes
 
     @property
-    def group_root(self):
+    def group_root(self) -> Group:
         return self._group_stack[0]
 
     @property
-    def group_tip(self):
+    def group_tip(self) -> Group:
         return self._group_stack[-1]
 
     def _on_sigint(self):
@@ -238,7 +243,7 @@ class BetterLaunch(metaclass=_BetterLaunchMeta):
 
     def _on_sigterm(self):
         self.logger.error(f"Using (SIGTERM) can result in orphaned processes!")
-        
+
         # Final chance for the processes to shut down, but we will no longer wait
         self.shutdown(f"received (SIGTERM)", signal.SIGTERM)
 
@@ -329,7 +334,7 @@ class BetterLaunch(metaclass=_BetterLaunchMeta):
     ):
         if self._composition_node:
             raise RuntimeError("Cannot add nodes inside a composition node")
-        
+
         if anonymous:
             name = self.get_unique_name(name)
 
@@ -353,6 +358,7 @@ class BetterLaunch(metaclass=_BetterLaunchMeta):
             exec_file,
             name,
             node_args,
+            logger=g.logger,
             remap=remaps,
             env=env,
             on_exit=on_exit,
@@ -410,6 +416,7 @@ class BetterLaunch(metaclass=_BetterLaunchMeta):
             self,
             name,
             language,
+            logger=g.logger,
             remap=remap,
             env=env,
             on_exit=on_exit,
