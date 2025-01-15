@@ -25,6 +25,18 @@ class Composer(Node):
     ):
         # NOTE: does not support referencing an already existing composer. If you want to reuse
         # the container, just keep a reference to it.
+
+        # Remaps are not useful for a composable node, but we can forward them to the components
+        node_remaps = {}
+        component_remaps = {}
+
+        if remap:
+            for key, val in remap:
+                if key.startswith("_"):
+                    node_remaps[key] = val
+                else:
+                    component_remaps[key] = val
+
         super().__init__(
             launcher,
             f"rcl{self.language}_components",
@@ -32,7 +44,7 @@ class Composer(Node):
             name,
             node_args,
             logger=logger,
-            remap=remap,
+            remap=node_remaps,
             env=env,
             on_exit=on_exit,
             max_respawns=max_respawns,
@@ -44,6 +56,7 @@ class Composer(Node):
         )
 
         self.language = language
+        self.component_remaps = component_remaps
         self._load_node_client = self.launcher.ros_adapter.create_client(
             LoadNode, f"{self.name}/_container/load_node"
         )
@@ -69,12 +82,10 @@ class Composer(Node):
 
         remaps = {}
         if apply_composer_remaps:
-            remaps.update(
-                {k: v for k, v in self.remap.items() if not k.startswith("_")}
-            )
+            remaps.update(self.component_remaps)
         if remap:
             remaps.update(remap)
-        req.remap_rules = remaps
+        req.remap_rules = [f"{src}:={dst}" for src,dst in remaps.items()]
 
         composer_args = {}
         composer_args.update(extra_composer_args)

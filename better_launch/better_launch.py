@@ -8,6 +8,7 @@ import asyncio
 from contextlib import contextmanager
 from collections import deque
 import logging
+import yaml
 import osrf_pycommon.process_utils
 
 from ament_index_python.packages import get_package_prefix
@@ -26,6 +27,7 @@ except ImportError:
 
 from elements import Group, Composer, Node
 from utils.ros_adapter import ROSAdapter
+from utils.substitutions import substitute_tokens
 
 
 _is_launcher_defined = "__better_launch_this_defined"
@@ -166,7 +168,7 @@ class BetterLaunch(metaclass=_BetterLaunchMeta):
 
         self.asyncio_loop.add_signal_handler(signal.SIGINT, self._on_sigint)
         self.asyncio_loop.add_signal_handler(signal.SIGTERM, self._on_sigterm)
-        
+
         if platform.system() != "Windows":
             self.asyncio_loop.add_signal_handler(signal.SIGQUIT, self._on_sigterm)
 
@@ -299,6 +301,46 @@ class BetterLaunch(metaclass=_BetterLaunchMeta):
         # not there
         raise RuntimeError(f"Could not find file {file_name} in package {package}")
 
+    def resolve_string(self, s: str) -> str:
+        substitutions = {
+            "@package": self.find,
+        }
+        
+        return substitute_tokens(s, substitutions)
+
+    def load_params(self, path: str, node_or_namespace: str | Node = None):
+        path = self.resolve_string(path)
+
+        with open(path) as f:
+            params = yaml.safe_load(f)
+
+        if node_or_namespace:
+            ns = node_or_namespace
+            if isinstance(ns, Node):
+                ns = ns.namespace + "/" + ns.name
+
+            # Root namespace is typically not part of param files, but we may have to adjust this
+            # Parameter files can use one or more elements from the namespace to define sections
+            parts = ns.strip("/").split("/")
+            idx = 0
+            while idx < len(parts):
+                key = parts[idx]
+
+                while key not in params and idx < len(parts):
+                    idx += 1
+                    key += "/" + parts[idx]
+
+                if key not in params:
+                    raise ValueError(f"Could not find parameter section for {ns}")
+
+                params = params[key]
+                idx += 1
+
+        if "ros__parameters" in params:
+            params = params["ros__parameters"]
+
+        return params
+
     @contextmanager
     def group(self, ns: str = None):
         if self._composition_node:
@@ -401,7 +443,7 @@ class BetterLaunch(metaclass=_BetterLaunchMeta):
         if hidden and not name.startswith("_"):
             name = "_" + name
 
-        # TODO remaps are probably not useful for a composer node
+        # Remaps apply to the 
         # Assemble additional node remaps from our group branch
         g = self.group_tip
         remaps = g.assemble_remaps()
