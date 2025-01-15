@@ -46,22 +46,38 @@ class Composer(Node):
         )
         self._load_node_client.wait_for_service(timeout_sec=1.0)
 
-    def add_component(self, pkg, plugin, name, **kwargs):
-        # TODO handle group namespaces, remaps, etc.
-        # See https://github.com/ros2/launch_ros/blob/rolling/launch_ros/launch_ros/actions/load_composable_nodes.py
-        # TODO remaps, parameters, extra arguments
+    def add_component(
+        self,
+        pkg,
+        plugin,
+        name,
+        remap: dict = None,
+        component_args: dict = None,
+        apply_composer_remaps: bool = True,
+        use_intra_process_comms: bool = True,
+        **extra_composer_args: dict,
+    ):
         req = LoadNode.Request()
         req.package_name = pkg
         req.plugin_name = plugin
         req.node_name = name
-        req.node_namespace = ...  # TODO
-        req.remap_rules = {k:v for k,v in self.remap.items() if not k.startswith("_")}
-        req.parameters = []  # TODO 
-        req.extra_arguments = []
+        req.node_namespace = self.namespace
+        req.parameters = [component_args] if component_args else []
+
+        remaps = {}
+        if apply_composer_remaps:
+            remaps.update({k: v for k, v in self.remap.items() if not k.startswith("_")})
+        if remap:
+            remaps.update(remap)
+        req.remap_rules = remaps
+        
+        composer_args = {}
+        composer_args.update(extra_composer_args)
+        composer_args["use_intra_process_comms"] = use_intra_process_comms
+        req.extra_arguments = [composer_args]
 
         # Call the load_node service
         self.logger.info(f"Loading composable node {pkg}/{plugin}...")
-        # TODO make this async so that we can check for e.g. shutdown while waiting
         res = self._load_node_client.call(req)
 
         if res.success:
@@ -70,4 +86,4 @@ class Composer(Node):
             self.logger.info(f"Loaded {pkg}/{plugin} as {name}")
         else:
             self.logger.error(f"Loading {pkg}/{plugin} failed: {res.error_message}")
-            #raise RuntimeError(res.error_message)
+            raise RuntimeError(res.error_message)

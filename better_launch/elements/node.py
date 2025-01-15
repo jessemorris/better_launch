@@ -144,6 +144,10 @@ class Node:
             self.start()
 
     @property
+    def namespace(self):
+        return self.remap.get("__ns", "/")
+
+    @property
     def is_running(self):
         return (
             self.subprocess_transport is not None

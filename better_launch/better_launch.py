@@ -191,6 +191,7 @@ class BetterLaunch(metaclass=_BetterLaunchMeta):
         if self._ros2_launcher is not None:
             self.asyncio_loop.create_task(asyncio.coroutine(self._ros2_launcher.run))
 
+        # TODO exception handling
         return self.asyncio_loop.run_until_complete(self._shutdown_future)
         
     def get_unique_name(self, name: str = ""):
