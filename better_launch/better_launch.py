@@ -303,7 +303,8 @@ class BetterLaunch(metaclass=_BetterLaunchMeta):
 
     def resolve_string(self, s: str) -> str:
         substitutions = {
-            "@package": self.find,
+            "package": self.find,
+            # TODO eval, param, env
         }
         
         return substitute_tokens(s, substitutions)
