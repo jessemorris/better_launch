@@ -27,7 +27,7 @@ except ImportError:
 
 from elements import Group, Node, Composer, LifecycleNode, LifecycleStage
 from utils.ros_adapter import ROSAdapter
-from utils.substitutions import substitute_tokens
+from utils.substitutions import default_substitution_handlers, substitute_tokens
 
 
 _is_launcher_defined = "__better_launch_this_defined"
@@ -302,12 +302,7 @@ class BetterLaunch(metaclass=_BetterLaunchMeta):
         raise RuntimeError(f"Could not find file {file_name} in package {package}")
 
     def resolve_string(self, s: str) -> str:
-        substitutions = {
-            "package": self.find,
-            # TODO eval, param, env
-        }
-        
-        return substitute_tokens(s, substitutions)
+        return substitute_tokens(s, default_substitution_handlers(self))
 
     def load_params(self, path: str, node_or_namespace: str | Node = None):
         path = self.resolve_string(path)
