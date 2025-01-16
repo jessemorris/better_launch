@@ -302,7 +302,7 @@ class BetterLaunch(metaclass=_BetterLaunchMeta):
         raise RuntimeError(f"Could not find file {file_name} in package {package}")
 
     def resolve_string(self, s: str) -> str:
-        return substitute_tokens(s, default_substitution_handlers(self))
+        return substitute_tokens(s, default_substitution_handlers(self, True))
 
     def load_params(self, path: str, node_or_namespace: str | Node = None):
         path = self.resolve_string(path)

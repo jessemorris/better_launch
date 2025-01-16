@@ -15,18 +15,18 @@ except ImportError:
 _sentinel = object()
 
 
-def default_substitution_handlers(launcher):
-    def sub_package(pkg: str, file: str, dir: str):
+def default_substitution_handlers(launcher, allow_eval: bool):
+    # $(package my_ros_package my_config.yaml)
+    def sub_package(pkg: str, file: str = None, dir: str = None):
         return launcher.find(pkg, file, dir)
 
-    def sub_eval(*args):
-        return eval(" ".join(args), {}, launcher.all_args)
-
+    # $(arg x)
     def sub_arg(key: str, default: Any = _sentinel):
         if default != _sentinel:
             return launcher.all_args.get(key, default)
         return launcher.all_args[key]
 
+    # $(param /myrobot/my_node rate)
     def sub_param(full_node_name: str, param: str):
         srv = launcher.ros_adapter.ros_node.create_client(
             GetParameters, f"{full_node_name}/get_parameters"
@@ -37,7 +37,6 @@ def default_substitution_handlers(launcher):
 
         req = GetParameters.Request()
         req.names = [param]
-
         res = srv.call(req)
 
         if len(res.values) != 1:
@@ -47,18 +46,27 @@ def default_substitution_handlers(launcher):
 
         return get_parameter_value(res.values[0]) or ""
 
+    # $(env ROS_DISTRO)
     def sub_env(key: str, default: Any = _sentinel):
         if default != _sentinel:
             return os.environ.get(key, default)
         return os.environ[key]
 
-    return {
+    # $(eval $(arg x) * 5)
+    def sub_eval(*args):
+        return eval(" ".join(args), {}, launcher.all_args)
+
+    substitutions = {
         "package": sub_package,
-        "eval": sub_eval,
         "arg": sub_arg,
         "param": sub_param,
         "env": sub_env,
     }
+
+    if allow_eval:
+        substitutions["eval"] = sub_eval
+
+    return substitutions
 
 
 def substitute_tokens(text: str, substitution_handlers: dict) -> list[str]:
