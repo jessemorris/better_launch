@@ -25,6 +25,7 @@ class Composer(Node):
     ):
         # NOTE: does not support referencing an already existing composer. If you want to reuse
         # the container, just keep a reference to it.
+        executable = launcher.find(f"rcl{self.language}_components", "component_container")
 
         # Remaps are not useful for a composable node, but we can forward them to the components
         node_remaps = {}
@@ -39,8 +40,7 @@ class Composer(Node):
 
         super().__init__(
             launcher,
-            f"rcl{self.language}_components",
-            "component_container",
+            executable,
             name,
             node_args,
             logger=logger,
@@ -60,7 +60,9 @@ class Composer(Node):
         self._load_node_client = self.launcher.ros_adapter.create_client(
             LoadNode, f"{self.name}/_container/load_node"
         )
-        self._load_node_client.wait_for_service(timeout_sec=1.0)
+        # TODO this will fail until the node is truly started, but the async loop runs later
+        if not self._load_node_client.wait_for_service(timeout_sec=5.0):
+            raise RuntimeError("Failed to connect to composer load service")
 
     def add_component(
         self,

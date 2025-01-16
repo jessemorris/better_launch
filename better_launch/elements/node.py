@@ -151,6 +151,10 @@ class Node:
         return self.remap.get("__ns", "/")
 
     @property
+    def fullname(self):
+        return self.namespace + "/" + self.name
+
+    @property
     def is_running(self):
         return (
             self.subprocess_transport is not None

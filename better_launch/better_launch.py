@@ -25,7 +25,7 @@ except ImportError:
 
     __uuid_generator = lambda: uuid.uuid4().hex
 
-from elements import Group, Composer, Node
+from elements import Group, Node, Composer, LifecycleNode, LifecycleStage
 from utils.ros_adapter import ROSAdapter
 from utils.substitutions import substitute_tokens
 
@@ -318,7 +318,7 @@ class BetterLaunch(metaclass=_BetterLaunchMeta):
         if node_or_namespace:
             ns = node_or_namespace
             if isinstance(ns, Node):
-                ns = ns.namespace + "/" + ns.name
+                ns = ns.fullname
 
             # Root namespace is typically not part of param files, but we may have to adjust this
             # Parameter files can use one or more elements from the namespace to define sections
@@ -411,6 +411,68 @@ class BetterLaunch(metaclass=_BetterLaunchMeta):
             emulate_tty=emulate_tty,
             stderr_to_stdout=stderr_to_stdout,
             start_immediately=start_immediately,
+            **kwargs,
+        )
+
+        g.add_node(node)
+        return node
+
+    def lifecycle_node(
+        self,
+        pkg: str,
+        exec: str,
+        name: str = None,
+        node_args: dict[str, Any] = None,
+        target_state: LifecycleStage = LifecycleStage.PRISTINE,
+        *,
+        anonymous: bool = False,
+        hidden: bool = False,
+        remap: dict[str, str] = None,
+        env: dict[str, str] = None,
+        on_exit: Callable = None,
+        max_respawns: int = 0,
+        respawn_delay: float = 0.0,
+        use_shell: bool = False,
+        emulate_tty: bool = False,
+        stderr_to_stdout: bool = False,
+        **kwargs,
+    ):
+        # TODO a lot of this is redundant with node() -> common function?
+        if self._composition_node:
+            raise RuntimeError("Cannot add nodes inside a composition node")
+
+        if anonymous:
+            name = self.get_unique_name(name)
+
+        if hidden and not name.startswith("_"):
+            name = "_" + name
+
+        # Assemble additional node remaps from our group branch
+        g = self.group_tip
+        remaps = g.assemble_remaps()
+        if remap:
+            remaps.update(remap)
+
+        # Why do I hear mad hatter music???
+        # launch_ros/actions/node.py:497
+        ns = g.assemble_namespace()
+        remaps["__ns"] = ns
+
+        exec_file = self.find(pkg, exec)
+        node = LifecycleNode(
+            self,
+            exec_file,
+            name,
+            node_args,
+            logger=g.logger,
+            remap=remaps,
+            env=env,
+            on_exit=on_exit,
+            max_respawns=max_respawns,
+            respawn_delay=respawn_delay,
+            use_shell=use_shell,
+            emulate_tty=emulate_tty,
+            stderr_to_stdout=stderr_to_stdout,
             **kwargs,
         )
 
@@ -545,17 +607,22 @@ class BetterLaunch(metaclass=_BetterLaunchMeta):
                         )
                         raise
                 else:
-                    # Delegate to ros2 launch service
-                    from launch.actions import IncludeLaunchDescription
-                    from launch.launch_description_sources import (
-                        PythonLaunchDescriptionSource,
-                    )
+                    self._include_ros2(file_path)
+        else:
+            self._include_ros2(file_path)
 
-                    ros2_include = IncludeLaunchDescription(
-                        PythonLaunchDescriptionSource(file_path)
-                    )
+    def _include_ros2(self, file_path):
+        # Delegate to ros2 launch service
+        from launch.actions import IncludeLaunchDescription
+        from launch.launch_description_sources import (
+            PythonLaunchDescriptionSource,
+        )
 
-                    self.launchdescription(ros2_include)
+        ros2_include = IncludeLaunchDescription(
+            PythonLaunchDescriptionSource(file_path)
+        )
+
+        self.launchdescription(ros2_include)
 
     def launchdescription(self, launch_description):
         from launch import LaunchService
