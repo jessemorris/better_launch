@@ -199,6 +199,7 @@ class BetterLaunch(metaclass=_BetterLaunchMeta):
             self.asyncio_loop.create_task(asyncio.coroutine(self._ros2_launcher.run))
 
         # TODO exception handling
+        # TODO things need to be started immediately, otherwise there is no point to this
         return self.asyncio_loop.run_until_complete(self._shutdown_future)
 
     def get_unique_name(self, name: str = ""):
@@ -302,7 +303,7 @@ class BetterLaunch(metaclass=_BetterLaunchMeta):
         raise RuntimeError(f"Could not find file {file_name} in package {package}")
 
     def resolve_string(self, s: str) -> str:
-        return substitute_tokens(s, default_substitution_handlers(self, True))
+        return substitute_tokens(s, default_substitution_handlers(self, "full"))
 
     def load_params(self, path: str, node_or_namespace: str | Node = None):
         path = self.resolve_string(path)
