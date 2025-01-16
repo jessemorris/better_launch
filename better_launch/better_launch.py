@@ -564,5 +564,3 @@ class BetterLaunch(metaclass=_BetterLaunchMeta):
             self._ros2_launcher = LaunchService(noninteractive=True)
 
         self._ros2_launcher.include_launch_description(launch_description)
-
-    # TODO Create convenience module for common stuff like joint_state_publisher, robot_state_publisher, moveit, rviz, gazebo (see simple_launch)
