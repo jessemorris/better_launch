@@ -1,87 +1,17 @@
-import asyncio
-import io
 import os
 import platform
 import signal
 import traceback
 from typing import Any, Callable
-from logging import Logger
-from osrf_pycommon.process_utils import async_execute_process
-from osrf_pycommon.process_utils import AsyncSubprocessProtocol
-
-
-class _ProcessProtocol(AsyncSubprocessProtocol):
-    def __init__(
-        self,
-        logger,
-        output_format: str = "[{this.logger.name}] {line}",
-        **kwargs,
-    ):
-        super().__init__(**kwargs)
-        self.pid = None
-        self.logger = logger
-        self.stdout_buffer = io.StringIO()
-        self.stderr_buffer = io.StringIO()
-        self.output_format = output_format
-
-    def connection_made(self, transport):
-        self.pid = transport.get_pid()
-        self.logger.info(f"process started with pid [{self.pid}]")
-        super().connection_made(transport)
-
-    def on_stdout_received(self, data: bytes) -> None:
-        text = data.decode(errors="replace")
-        self._write_output(self.logger.info, self.stdout_buffer, text)
-
-    def on_stderr_received(self, data: bytes) -> None:
-        text = data.decode(errors="replace")
-        self._write_output(self.logger.error, self.stderr_buffer, text)
-
-    def on_process_exited(self, returncode) -> None:
-        pass
-
-    def _write_output(
-        self, write_to_log: Callable, buffer: io.TextIOBase, text: str
-    ) -> None:
-        if buffer.closed:
-            # buffer was probably closed by _flush_direct on shutdown. Output without buffering.
-            write_to_log(self.output_format.format(line=text, this=self))
-        else:
-            buffer.write(text)
-            buffer.seek(0)
-            last_line = None
-            for line in buffer:
-                if line.endswith(os.linesep):
-                    write_to_log(
-                        self.output_format.format(
-                            line=line[: -len(os.linesep)], this=self
-                        )
-                    )
-                else:
-                    last_line = line
-                    break
-            buffer.seek(0)
-            buffer.truncate(0)
-            if last_line is not None:
-                buffer.write(last_line)
-
-    def flush_output_buffers(self, finalize: bool):
-        for line in self.stdout_buffer:
-            self.logger.info(self.output_format.format(line=line, this=self))
-
-        for line in self.stderr_buffer:
-            self.logger.error(self.output_format.format(line=line, this=self))
-
-        # the respawned process needs to reuse these StringIO resources,
-        # close them only after receiving the shutdown
-        if finalize:
-            self.stdout_buffer.close()
-            self.stderr_buffer.close()
-        else:
-            self.stdout_buffer.seek(0)
-            self.stdout_buffer.truncate(0)
-            self.stderr_buffer.seek(0)
-            self.stderr_buffer.truncate(0)
+import time
+from datetime import datetime
+import io
+import fcntl
+import logging
+import threading
+import subprocess
+import selectors
+from concurrent.futures import Future
 
 
 class Node:
@@ -92,7 +22,7 @@ class Node:
         name: str,
         node_args: dict[str, Any] = None,
         *,
-        logger: Logger = None,
+        logger: logging.Logger = None,
         remap: dict[str, str] = None,
         env: dict[str, str] = None,
         on_exit: Callable = None,
@@ -116,10 +46,6 @@ class Node:
         self.sigterm_timer = None
         self.sigkill_timer = None
 
-        self.pid = -1
-        self.subprocess_transport = None
-        self.subprocess_protocol = None
-
         if not name:
             raise ValueError("Name cannot be empty")
 
@@ -133,6 +59,8 @@ class Node:
         self.remap = remap or {}
         # launch_ros/actions/node.py:495
         self.remap["__node"] = name
+
+        self._process = None
 
         self.respawn_retries = 0
         self.max_respawns = max_respawns
@@ -157,7 +85,7 @@ class Node:
     @property
     def is_running(self):
         return (
-            self.subprocess_transport is not None
+            self._process is not None
             and self.shutdown_future is not None
             and not self.shutdown_future.done()
             and self.completed_future is not None
@@ -177,14 +105,12 @@ class Node:
 
         if self.is_running:
             # Already started
-            self.logger.debug(f"Node {self} is already started")
+            self.logger.warning(f"Node {self} is already started")
             return
 
-        self.completed_future = self.launcher.asyncio_loop.create_future()
-        self.shutdown_future = self.launcher.asyncio_loop.create_future()
-        self.my_task = self.launcher.asyncio_loop.create_task(self._execute_process())
+        self.completed_future = Future()
+        self.shutdown_future = Future()
 
-    async def _execute_process(self):
         self.logger.info(f"Starting process '{self.cmd}' (env='{self.env}')")
 
         try:
@@ -192,6 +118,7 @@ class Node:
             final_cmd = [self.cmd]
             for key, value in self.node_args.items():
                 final_cmd.extend([key, str(value)])
+
             # Remappings become part of the command's ros-args
             # launch_ros/actions/node.py:206
             final_cmd.append("--ros-args")
@@ -206,57 +133,165 @@ class Node:
             else:
                 final_env = dict(os.environ)
 
-            transport, protocol = await async_execute_process(
-                lambda **kwargs: _ProcessProtocol(self.logger, **kwargs),
-                cmd=final_cmd,
+            # Start the node process
+            self._process = subprocess.Popen(
+                final_cmd,
                 cwd=None,
                 env=final_env,
                 shell=self.use_shell,
-                emulate_tty=self.emulate_tty,
-                stderr_to_stdout=self.stderr_to_stdout,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True,
             )
-            self.subprocess_transport = transport
-            self.subprocess_protocol = protocol
+
+            # Watch the process for output and react when it terminates
+            threading.Thread(
+                target=self._watch_process,
+                args=[self._process],
+                daemon=True,
+            ).start()
+
         except Exception:
             self.logger.error(
                 f"An exception occurred while executing process:\n{traceback.format_exc()}"
             )
+        finally:
             self._cleanup()
-            return
 
-        self.pid = transport.get_pid()
-        # Event: process started
-        returncode = await protocol.complete
+    def _watch_process(self, process: subprocess.Popen):
+        outbuf = io.StringIO()
+        errbuf = io.StringIO()
 
-        if returncode == 0:
-            self.logger.info(f"Process has finished cleanly [pid {self.pid}]")
-        else:
-            self.logger.error(
-                f"Process has died [pid {self.pid}, exit code {returncode}, cmd '{self.cmd}']"
-            )
+        # Set the io pipes to non-blocking mode, otherwise read will wait for data
+        fcntl.fcntl(process.stdout.fileno(), fcntl.F_SETFL, os.O_NONBLOCK)
+        fcntl.fcntl(process.stderr.fileno(), fcntl.F_SETFL, os.O_NONBLOCK)
 
-        # Event: process terminated
-        self._on_process_exit()
+        sel = selectors.DefaultSelector()
+        sel.register(process.stdout, selectors.EVENT_READ, (logging.INFO, outbuf))
+        sel.register(process.stderr, selectors.EVENT_READ, (logging.ERROR, errbuf))
 
-        # Respawn the process if necessary
-        if (
-            not self.is_shutdown
-            and self.shutdown_future is not None
-            and not self.shutdown_future.done()
-            and (self.max_respawns < 0 or self.respawn_retries < self.max_respawns)
-        ):
-            self.respawn_retries += 1
-            if self.respawn_delay > 0.0:
-                # Wait for a timeout to respawn the process. The shutdown future helps to
-                # shortcut the wait if required
-                await asyncio.wait([self.shutdown_future], timeout=self.respawn_delay)
+        logger = self.logger
+        gather = True
+        timestamp_format = "%Y-%m-%d %H:%M:%S.%f"
+        output_format = "[{level}] [{name}] [{time}]\n{message}"
 
-            if not self.shutdown_future.done():
-                self.launcher.asyncio_loop.create_task(self._execute_process())
-                return
+        try:
+            while True:
+                events = sel.select()
 
-        self._on_shutdown()
-        self._cleanup()
+                if not events:
+                    break
+
+                for key, _ in events:
+                    level, buffer = key.data
+                    if gather:
+                        now = time.time()
+                        if timestamp_format:
+                            dt = datetime.fromtimestamp(now)
+                            now = dt.strftime(timestamp_format)
+
+                        try:
+                            buffer.write(key.fileobj.read())
+                        except IOError:
+                            # No data available despite the selector notifying us
+                            msg = output_format.format(
+                                level=logging.getLevelName(level),
+                                name=self.fullname,
+                                time=now,
+                                message=f"Failed to read process pipe {level}, this should not happen",
+                            )
+                            logger.error(msg)
+                            break
+
+                        buffer.seek(0)
+                        last_line = None
+                        lines = []
+
+                        for line in buffer:
+                            if line.endswith(os.linesep):
+                                lines.append(line.strip(os.linesep))
+                            else:
+                                last_line = line
+                                break
+
+                        buffer.seek(0)
+                        buffer.truncate(0)
+                        if last_line is not None:
+                            buffer.write(last_line)
+
+                        bundle = "\n".join(lines)
+                        if bundle:
+                            msg = output_format.format(
+                                level=logging.getLevelName(level),
+                                name=self.fullname,
+                                time=now,
+                                message=bundle,
+                            )
+                            logger.log(level, msg)
+                    else:
+                        try:
+                            buffer.write(key.fileobj.read())
+                        except IOError:
+                            # No data available despite the selector notifying us
+                            msg = output_format.format(
+                                level=logging.getLevelName(level),
+                                name=self.fullname,
+                                time=now,
+                                message=f"Failed to read process pipe {level}, this should not happen",
+                            )
+                            logger.error(msg)
+                            break
+
+                        buffer.seek(0)
+                        last_line = None
+
+                        for line in buffer:
+                            if line.endswith(os.linesep):
+                                msg = output_format.format(
+                                    level=logging.getLevelName(level),
+                                    name=self.fullname,
+                                    time=now,
+                                    message=line,
+                                )
+                                logger.log(level, msg)
+                            else:
+                                last_line = line
+                                break
+
+                        buffer.seek(0)
+                        buffer.truncate(0)
+                        if last_line is not None:
+                            buffer.write(last_line)
+
+            returncode = process.wait()
+
+            if returncode == 0:
+                self.logger.info(f"Process has finished cleanly [pid {process.pid}]")
+            else:
+                self.logger.error(
+                    f"Process has died [pid {process.pid}, exit code {returncode}, cmd '{self.cmd}']"
+                )
+        finally:
+            if self.on_exit_callback:
+                self.on_exit_callback()
+
+            # Respawn the process if necessary
+            if (
+                not self.is_shutdown
+                and self.shutdown_future is not None
+                and not self.shutdown_future.done()
+                and (self.max_respawns < 0 or self.respawn_retries < self.max_respawns)
+            ):
+                self.respawn_retries += 1
+                if self.respawn_delay > 0.0:
+                    time.sleep(self.respawn_delay)
+
+                if not self.shutdown_future.done():
+                    self.start()
+                    return
+
+            self._on_shutdown()
+            self._cleanup()
 
     def shutdown(self, reason: str, signum: int = signal.SIGTERM):
         signame = signal.Signals(signum).name
@@ -268,7 +303,7 @@ class Node:
     def _on_signal(self, signum):
         signame = signal.Signals(signum).name
 
-        if self.subprocess_protocol.complete.done():
+        if not self.is_running:
             # the process is done or is cleaning up, no need to signal
             self.logger.debug(
                 f"'{signame}' not set to '{self.name}' because it is already closing"
@@ -288,24 +323,14 @@ class Node:
 
         try:
             if signum == signal.SIGKILL:
-                self.subprocess_transport.kill()  # works on both Windows and POSIX
+                self._process.kill()
                 return
 
-            self.subprocess_transport.send_signal(signum)
-            return
+            self._process.send_signal(signum)
         except ProcessLookupError:
-            signame = signal.Signals(signum).name
             self.logger.debug(
                 f"'{signame}' not sent to '{self.name}' because it has closed already"
             )
-
-    def _on_process_exit(self):
-        # Note that the process might be restarted. The final call will be _on_shutdown
-        if self.on_exit_callback:
-            self.on_exit_callback()
-
-        if self.subprocess_transport is not None:
-            self.subprocess_transport.flush_output_buffers()
 
     def _on_shutdown(self):
         if self.shutdown_future is None or self.shutdown_future.done():
@@ -329,12 +354,13 @@ class Node:
         self.shutdown_future.set_result(None)
 
         # Send SIGTERM and SIGKILL if not shutting down fast enough
-        self.sigterm_timer = self.launcher.asyncio_loop.call_later(
-            3, lambda: self._on_signal(signal.SIGTERM)
-        )
-        self.sigkill_timer = self.launcher.asyncio_loop.call_later(
-            6, lambda: self._on_signal(signal.SIGKILL)
-        )
+        def escalate():
+            time.sleep(3.0)
+            self._on_signal(signal.SIGTERM)
+            time.sleep(3.0)
+            self._on_signal(signal.SIGKILL)
+
+        threading.Thread(target=escalate, daemon=True).start()
 
     def _cleanup(self):
         # Cancel any pending timers we started.
@@ -343,20 +369,12 @@ class Node:
         if self.sigkill_timer is not None:
             self.sigkill_timer.cancel()
 
-        # Close subprocess transport if any.
-        if self.subprocess_transport is not None:
-            self.subprocess_transport.close()
-
-        if self.subprocess_protocol is not None:
-            finalize = self.shutdown_future is not None and self.shutdown_future.done()
-            self.subprocess_protocol.flush_output_buffers(finalize=finalize)
-
         # Signal that we're done to the launch system.
         if self.completed_future is not None:
             try:
                 self.completed_future.set_result(None)
-            except asyncio.exceptions.InvalidStateError:
-                self.completed_future.cancel("Cancelled by cleanup")
+            except:
+                self.completed_future.cancel()
 
         self.my_task = None
 

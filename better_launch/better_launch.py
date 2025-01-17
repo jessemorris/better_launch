@@ -4,12 +4,12 @@ import platform
 from ast import literal_eval
 import signal
 import inspect
-import asyncio
+import threading
+from concurrent.futures import Future
 from contextlib import contextmanager
 from collections import deque
 import logging
 import yaml
-import osrf_pycommon.process_utils
 
 from ament_index_python.packages import get_package_prefix
 
@@ -53,8 +53,9 @@ def launch_this(launch_func):
 
     def run():
         launch_func()
+
         # Retrieve the BetterLaunch singleton and run it
-        BetterLaunch().execute()
+        BetterLaunch().spin()
 
     # All BL nodes and includes are async once started
     click_cmd = click.Command("main", callback=run, params=options)
@@ -102,7 +103,7 @@ def ros2_opaque_function(launch_func, make_global: bool = True):
                     # TODO should we spin our own autocomplete?
                     launch_args[k] = v
 
-            # TODO start asyncio loop
+            # TODO spin BetterLaunch instance
             launch_func(**launch_args)
 
             # Retrieve the BetterLaunch singleton
@@ -161,20 +162,15 @@ class BetterLaunch(metaclass=_BetterLaunchMeta):
             if name.endswith(".launch"):
                 name = os.path.splitext(name)[0]
 
-        # Handling signals is complicated with asyncio, we use the ros2/launch signal manager
-        self.asyncio_loop: asyncio.AbstractEventLoop = (
-            osrf_pycommon.process_utils.get_loop()
-        )
-
-        self.asyncio_loop.add_signal_handler(signal.SIGINT, self._on_sigint)
-        self.asyncio_loop.add_signal_handler(signal.SIGTERM, self._on_sigterm)
+        signal.signal(signal.SIGINT, self._on_sigint)
+        signal.signal(signal.SIGTERM, self._on_sigterm)
 
         if platform.system() != "Windows":
-            self.asyncio_loop.add_signal_handler(signal.SIGQUIT, self._on_sigterm)
+            signal.signal(signal.SIGQUIT, self._on_sigterm)
 
         # For those cases where we need to interact with ROS somehow (e.g. service calls)
         self.ros_adapter = ROSAdapter()
-        self._shutdown_future = self.asyncio_loop.create_future()
+        self._shutdown_future = Future()
 
         self.logger = logging.Logger(name, level=log_level)
         self.all_args = launch_args
@@ -193,14 +189,17 @@ class BetterLaunch(metaclass=_BetterLaunchMeta):
 
         # Allows to run traditional ros2 launch descriptions
         self._ros2_launcher = None
+        self._ros2_launcher_thread = None
 
-    def execute(self):
-        if self._ros2_launcher is not None:
-            self.asyncio_loop.create_task(asyncio.coroutine(self._ros2_launcher.run))
+    def spin(self):
+        if self._ros2_launcher and not self._ros2_launcher_thread:
+            self._ros2_launcher_thread = threading.Thread(
+                target=self._ros2_launcher.run, 
+                daemon=True,
+            )
+            self._ros2_launcher_thread.start()
 
-        # TODO exception handling
-        # TODO things need to be started immediately, otherwise there is no point to this
-        return self.asyncio_loop.run_until_complete(self._shutdown_future)
+        self.ros_adapter._thread.join()
 
     def get_unique_name(self, name: str = ""):
         return name + "_" + __uuid_generator()
@@ -235,31 +234,23 @@ class BetterLaunch(metaclass=_BetterLaunchMeta):
     def group_tip(self) -> Group:
         return self._group_stack[-1]
 
-    def _on_sigint(self):
+    def _on_sigint(self, sig, frame):
         if not self.sigint_received:
             self.logger.warning(f"Received (SIGINT), forwarding to child processes...")
             self.shutdown("user interrupt", signal.SIGINT)
             self.sigint_received = True
         else:
             self.logger.warning(f"Received (SIGINT) again, escalating to sigterm")
-            self._on_sigterm()
+            self._on_sigterm(sig, frame)
 
-    def _on_sigterm(self):
+    def _on_sigterm(self, sig, frame):
         self.logger.error(f"Using (SIGTERM) can result in orphaned processes!")
 
         # Final chance for the processes to shut down, but we will no longer wait
         self.shutdown(f"received (SIGTERM)", signal.SIGTERM)
 
-        if not self.is_shutdown():
+        if not self.is_shutdown:
             self._shutdown_future.cancel()
-
-        try:
-            # Python 3.7+
-            current_task = asyncio.current_task(self.asyncio_loop)
-        except AttributeError:
-            current_task = asyncio.Task.current_task(self.asyncio_loop)
-
-        self.asyncio_loop.call_later(0.5, current_task.cancel)
 
     @property
     def is_shutdown(self):
@@ -278,7 +269,7 @@ class BetterLaunch(metaclass=_BetterLaunchMeta):
 
         try:
             self._shutdown_future.set_result(None)
-        except asyncio.exceptions.InvalidStateError:
+        except:
             pass
 
     def find(self, package: str, file_name: str = None, file_dir: str = None):
@@ -502,7 +493,7 @@ class BetterLaunch(metaclass=_BetterLaunchMeta):
         if hidden and not name.startswith("_"):
             name = "_" + name
 
-        # Remaps apply to the 
+        # Remaps apply to the
         # Assemble additional node remaps from our group branch
         g = self.group_tip
         remaps = g.assemble_remaps()
