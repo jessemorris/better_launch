@@ -1,4 +1,5 @@
 import os
+import re
 import platform
 import signal
 import traceback
@@ -36,6 +37,7 @@ class Node:
         self.launcher = launcher
         self.my_task = None
 
+        # TODO add group argument to init
         if not logger:
             logger = launcher.logger
         self.logger = logger.getChild(name)
@@ -170,10 +172,8 @@ class Node:
         sel.register(process.stdout, selectors.EVENT_READ, (logging.INFO, outbuf))
         sel.register(process.stderr, selectors.EVENT_READ, (logging.ERROR, errbuf))
 
-        logger = self.logger
+        logger = logging.getLogger(self.fullname)
         gather = True
-        timestamp_format = "%Y-%m-%d %H:%M:%S.%f"
-        output_format = "[{level}] [{name}] [{time}]\n{message}"
 
         try:
             while True:
@@ -185,22 +185,13 @@ class Node:
                 for key, _ in events:
                     level, buffer = key.data
                     if gather:
-                        now = time.time()
-                        if timestamp_format:
-                            dt = datetime.fromtimestamp(now)
-                            now = dt.strftime(timestamp_format)
-
                         try:
                             buffer.write(key.fileobj.read())
                         except IOError:
                             # No data available despite the selector notifying us
-                            msg = output_format.format(
-                                level=logging.getLevelName(level),
-                                name=self.fullname,
-                                time=now,
-                                message=f"Failed to read process pipe {level}, this should not happen",
+                            logger.error(
+                                f"Failed to read process pipe {level}, this should not happen",
                             )
-                            logger.error(msg)
                             break
 
                         buffer.seek(0)
@@ -221,25 +212,15 @@ class Node:
 
                         bundle = "\n".join(lines)
                         if bundle:
-                            msg = output_format.format(
-                                level=logging.getLevelName(level),
-                                name=self.fullname,
-                                time=now,
-                                message=bundle,
-                            )
-                            logger.log(level, msg)
+                            logger.log(level, bundle)
                     else:
                         try:
                             buffer.write(key.fileobj.read())
                         except IOError:
                             # No data available despite the selector notifying us
-                            msg = output_format.format(
-                                level=logging.getLevelName(level),
-                                name=self.fullname,
-                                time=now,
-                                message=f"Failed to read process pipe {level}, this should not happen",
+                            logger.error(
+                                f"Failed to read process pipe {level}, this should not happen",
                             )
-                            logger.error(msg)
                             break
 
                         buffer.seek(0)
@@ -247,13 +228,7 @@ class Node:
 
                         for line in buffer:
                             if line.endswith(os.linesep):
-                                msg = output_format.format(
-                                    level=logging.getLevelName(level),
-                                    name=self.fullname,
-                                    time=now,
-                                    message=line,
-                                )
-                                logger.log(level, msg)
+                                logger.log(level, line)
                             else:
                                 last_line = line
                                 break
@@ -355,10 +330,13 @@ class Node:
 
         # Send SIGTERM and SIGKILL if not shutting down fast enough
         def escalate():
-            time.sleep(3.0)
-            self._on_signal(signal.SIGTERM)
-            time.sleep(3.0)
-            self._on_signal(signal.SIGKILL)
+            try:
+                time.sleep(3.0)
+                self._on_signal(signal.SIGTERM)
+                time.sleep(3.0)
+                self._on_signal(signal.SIGKILL)
+            except Exception:
+                pass
 
         threading.Thread(target=escalate, daemon=True).start()
 

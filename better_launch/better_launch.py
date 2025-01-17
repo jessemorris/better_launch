@@ -11,6 +11,7 @@ from collections import deque
 import logging
 import yaml
 
+import rclpy
 from ament_index_python.packages import get_package_prefix
 
 try:
@@ -140,7 +141,10 @@ class BetterLaunch(metaclass=_BetterLaunchMeta):
         ns: str = "/",
         launch_args: dict = None,
         name: str = None,
+        *,
         log_level: int = logging.INFO,
+        log_format: str = "[{severity}] :: {name} :: {time}\x1b[0m\n{message} ({file_name}:{line_number})",
+        log_color: bool = True,
     ):
         if launch_args is None:
             frame = inspect.currentframe()
@@ -172,7 +176,15 @@ class BetterLaunch(metaclass=_BetterLaunchMeta):
         self.ros_adapter = ROSAdapter()
         self._shutdown_future = Future()
 
-        self.logger = logging.Logger(name, level=log_level)
+        if log_format:
+            os.environ["RCUTILS_CONSOLE_OUTPUT_FORMAT"] = log_format
+
+        if log_color:
+            os.environ["RCUTILS_COLORIZED_OUTPUT"] = "1"
+
+        self.logger = logging.getLogger(name) #rclpy.logging.get_logger(name)
+        self.logger.setLevel(log_level)
+
         self.all_args = launch_args
         self.sigint_received = False
 
