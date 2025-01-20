@@ -14,6 +14,8 @@ import subprocess
 import selectors
 from concurrent.futures import Future
 
+from utils.roslog_formatter import RosLogFormatter
+
 
 class Node:
     def __init__(
@@ -23,9 +25,11 @@ class Node:
         name: str,
         node_args: dict[str, Any] = None,
         *,
+        reparse_logs: bool = True,
         logger: logging.Logger = None,
         remap: dict[str, str] = None,
         env: dict[str, str] = None,
+        isolate_env: bool = False,
         on_exit: Callable = None,
         max_respawns: int = 0,
         respawn_delay: float = 0.0,
@@ -57,10 +61,21 @@ class Node:
         self.name = name
         self.cmd = executable
         self.env = env or {}
+        self.isolate_env = isolate_env
         self.node_args = node_args or {}
         self.remap = remap or {}
         # launch_ros/actions/node.py:495
         self.remap["__node"] = name
+
+        if reparse_logs:
+            self.env["RCUTILS_CONSOLE_OUTPUT_FORMAT"] = "%%{severity}%%{time}%%{message}"
+            self.env["RCUTILS_COLORIZED_OUTPUT"] = "0"
+            handler = logging.StreamHandler()
+            if True: # TODO log_color:
+                handler.formatter = RosLogFormatter()
+            else:
+                handler.formatter = RosLogFormatter(colormap={})
+            self.logger.addHandler(handler)
 
         self._process = None
 
@@ -128,12 +143,13 @@ class Node:
                 # launch_ros/actions/node.py:481
                 final_cmd.extend(["-r", f"{src}:={dst}"])
 
-            # If an env is specified ROS2 lets it completely replace the host env
+            # If an env is specified ROS2 lets it completely replace the host env. We cover this
+            # through an additional flag, as often you just want to make certain overrides.
             # launch/descriptions/executable.py:199
-            if self.env:
+            if self.isolate_env:
                 final_env = self.env
             else:
-                final_env = dict(os.environ)
+                final_env = dict(os.environ) | self.env
 
             # Start the node process
             self._process = subprocess.Popen(
@@ -170,9 +186,11 @@ class Node:
 
         sel = selectors.DefaultSelector()
         sel.register(process.stdout, selectors.EVENT_READ, (logging.INFO, outbuf))
-        sel.register(process.stderr, selectors.EVENT_READ, (logging.ERROR, errbuf))
+        sel.register(process.stderr, selectors.EVENT_READ, (logging.INFO, errbuf))
 
-        logger = logging.getLogger(self.fullname)
+        # TODO this has to be a little more complex, see
+        # https://github.com/ros2/launch/blob/rolling/launch/launch/logging/__init__.py#L419
+        logger = self.logger#logging.getLogger(self.fullname)
         gather = True
 
         try:
@@ -212,7 +230,7 @@ class Node:
 
                         bundle = "\n".join(lines)
                         if bundle:
-                            logger.log(level, bundle)
+                            logger.info(bundle)
                     else:
                         try:
                             buffer.write(key.fileobj.read())
@@ -228,7 +246,7 @@ class Node:
 
                         for line in buffer:
                             if line.endswith(os.linesep):
-                                logger.log(level, line)
+                                logger.info(line)
                             else:
                                 last_line = line
                                 break

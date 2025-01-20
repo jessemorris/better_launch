@@ -142,9 +142,7 @@ class BetterLaunch(metaclass=_BetterLaunchMeta):
         launch_args: dict = None,
         name: str = None,
         *,
-        log_level: int = logging.INFO,
-        log_format: str = "[{severity}] :: {name} :: {time}\x1b[0m\n{message} ({file_name}:{line_number})",
-        log_color: bool = True,
+        log_level: int = logging.INFO
     ):
         if launch_args is None:
             frame = inspect.currentframe()
@@ -175,12 +173,6 @@ class BetterLaunch(metaclass=_BetterLaunchMeta):
         # For those cases where we need to interact with ROS somehow (e.g. service calls)
         self.ros_adapter = ROSAdapter()
         self._shutdown_future = Future()
-
-        if log_format:
-            os.environ["RCUTILS_CONSOLE_OUTPUT_FORMAT"] = log_format
-
-        if log_color:
-            os.environ["RCUTILS_COLORIZED_OUTPUT"] = "1"
 
         self.logger = logging.getLogger(name) #rclpy.logging.get_logger(name)
         self.logger.setLevel(log_level)
@@ -361,6 +353,7 @@ class BetterLaunch(metaclass=_BetterLaunchMeta):
         name: str = None,
         node_args: dict[str, Any] = None,
         *,
+        reparse_logs: bool = True,
         anonymous: bool = False,
         hidden: bool = False,
         remap: dict[str, str] = None,
@@ -401,6 +394,7 @@ class BetterLaunch(metaclass=_BetterLaunchMeta):
             name,
             node_args,
             logger=g.logger,
+            reparse_logs=reparse_logs,
             remap=remaps,
             env=env,
             on_exit=on_exit,
