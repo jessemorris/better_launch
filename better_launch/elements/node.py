@@ -1,11 +1,10 @@
+from typing import Literal
 import os
-import re
 import platform
 import signal
 import traceback
 from typing import Any, Callable
 import time
-from datetime import datetime
 import io
 import fcntl
 import logging
@@ -14,19 +13,25 @@ import subprocess
 import selectors
 from concurrent.futures import Future
 
-from utils.roslog_formatter import RosLogFormatter
+from freetime.better_launch.better_launch.utils.log_formatter import RosLogFormatter
+
+
+_node_counter = 0
 
 
 class Node:
     def __init__(
         self,
         launcher,
+        group,
         executable: str,
         name: str,
         node_args: dict[str, Any] = None,
         *,
+        # TODO add to subclasses
+        log_level: int = logging.INFO,
+        output_config: dict[str, set[str]] = None,
         reparse_logs: bool = True,
-        logger: logging.Logger = None,
         remap: dict[str, str] = None,
         env: dict[str, str] = None,
         isolate_env: bool = False,
@@ -41,10 +46,8 @@ class Node:
         self.launcher = launcher
         self.my_task = None
 
-        # TODO add group argument to init
-        if not logger:
-            logger = launcher.logger
-        self.logger = logger.getChild(name)
+        self.group = group
+        self.logger = group.get_logger(name)
 
         self.completed_future = None
         self.shutdown_future = None
@@ -58,24 +61,26 @@ class Node:
         if not executable:
             raise ValueError("No executable provided")
 
+        global _node_counter
+        self.node_id = _node_counter
+        _node_counter += 1
+
         self.name = name
         self.cmd = executable
         self.env = env or {}
         self.isolate_env = isolate_env
         self.node_args = node_args or {}
+        self.node_args["--log-level"] = logging.getLevelName(log_level)
         self.remap = remap or {}
         # launch_ros/actions/node.py:495
         self.remap["__node"] = name
 
-        if reparse_logs:
-            self.env["RCUTILS_CONSOLE_OUTPUT_FORMAT"] = "%%{severity}%%{time}%%{message}"
-            self.env["RCUTILS_COLORIZED_OUTPUT"] = "0"
-            handler = logging.StreamHandler()
-            if True: # TODO log_color:
-                handler.formatter = RosLogFormatter()
-            else:
-                handler.formatter = RosLogFormatter(colormap={})
-            self.logger.addHandler(handler)
+        if output_config is None:
+            output_config = {"both": {"screen"}}
+
+        self.log_level = log_level
+        self.output_config = output_config
+        self.reparse_logs = reparse_logs
 
         self._process = None
 
@@ -130,6 +135,17 @@ class Node:
 
         self.logger.info(f"Starting process '{self.cmd}' (env='{self.env}')")
 
+        # Note that self.log_level applies to the process, not our loggers
+        logout = logging.getLogger(f"{self.name}-{self.node_id}-stdout")
+        self.launcher.configure_logger(
+            logout, self.output_config, self.reparse_logs
+        )
+
+        logerr = logging.getLogger(f"{self.name}-{self.node_id}-stderr")
+        self.launcher.configure_logger(
+            logerr, self.output_config, self.reparse_logs
+        )
+
         try:
             # Attach additional node args
             final_cmd = [self.cmd]
@@ -151,6 +167,12 @@ class Node:
             else:
                 final_env = dict(os.environ) | self.env
 
+            if self.reparse_logs:
+                final_env["RCUTILS_CONSOLE_OUTPUT_FORMAT"] = (
+                    "%%{severity}%%{time}%%{message}"
+                )
+                final_env["RCUTILS_COLORIZED_OUTPUT"] = "0"
+
             # Start the node process
             self._process = subprocess.Popen(
                 final_cmd,
@@ -165,7 +187,7 @@ class Node:
             # Watch the process for output and react when it terminates
             threading.Thread(
                 target=self._watch_process,
-                args=[self._process],
+                args=[self._process, logout, logerr],
                 daemon=True,
             ).start()
 
@@ -176,7 +198,13 @@ class Node:
         finally:
             self._cleanup()
 
-    def _watch_process(self, process: subprocess.Popen):
+    def _watch_process(
+        self,
+        process: subprocess.Popen,
+        logout: logging.Logger,
+        logerr: logging.Logger,
+        gather: bool = True,
+    ):
         outbuf = io.StringIO()
         errbuf = io.StringIO()
 
@@ -185,13 +213,8 @@ class Node:
         fcntl.fcntl(process.stderr.fileno(), fcntl.F_SETFL, os.O_NONBLOCK)
 
         sel = selectors.DefaultSelector()
-        sel.register(process.stdout, selectors.EVENT_READ, (logging.INFO, outbuf))
-        sel.register(process.stderr, selectors.EVENT_READ, (logging.INFO, errbuf))
-
-        # TODO this has to be a little more complex, see
-        # https://github.com/ros2/launch/blob/rolling/launch/launch/logging/__init__.py#L419
-        logger = self.logger#logging.getLogger(self.fullname)
-        gather = True
+        sel.register(process.stdout, selectors.EVENT_READ, (logout, outbuf))
+        sel.register(process.stderr, selectors.EVENT_READ, (logerr, errbuf))
 
         try:
             while True:
@@ -201,14 +224,14 @@ class Node:
                     break
 
                 for key, _ in events:
-                    level, buffer = key.data
+                    logger, buffer = key.data
                     if gather:
                         try:
                             buffer.write(key.fileobj.read())
                         except IOError:
                             # No data available despite the selector notifying us
                             logger.error(
-                                f"Failed to read process pipe {level}, this should not happen",
+                                f"Failed to read process pipe, this should not happen",
                             )
                             break
 
@@ -216,6 +239,7 @@ class Node:
                         last_line = None
                         lines = []
 
+                        # Exhaust the buffer, then log whatever we collected as one message
                         for line in buffer:
                             if line.endswith(os.linesep):
                                 lines.append(line.strip(os.linesep))
@@ -237,13 +261,14 @@ class Node:
                         except IOError:
                             # No data available despite the selector notifying us
                             logger.error(
-                                f"Failed to read process pipe {level}, this should not happen",
+                                f"Failed to read process pipe, this should not happen",
                             )
                             break
 
                         buffer.seek(0)
                         last_line = None
 
+                        # Log every line immediately
                         for line in buffer:
                             if line.endswith(os.linesep):
                                 logger.info(line)
@@ -376,5 +401,5 @@ class Node:
 
     def __repr__(self):
         return (
-            f"{self.name} [cmd {self.cmd}, pid {self.pid}, running {self.is_running}]"
+            f"{self.name} [node {self.node_id}, cmd {self.cmd}, pid {self.pid}, running {self.is_running}]"
         )

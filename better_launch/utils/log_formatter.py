@@ -1,4 +1,5 @@
 from typing import Any
+import os
 import re
 import logging
 from datetime import datetime
@@ -14,14 +15,17 @@ default_colormap = {
 
 
 class RosLogFormatter(logging.Formatter):
+    default_screen_format = "[{levelcolor}{levelname}{colorreset}] [{name}] [{asctime}]\n{message}"
+    default_file_format = "[{levelname}] [{asctime}] {message}"
+
     def __init__(
         self,
         format: str = "[{levelcolor}{levelname}{colorreset}] [{name}] [{asctime}]\n{message}",
-        roslog_pattern: str = r"%%([\w]+)%%([\d.]+)%%(.*)",
         timestamp_format: str = "%Y-%m-%d %H:%M:%S.%f",
         *,
         defaults: Any = None,
         colormap: dict[int, str] = None,
+        roslog_pattern: str = r"%%([\w]+)%%([\d.]+)%%(.*)",
     ):
         super().__init__(format, timestamp_format, "{", True, defaults=defaults)
         

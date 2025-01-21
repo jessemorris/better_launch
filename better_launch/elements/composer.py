@@ -9,11 +9,11 @@ class Composer(Node):
     def __init__(
         self,
         launcher,
+        group,
         name: str,
         language: str,
         node_args: dict[str, Any] = None,
         *,
-        logger: Logger = None,
         remap: dict[str, str] = None,
         env: dict[str, str] = None,
         on_exit: Callable = None,
@@ -40,10 +40,10 @@ class Composer(Node):
 
         super().__init__(
             launcher,
+            group,
             executable,
             name,
             node_args,
-            logger=logger,
             remap=node_remaps,
             env=env,
             on_exit=on_exit,

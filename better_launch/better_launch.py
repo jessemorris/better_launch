@@ -27,7 +27,9 @@ except ImportError:
     __uuid_generator = lambda: uuid.uuid4().hex
 
 from elements import Group, Node, Composer, LifecycleNode, LifecycleStage
-from utils.ros_adapter import ROSAdapter
+from ros.ros_adapter import ROSAdapter
+from ros import logging as roslog
+from utils.log_formatter import RosLogFormatter
 from utils.substitutions import default_substitution_handlers, substitute_tokens
 
 
@@ -142,7 +144,7 @@ class BetterLaunch(metaclass=_BetterLaunchMeta):
         launch_args: dict = None,
         name: str = None,
         *,
-        log_level: int = logging.INFO
+        log_level: int = logging.INFO,
     ):
         if launch_args is None:
             frame = inspect.currentframe()
@@ -174,8 +176,13 @@ class BetterLaunch(metaclass=_BetterLaunchMeta):
         self.ros_adapter = ROSAdapter()
         self._shutdown_future = Future()
 
-        self.logger = logging.getLogger(name) #rclpy.logging.get_logger(name)
+        self._logscreen_handler = None
+        self._logfile_handlers = {}
+
+        self.logger = logging.getLogger(name)
         self.logger.setLevel(log_level)
+        # By default we only log to the screen, no launch log clutter
+        self.logger.addHandler(self.get_screenlog_handler())
 
         self.all_args = launch_args
         self.sigint_received = False
@@ -198,7 +205,7 @@ class BetterLaunch(metaclass=_BetterLaunchMeta):
     def spin(self):
         if self._ros2_launcher and not self._ros2_launcher_thread:
             self._ros2_launcher_thread = threading.Thread(
-                target=self._ros2_launcher.run, 
+                target=self._ros2_launcher.run,
                 daemon=True,
             )
             self._ros2_launcher_thread.start()
@@ -229,6 +236,96 @@ class BetterLaunch(metaclass=_BetterLaunchMeta):
             nodes.extend(g.nodes)
 
         return nodes
+
+    def _get_logfile_handler(self, logger: logging.Logger, logfile: str, reparse_logs: bool):
+        if logfile not in self._logfile_handlers:
+            if platform.system == "Windows":
+                file_handler = handlers.FileHandler(logfile)
+            else:
+                file_handler = logging.handlers.WatchedFileHandler(logfile)
+            self._logfile_handlers[logfile] = file_handler
+
+        return self._logfile_handlers[logfile]
+
+    def get_process_logger(
+        self,
+        process_name: str,
+        output_config: dict[str, list],
+        reparse_logs: bool = True,
+    ):
+        for key in ["both", "stdout", "stderr"]:
+            output_config.setdefault(key, set())
+
+        for source in ["stdout", "stderr"]:
+            logger = logging.getLogger(f"{process_name}-{source}")
+
+            if "screen" in output_config["both"] | output_config[source]:
+                if not self._screen_handler:
+                    self._screen_handler = handlers.StreamHandler()
+                screen_handler = self._screen_handler
+
+                if screen_handler not in logger.handlers:
+                    if reparse_logs:
+                        formatter = RosLogFormatter()
+                    else:
+                        formatter = logging.Formatter("{msg}", style="{")
+                    screen_handler.setFormatterFor(logger, formatter)
+                    logger.addHandler(screen_handler)
+
+            if "log" in output_config["both"] | output_config[source]:
+                logfile = self.main_logfile
+                launch_logfile_handler = self._get_logfile_handler(logfile)
+
+                if launch_logfile_handler not in logger.handlers:
+                    if reparse_logs:
+                        formatter = RosLogFormatter(RosLogFormatter.default_file_format)
+                    else:
+                        formatter = logging.Formatter("{created:.7f} {msg}", style="{")
+                    launch_logfile_handler.setFormatterFor(logger, formatter)
+                    logger.addHandler(launch_logfile_handler)
+
+            if "own_log" in output_config[source]:
+                logfile = f"{process_name}-{source}.log"
+                own_logfile_handler = self._get_logfile_handler(logfile)
+
+                if own_logfile_handler not in logger.handlers:
+                    if reparse_logs:
+                        formatter = RosLogFormatter(RosLogFormatter.default_file_format)
+                    else:
+                        formatter = logging.Formatter(None)
+                    own_logfile_handler.setFormatterFor(logger, formatter)
+                    logger.addHandler(own_logfile_handler)
+
+            if "own_log" in output_config["both"]:
+                logfile = f"{process_name}.log"
+                combined_logfile_handler = self._get_logfile_handler(logfile)
+
+                if combined_logfile_handler not in logger.handlers:
+                    if reparse_logs:
+                        formatter = RosLogFormatter(RosLogFormatter.default_file_format)
+                    else:
+                        formatter = logging.Formatter(None)
+                    combined_logfile_handler.setFormatterFor(logger, formatter)
+                    logger.addHandler(combined_logfile_handler)
+
+
+    # TODO remove
+    def get_filelog_handler(self, logfile: str):
+        # This one performs IO operations and thus should not have any competitors
+        if logfile not in self._logfile_handlers:
+            if platform.system == "Windows":
+                file_handler = logging.FileHandler(logfile)
+            else:
+                file_handler = logging.handlers.WatchedFileHandler(logfile)
+            self._logfile_handlers[logfile] = file_handler
+        return self._logfile_handlers[logfile]
+
+    def get_screenlog_handler(self):
+        # This one performs IO operations and thus should not have any competitors
+        if not self._screen_handler:
+            self._screen_handler = logging.StreamHandler()
+            self._screen_handler.setFormatter(RosLogFormatter())
+        return self._screen_handler
 
     @property
     def group_root(self) -> Group:
@@ -390,10 +487,10 @@ class BetterLaunch(metaclass=_BetterLaunchMeta):
         exec_file = self.find(pkg, exec)
         node = Node(
             self,
+            g,
             exec_file,
             name,
             node_args,
-            logger=g.logger,
             reparse_logs=reparse_logs,
             remap=remaps,
             env=env,
@@ -454,10 +551,11 @@ class BetterLaunch(metaclass=_BetterLaunchMeta):
         exec_file = self.find(pkg, exec)
         node = LifecycleNode(
             self,
+            g,
             exec_file,
             name,
             node_args,
-            logger=g.logger,
+            target_state,
             remap=remaps,
             env=env,
             on_exit=on_exit,
@@ -512,9 +610,9 @@ class BetterLaunch(metaclass=_BetterLaunchMeta):
 
         comp = Composer(
             self,
+            g,
             name,
             language,
-            logger=g.logger,
             remap=remap,
             env=env,
             on_exit=on_exit,

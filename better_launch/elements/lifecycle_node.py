@@ -49,12 +49,12 @@ class LifecycleNode(Node):
     def __init__(
         self,
         launcher,
+        group,
         executable: str,
         name: str,
         node_args: dict[str, Any] = None,
         target_stage: int = LifecycleStage.PRISTINE,
         *,
-        logger: Logger = None,
         remap: dict[str, str] = None,
         env: dict[str, str] = None,
         on_exit: Callable = None,
@@ -66,10 +66,10 @@ class LifecycleNode(Node):
     ):
         super().__init__(
             launcher,
+            group,
             executable,
             name,
             node_args,
-            logger=logger,
             remap=remap,
             env=env,
             on_exit=on_exit,

@@ -11,12 +11,13 @@ class Group:
         self.nodes = []
 
         self._root_chain = self._get_chain_from_root()
+        self.logger = self.get_child_logger()
 
-        pl = parent.logger if parent else launcher.logger
-        if ns:
-            self.logger = pl.getChild(ns)
-        else:
-            self.logger = pl
+    def get_child_logger(self, child_suffix: str = None, with_handlers: bool = True):
+        full_ns = self.assemble_namespace()
+        key = full_ns + "/" + child_suffix if child_suffix else full_ns
+        # NOTE The root group is only named "/", so it will log to the parent logger instead
+        return self.launcher.logger.getChild(key.strip("/").replace("/", "."), with_handlers)
 
     def _get_chain_from_root(self, include_root: bool = False):
         # The launcher doesn't keep the group tree, but we can rebuild at least our own branch
