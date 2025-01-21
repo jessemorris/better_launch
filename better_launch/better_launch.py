@@ -11,7 +11,6 @@ from collections import deque
 import logging
 import yaml
 
-import rclpy
 from ament_index_python.packages import get_package_prefix
 
 try:
@@ -29,8 +28,11 @@ except ImportError:
 from elements import Group, Node, Composer, LifecycleNode, LifecycleStage
 from ros.ros_adapter import ROSAdapter
 from ros import logging as roslog
-from utils.log_formatter import RosLogFormatter
+from utils.log_formatter import RosLogFormatter, default_colormap
 from utils.substitutions import default_substitution_handlers, substitute_tokens
+
+
+# TODO can we detect if we were called from the cli via "ros2 launch"?
 
 
 _is_launcher_defined = "__better_launch_this_defined"
@@ -179,10 +181,13 @@ class BetterLaunch(metaclass=_BetterLaunchMeta):
         self._logscreen_handler = None
         self._logfile_handlers = {}
 
-        self.logger = logging.getLogger(name)
-        self.logger.setLevel(log_level)
-        # By default we only log to the screen, no launch log clutter
-        self.logger.addHandler(self.get_screenlog_handler())
+        roslog.launch_config.level = log_level
+        if "OVERRIDE_LAUNCH_SCREEN_FORMAT" not in os.environ:
+            colormap = dict(default_colormap)
+            colormap[logging.INFO] = "\x1b[32;20m"
+            roslog.launch_config.screen_formatter = RosLogFormatter(colormap=colormap)
+
+        self.logger = roslog.get_logger(name)
 
         self.all_args = launch_args
         self.sigint_received = False
@@ -202,8 +207,47 @@ class BetterLaunch(metaclass=_BetterLaunchMeta):
         self._ros2_launcher = None
         self._ros2_launcher_thread = None
 
+        self.hello()
+
+    def hello(self):
+        self.logger.info(
+            # Ascii art: https://asciiart.cc/view/10677
+            f"""\
+Better Launch is starting!
+Please fasten your seatbelts and secure all baggage underneath your chair.
+
+Default log level is \x1b[34;20m{roslog.launch_config.level}\x1b[0m
+All log files can be found under \x1b[34;20m{roslog.launch_config.log_dir}\x1b[0m
+
+Takeoff in 3... 2... 1...
+
+                        ,:
+                      ,' |
+                     /   :
+                  --'   /
+                  \/ /:/
+                  / ://_\\
+               __/   /
+               )'-. /
+               ./  :\\
+                /.' '
+              '/'
+              +
+           .-"-
+          (    )
+       . .-'  '.
+      ( (.   )8:
+  .'    / (_  )
+"""
+        )
+
     def spin(self):
         if self._ros2_launcher and not self._ros2_launcher_thread:
+            # Apply our config to the ROS2 launch logging config
+            import launch
+
+            launch.logging.launch_config = roslog.launch_config
+
             self._ros2_launcher_thread = threading.Thread(
                 target=self._ros2_launcher.run,
                 daemon=True,
@@ -236,96 +280,6 @@ class BetterLaunch(metaclass=_BetterLaunchMeta):
             nodes.extend(g.nodes)
 
         return nodes
-
-    def _get_logfile_handler(self, logger: logging.Logger, logfile: str, reparse_logs: bool):
-        if logfile not in self._logfile_handlers:
-            if platform.system == "Windows":
-                file_handler = handlers.FileHandler(logfile)
-            else:
-                file_handler = logging.handlers.WatchedFileHandler(logfile)
-            self._logfile_handlers[logfile] = file_handler
-
-        return self._logfile_handlers[logfile]
-
-    def get_process_logger(
-        self,
-        process_name: str,
-        output_config: dict[str, list],
-        reparse_logs: bool = True,
-    ):
-        for key in ["both", "stdout", "stderr"]:
-            output_config.setdefault(key, set())
-
-        for source in ["stdout", "stderr"]:
-            logger = logging.getLogger(f"{process_name}-{source}")
-
-            if "screen" in output_config["both"] | output_config[source]:
-                if not self._screen_handler:
-                    self._screen_handler = handlers.StreamHandler()
-                screen_handler = self._screen_handler
-
-                if screen_handler not in logger.handlers:
-                    if reparse_logs:
-                        formatter = RosLogFormatter()
-                    else:
-                        formatter = logging.Formatter("{msg}", style="{")
-                    screen_handler.setFormatterFor(logger, formatter)
-                    logger.addHandler(screen_handler)
-
-            if "log" in output_config["both"] | output_config[source]:
-                logfile = self.main_logfile
-                launch_logfile_handler = self._get_logfile_handler(logfile)
-
-                if launch_logfile_handler not in logger.handlers:
-                    if reparse_logs:
-                        formatter = RosLogFormatter(RosLogFormatter.default_file_format)
-                    else:
-                        formatter = logging.Formatter("{created:.7f} {msg}", style="{")
-                    launch_logfile_handler.setFormatterFor(logger, formatter)
-                    logger.addHandler(launch_logfile_handler)
-
-            if "own_log" in output_config[source]:
-                logfile = f"{process_name}-{source}.log"
-                own_logfile_handler = self._get_logfile_handler(logfile)
-
-                if own_logfile_handler not in logger.handlers:
-                    if reparse_logs:
-                        formatter = RosLogFormatter(RosLogFormatter.default_file_format)
-                    else:
-                        formatter = logging.Formatter(None)
-                    own_logfile_handler.setFormatterFor(logger, formatter)
-                    logger.addHandler(own_logfile_handler)
-
-            if "own_log" in output_config["both"]:
-                logfile = f"{process_name}.log"
-                combined_logfile_handler = self._get_logfile_handler(logfile)
-
-                if combined_logfile_handler not in logger.handlers:
-                    if reparse_logs:
-                        formatter = RosLogFormatter(RosLogFormatter.default_file_format)
-                    else:
-                        formatter = logging.Formatter(None)
-                    combined_logfile_handler.setFormatterFor(logger, formatter)
-                    logger.addHandler(combined_logfile_handler)
-
-
-    # TODO remove
-    def get_filelog_handler(self, logfile: str):
-        # This one performs IO operations and thus should not have any competitors
-        if logfile not in self._logfile_handlers:
-            if platform.system == "Windows":
-                file_handler = logging.FileHandler(logfile)
-            else:
-                file_handler = logging.handlers.WatchedFileHandler(logfile)
-            self._logfile_handlers[logfile] = file_handler
-        return self._logfile_handlers[logfile]
-
-    def get_screenlog_handler(self):
-        # This one performs IO operations and thus should not have any competitors
-        if not self._screen_handler:
-            self._screen_handler = logging.StreamHandler()
-            self._screen_handler.setFormatter(RosLogFormatter())
-        return self._screen_handler
 
     @property
     def group_root(self) -> Group:
@@ -487,7 +441,6 @@ class BetterLaunch(metaclass=_BetterLaunchMeta):
         exec_file = self.find(pkg, exec)
         node = Node(
             self,
-            g,
             exec_file,
             name,
             node_args,
@@ -551,7 +504,6 @@ class BetterLaunch(metaclass=_BetterLaunchMeta):
         exec_file = self.find(pkg, exec)
         node = LifecycleNode(
             self,
-            g,
             exec_file,
             name,
             node_args,
@@ -610,7 +562,6 @@ class BetterLaunch(metaclass=_BetterLaunchMeta):
 
         comp = Composer(
             self,
-            g,
             name,
             language,
             remap=remap,

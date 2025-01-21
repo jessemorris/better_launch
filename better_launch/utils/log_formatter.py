@@ -1,6 +1,6 @@
 from typing import Any
-import os
 import re
+import random
 import logging
 from datetime import datetime
 
@@ -15,23 +15,26 @@ default_colormap = {
 
 
 class RosLogFormatter(logging.Formatter):
-    default_screen_format = "[{levelcolor}{levelname}{colorreset}] [{name}] [{asctime}]\n{message}"
+    default_screen_format = "[{levelcolor}{levelname}{colorreset}] [{formattercolor}{name}{colorreset}] [{asctime}]\n{message}"
     default_file_format = "[{levelname}] [{asctime}] {message}"
 
     def __init__(
         self,
-        format: str = "[{levelcolor}{levelname}{colorreset}] [{name}] [{asctime}]\n{message}",
+        format: str = default_screen_format,
         timestamp_format: str = "%Y-%m-%d %H:%M:%S.%f",
         *,
         defaults: Any = None,
-        colormap: dict[int, str] = None,
         roslog_pattern: str = r"%%([\w]+)%%([\d.]+)%%(.*)",
+        colormap: dict[int, str] = None,
+        disable_colors: bool = False,
     ):
         super().__init__(format, timestamp_format, "{", True, defaults=defaults)
-        
+
         self.converter = datetime.fromtimestamp
         self.roslog_pattern = re.compile(roslog_pattern)
-        self.colormap = colormap or default_colormap
+        self.colormap = colormap if colormap is not None else dict(default_colormap)
+        self.mycolor = random.randint(1, 255)
+        self.disable_colors = disable_colors
 
     def format(self, record):
         match = self.roslog_pattern.match(record.msg)
@@ -42,8 +45,14 @@ class RosLogFormatter(logging.Formatter):
             record.created = float(match.group(2))
             record.msg = match.group(3)
 
-        record.levelcolor = self.colormap.get(record.levelno, "")
-        record.colorreset = "\x1b[0m"
+        if self.disable_colors:
+            record.levelcolor = ""
+            record.formattercolor = ""
+            record.colorreset = ""
+        else:
+            record.levelcolor = self.colormap.get(record.levelno, "")
+            record.formattercolor = f"\x1b[38;5;{self.mycolor}m"
+            record.colorreset = "\x1b[0m"
 
         return super().format(record)
 

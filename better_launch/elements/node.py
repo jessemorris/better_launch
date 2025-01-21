@@ -12,8 +12,11 @@ import threading
 import subprocess
 import selectors
 from concurrent.futures import Future
+from pprint import pformat
+from textwrap import indent
 
-from freetime.better_launch.better_launch.utils.log_formatter import RosLogFormatter
+from ros import logging as roslog
+from utils.log_formatter import RosLogFormatter
 
 
 _node_counter = 0
@@ -23,14 +26,13 @@ class Node:
     def __init__(
         self,
         launcher,
-        group,
         executable: str,
         name: str,
         node_args: dict[str, Any] = None,
         *,
         # TODO add to subclasses
-        log_level: int = logging.INFO,
-        output_config: dict[str, set[str]] = None,
+        process_log_level: int = logging.INFO,
+        output_config: str | dict[str, set[str]] = "screen",
         reparse_logs: bool = True,
         remap: dict[str, str] = None,
         env: dict[str, str] = None,
@@ -43,17 +45,11 @@ class Node:
         stderr_to_stdout: bool = False,
         start_immediately: bool = True,
     ):
+        global _node_counter
+        self.node_id = _node_counter
+        _node_counter += 1
+
         self.launcher = launcher
-        self.my_task = None
-
-        self.group = group
-        self.logger = group.get_logger(name)
-
-        self.completed_future = None
-        self.shutdown_future = None
-        self.on_exit_callback = on_exit
-        self.sigterm_timer = None
-        self.sigkill_timer = None
 
         if not name:
             raise ValueError("Name cannot be empty")
@@ -61,28 +57,28 @@ class Node:
         if not executable:
             raise ValueError("No executable provided")
 
-        global _node_counter
-        self.node_id = _node_counter
-        _node_counter += 1
-
         self.name = name
         self.cmd = executable
         self.env = env or {}
         self.isolate_env = isolate_env
         self.node_args = node_args or {}
-        self.node_args["--log-level"] = logging.getLevelName(log_level)
+        self.node_args.setdefault(
+            "--log-level", logging.getLevelName(process_log_level)
+        )
         self.remap = remap or {}
         # launch_ros/actions/node.py:495
         self.remap["__node"] = name
 
-        if output_config is None:
-            output_config = {"both": {"screen"}}
-
-        self.log_level = log_level
-        self.output_config = output_config
+        self.logger = roslog.get_logger(self.fullname)
+        self.output_config = output_config or {}
         self.reparse_logs = reparse_logs
 
         self._process = None
+        self.completed_future = None
+        self.shutdown_future = None
+        self.on_exit_callback = on_exit
+        self.sigterm_timer = None
+        self.sigkill_timer = None
 
         self.respawn_retries = 0
         self.max_respawns = max_respawns
@@ -133,20 +129,12 @@ class Node:
         self.completed_future = Future()
         self.shutdown_future = Future()
 
-        self.logger.info(f"Starting process '{self.cmd}' (env='{self.env}')")
-
-        # Note that self.log_level applies to the process, not our loggers
-        logout = logging.getLogger(f"{self.name}-{self.node_id}-stdout")
-        self.launcher.configure_logger(
-            logout, self.output_config, self.reparse_logs
-        )
-
-        logerr = logging.getLogger(f"{self.name}-{self.node_id}-stderr")
-        self.launcher.configure_logger(
-            logerr, self.output_config, self.reparse_logs
-        )
-
         try:
+            # Note that self.process_log_level applies to the process, not our loggers
+            logout, logerr = roslog.get_output_loggers(
+                f"{self.name}-{self.node_id}", self.output_config
+            )
+
             # Attach additional node args
             final_cmd = [self.cmd]
             for key, value in self.node_args.items():
@@ -172,6 +160,14 @@ class Node:
                     "%%{severity}%%{time}%%{message}"
                 )
                 final_env["RCUTILS_COLORIZED_OUTPUT"] = "0"
+
+                screen_handler = roslog.launch_config.get_screen_handler()
+                formatter = RosLogFormatter()
+                screen_handler.setFormatterFor(logout, formatter)
+                screen_handler.setFormatterFor(logerr, formatter)
+
+            env_str = indent(pformat(self.env), "")
+            self.logger.info(f"Starting process '{' '.join(final_cmd)}'\n-> env ={env_str}")
 
             # Start the node process
             self._process = subprocess.Popen(
@@ -400,6 +396,4 @@ class Node:
         self.my_task = None
 
     def __repr__(self):
-        return (
-            f"{self.name} [node {self.node_id}, cmd {self.cmd}, pid {self.pid}, running {self.is_running}]"
-        )
+        return f"{self.name} [node {self.node_id}, cmd {self.cmd}, pid {self.pid}, running {self.is_running}]"
