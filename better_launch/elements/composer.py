@@ -1,5 +1,5 @@
 from typing import Any, Callable
-from logging import Logger
+import logging
 from composition_interfaces.srv import LoadNode
 
 from .node import Node
@@ -14,6 +14,9 @@ class Composer(Node):
         language: str,
         node_args: dict[str, Any] = None,
         *,
+        log_level: int = logging.INFO,
+        output_config: str | dict[str, set[str]] = "screen",
+        reparse_logs: bool = True,
         remap: dict[str, str] = None,
         env: dict[str, str] = None,
         on_exit: Callable = None,
@@ -21,7 +24,6 @@ class Composer(Node):
         respawn_delay: float = 0.0,
         use_shell: bool = False,
         emulate_tty: bool = False,
-        stderr_to_stdout: bool = False,
     ):
         # NOTE: does not support referencing an already existing composer. If you want to reuse
         # the container, just keep a reference to it.
@@ -44,6 +46,9 @@ class Composer(Node):
             executable,
             name,
             node_args,
+            log_level=log_level,
+            output_config=output_config,
+            reparse_logs=reparse_logs,
             remap=node_remaps,
             env=env,
             on_exit=on_exit,
@@ -51,7 +56,6 @@ class Composer(Node):
             respawn_delay=respawn_delay,
             use_shell=use_shell,
             emulate_tty=emulate_tty,
-            stderr_to_stdout=stderr_to_stdout,
             start_immediately=True,
         )
 
@@ -60,7 +64,6 @@ class Composer(Node):
         self._load_node_client = self.launcher.ros_adapter.create_client(
             LoadNode, f"{self.name}/_container/load_node"
         )
-        # TODO this will fail until the node is truly started, but the async loop runs later
         if not self._load_node_client.wait_for_service(timeout_sec=5.0):
             raise RuntimeError("Failed to connect to composer load service")
 

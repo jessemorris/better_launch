@@ -30,8 +30,7 @@ class Node:
         name: str,
         node_args: dict[str, Any] = None,
         *,
-        # TODO add to subclasses
-        process_log_level: int = logging.INFO,
+        log_level: int = logging.INFO,
         output_config: str | dict[str, set[str]] = "screen",
         reparse_logs: bool = True,
         remap: dict[str, str] = None,
@@ -63,7 +62,7 @@ class Node:
         self.isolate_env = isolate_env
         self.node_args = node_args or {}
         self.node_args.setdefault(
-            "--log-level", logging.getLevelName(process_log_level)
+            "--log-level", logging.getLevelName(log_level)
         )
         self.remap = remap or {}
         # launch_ros/actions/node.py:495

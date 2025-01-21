@@ -1,5 +1,5 @@
 from typing import Any, Callable
-from logging import Logger
+import logging
 from enum import IntEnum
 from collections import deque
 
@@ -55,6 +55,9 @@ class LifecycleNode(Node):
         node_args: dict[str, Any] = None,
         target_stage: int = LifecycleStage.PRISTINE,
         *,
+        log_level: int = logging.INFO,
+        output_config: str | dict[str, set[str]] = "screen",
+        reparse_logs: bool = True,
         remap: dict[str, str] = None,
         env: dict[str, str] = None,
         on_exit: Callable = None,
@@ -62,7 +65,6 @@ class LifecycleNode(Node):
         respawn_delay: float = 0.0,
         use_shell: bool = False,
         emulate_tty: bool = False,
-        stderr_to_stdout: bool = False,
     ):
         super().__init__(
             launcher,
@@ -70,6 +72,9 @@ class LifecycleNode(Node):
             executable,
             name,
             node_args,
+            log_level=log_level,
+            output_config=output_config,
+            reparse_logs=reparse_logs,
             remap=remap,
             env=env,
             on_exit=on_exit,
@@ -77,7 +82,6 @@ class LifecycleNode(Node):
             respawn_delay=respawn_delay,
             use_shell=use_shell,
             emulate_tty=emulate_tty,
-            stderr_to_stdout=stderr_to_stdout,
             start_immediately=True,
         )
 
@@ -91,7 +95,6 @@ class LifecycleNode(Node):
             10,
         )
 
-        # TODO these will fail until the node is truly started, but the async loop runs later
         self._transition_client = launcher.ros_adapter.ros_node.create_client(
             ChangeLifecycleState, f"{self.fullname}/change_state"
         )
