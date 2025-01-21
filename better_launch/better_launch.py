@@ -32,55 +32,11 @@ from utils.log_formatter import RosLogFormatter, default_colormap
 from utils.substitutions import default_substitution_handlers, substitute_tokens
 
 
-# TODO can we detect if we were called from the cli via "ros2 launch"?
-
-
 _is_launcher_defined = "__better_launch_this_defined"
 _has_bl_instance = "__better_launch_instance"
 
 
-def launch_this(launch_func):
-    glob = globals()
-    if _is_launcher_defined in glob and _has_bl_instance not in glob:
-        # Allow using launch_this only once unless we got included from another file
-        raise RuntimeError("Can only use one launch decorator")
-
-    glob[_is_launcher_defined] = True
-
-    # Expose launch_func args through click?
-    import click
-
-    options = []
-    sig = inspect.signature(launch_func)
-    for param in sig.parameters.values():
-        default = param.default
-        options.append(click.Option(f"--{param.name}", default=default))
-
-    def run():
-        launch_func()
-
-        # Retrieve the BetterLaunch singleton and run it
-        BetterLaunch().spin()
-
-    # All BL nodes and includes are async once started
-    click_cmd = click.Command("main", callback=run, params=options)
-    try:
-        click_cmd.main()
-    except SystemExit as e:
-        if e.code != 0:
-            raise
-
-
-def ros2_opaque_function(launch_func, make_global: bool = True):
-    # Makes your main function compatible with the ros2 launch system, e.g.
-    # declares arguments, creates a stub launch description, etc.
-    glob = globals()
-    if _is_launcher_defined in glob and _has_bl_instance not in glob:
-        # Allow using launch_this only once unless we got included from another file
-        raise RuntimeError("Can only use one launch decorator")
-
-    glob[_is_launcher_defined] = True
-
+def _expose_ros2_launch_function(launch_func):
     def generate_launch_description():
         from launch import LaunchDescription, LaunchContext
         from launch.actions import DeclareLaunchArgument, OpaqueFunction
@@ -105,24 +61,85 @@ def ros2_opaque_function(launch_func, make_global: bool = True):
                 except ValueError:
                     # Probably a string
                     # NOTE this should also make passing args to ROS2 much easier
-                    # TODO should we spin our own autocomplete?
                     launch_args[k] = v
 
-            # TODO spin BetterLaunch instance
+            # Call the launch function
             launch_func(**launch_args)
 
             # Retrieve the BetterLaunch singleton
             bl = BetterLaunch()
+
             # Opaque functions are allowed to return additional actions
-            return bl._deferred_ros_actions
+            return bl._ros2_actions
 
         ld.add_action(OpaqueFunction(ros2_wrapper))
         return ld
 
-    if make_global:
-        glob["generate_launch_description"] = generate_launch_description
+    # 0: this function
+    # 1: launch_this
+    # 2: caller of launch_this
+    caller = inspect.stack()[2]
+    caller_globals = caller.frame.f_globals
+    caller_globals["generate_launch_description"] = generate_launch_description
 
-    return generate_launch_description
+
+def launch_this(launch_func):
+    glob = globals()
+    if _is_launcher_defined in glob and _has_bl_instance not in glob:
+        # Allow using launch_this only once unless we got included from another file
+        raise RuntimeError("Can only use one launch decorator")
+
+    glob[_is_launcher_defined] = True
+
+    # If we were started by ros launch (e.g. through 'ros2 launch <some-bl-launch-file>') we need 
+    # to expose a "generate_launch_description" method instead of running by ourselves. 
+    # 
+    # Launch files in ROS2 are run by adding an IncludeLaunchDescription action to the 
+    # LaunchService (both found in https://github.com/ros2/launch/). When the action is resolved, 
+    # it ultimately leads to get_launch_description_from_python_launch_file, which imports the file 
+    # and then checks for a generate_launch_description function. 
+    # 
+    # See the following links for details:
+    # 
+    # https://github.com/ros2/launch_ros/blob/rolling/ros2launch/ros2launch/command/launch.py#L125
+    # https://github.com/ros2/launch_ros/blob/rolling/ros2launch/ros2launch/api/api.py#L141
+    # https://github.com/ros2/launch/blob/rolling/launch/launch/actions/include_launch_description.py#L148
+    # https://github.com/ros2/launch/blob/rolling/launch/launch/launch_description_sources/python_launch_file_utilities.py#L43
+    stack = inspect.stack()
+    for frame_info in stack:
+        frame_locals = frame_info.frame.f_locals
+        if "self" not in frame_locals:
+            continue
+        owner = frame_locals["self"]
+        if isinstance(owner, object) and owner.__name__ == "IncludeLaunchDescription":
+            # We were included, expose the expected method in our caller's globals and return
+            _expose_ros2_launch_function(launch_func)
+            return
+
+    # If we get here we were not included by ROS2
+
+    # Expose launch_func args through click
+    import click
+
+    options = []
+    sig = inspect.signature(launch_func)
+    for param in sig.parameters.values():
+        default = param.default
+        options.append(click.Option(f"--{param.name}", default=default))
+
+    def run():
+        launch_func()
+
+        # Retrieve the BetterLaunch singleton and run it
+        BetterLaunch().spin()
+
+    # All BL nodes and includes are async once started
+    click_cmd = click.Command("main", callback=run, params=options)
+    try:
+        click_cmd.main()
+    except SystemExit as e:
+        if e.code != 0:
+            raise
 
 
 class _BetterLaunchMeta(type):
@@ -161,6 +178,7 @@ class BetterLaunch(metaclass=_BetterLaunchMeta):
                 del frame
 
         if not name:
+            # 0: this function, 1: launch_func
             caller = inspect.stack()[1]
             caller_module = inspect.getmodule(caller[0])
             name = os.path.basename(caller_module.__file__)
@@ -204,6 +222,7 @@ class BetterLaunch(metaclass=_BetterLaunchMeta):
         self._composition_node = None
 
         # Allows to run traditional ros2 launch descriptions
+        self._ros2_actions = []
         self._ros2_launcher = None
         self._ros2_launcher_thread = None
 
@@ -247,6 +266,11 @@ Takeoff in 3... 2... 1...
             import launch
 
             launch.logging.launch_config = roslog.launch_config
+            if self._ros2_launcher is None:
+                self._ros2_launcher = launch.LaunchService(noninteractive=True)
+
+            ld = LaunchDescription(self._ros2_actions)
+            self._ros2_launcher.include_launch_description(ld)
 
             self._ros2_launcher_thread = threading.Thread(
                 target=self._ros2_launcher.run,
@@ -664,28 +688,24 @@ Takeoff in 3... 2... 1...
                             f"Launch include '{pkg}/{launch_file}' failed: {e}"
                         )
                         raise
-                else:
-                    self._include_ros2(file_path)
-        else:
-            self._include_ros2(file_path)
 
-    def _include_ros2(self, file_path):
+        # TODO could be stricter about verification here
+        # Was not a better_launch launch file, assume it's a ROS2 launch file (py, xml, yaml)
+        self._make_ros2_include(file_path, **local_args)
+
+    def _make_ros2_include(self, file_path, **kwargs):
         # Delegate to ros2 launch service
         from launch.actions import IncludeLaunchDescription
         from launch.launch_description_sources import (
-            PythonLaunchDescriptionSource,
+            AnyLaunchDescriptionSource,
         )
 
+        # See https://github.com/ros2/launch_ros/blob/rolling/ros2launch/ros2launch/api/api.py#L175
         ros2_include = IncludeLaunchDescription(
-            PythonLaunchDescriptionSource(file_path)
+            AnyLaunchDescriptionSource(file_path),
+            launch_arguments = [(key, val) for key,val in kwargs.items()]
         )
+        self.ros2_action(ros2_include)
 
-        self.launchdescription(ros2_include)
-
-    def launchdescription(self, launch_description):
-        from launch import LaunchService
-
-        if self._ros2_launcher is None:
-            self._ros2_launcher = LaunchService(noninteractive=True)
-
-        self._ros2_launcher.include_launch_description(launch_description)
+    def ros2_action(self, ros2_action):
+        self._ros2_actions.append(ros2_action)
