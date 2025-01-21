@@ -91,16 +91,16 @@ def launch_this(launch_func):
 
     glob[_is_launcher_defined] = True
 
-    # If we were started by ros launch (e.g. through 'ros2 launch <some-bl-launch-file>') we need 
-    # to expose a "generate_launch_description" method instead of running by ourselves. 
-    # 
-    # Launch files in ROS2 are run by adding an IncludeLaunchDescription action to the 
-    # LaunchService (both found in https://github.com/ros2/launch/). When the action is resolved, 
-    # it ultimately leads to get_launch_description_from_python_launch_file, which imports the file 
-    # and then checks for a generate_launch_description function. 
-    # 
+    # If we were started by ros launch (e.g. through 'ros2 launch <some-bl-launch-file>') we need
+    # to expose a "generate_launch_description" method instead of running by ourselves.
+    #
+    # Launch files in ROS2 are run by adding an IncludeLaunchDescription action to the
+    # LaunchService (both found in https://github.com/ros2/launch/). When the action is resolved,
+    # it ultimately leads to get_launch_description_from_python_launch_file, which imports the file
+    # and then checks for a generate_launch_description function.
+    #
     # See the following links for details:
-    # 
+    #
     # https://github.com/ros2/launch_ros/blob/rolling/ros2launch/ros2launch/command/launch.py#L125
     # https://github.com/ros2/launch_ros/blob/rolling/ros2launch/ros2launch/api/api.py#L141
     # https://github.com/ros2/launch/blob/rolling/launch/launch/actions/include_launch_description.py#L148
@@ -261,17 +261,23 @@ Takeoff in 3... 2... 1...
         )
 
     def spin(self):
-        if self._ros2_launcher and not self._ros2_launcher_thread:
+        if self._ros2_actions:
             # Apply our config to the ROS2 launch logging config
             import launch
 
             launch.logging.launch_config = roslog.launch_config
-            if self._ros2_launcher is None:
-                self._ros2_launcher = launch.LaunchService(noninteractive=True)
 
-            ld = LaunchDescription(self._ros2_actions)
+            if not self._ros2_launcher:
+                if self._ros2_launcher is None:
+                    self._ros2_launcher = launch.LaunchService(noninteractive=True)
+
+            ld = launch.LaunchDescription(self._ros2_actions)
+            self._ros2_actions.clear()
             self._ros2_launcher.include_launch_description(ld)
 
+        if self._ros2_launcher and not (
+            self._ros2_launcher_thread and self._ros2_launcher_thread.is_alive()
+        ):
             self._ros2_launcher_thread = threading.Thread(
                 target=self._ros2_launcher.run,
                 daemon=True,
@@ -703,7 +709,7 @@ Takeoff in 3... 2... 1...
         # See https://github.com/ros2/launch_ros/blob/rolling/ros2launch/ros2launch/api/api.py#L175
         ros2_include = IncludeLaunchDescription(
             AnyLaunchDescriptionSource(file_path),
-            launch_arguments = [(key, val) for key,val in kwargs.items()]
+            launch_arguments=[(key, val) for key, val in kwargs.items()],
         )
         self.ros2_action(ros2_include)
 
