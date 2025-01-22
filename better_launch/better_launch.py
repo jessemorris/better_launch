@@ -151,6 +151,7 @@ class _BetterLaunchMeta(type):
     # Allows reusing an already existing BetterLaunch instance.
     # Important for launch file includes.
     def __call__(cls, *args, **kwargs):
+        # TODO should be stored on the class to allow subclassing
         existing_instance = globals().get(_has_bl_instance, None)
         if existing_instance is not None:
             return existing_instance
