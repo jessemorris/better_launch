@@ -26,6 +26,9 @@ def concept(
         bl.lifecycle_node("my_lifecycle_pkg", "lifecycle_node.py", target_state=bl.LIFECYCLE_STARTED)
 
 
+# TODO we could create a UI like rosmon did!
+# https://github.com/xqms/rosmon
+
 
 @launch_this
 def test():

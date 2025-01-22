@@ -6,6 +6,10 @@ from datetime import datetime
 
 
 default_colormap = {
+    #  0m: resets all colors and attributes.
+    # 20m: resets only attributes (underline, etc.), leaving colors unchanged.
+    # 39m: resets only foreground color, leaving attributes unchanged.
+    # 49m: resets only background color, leaving attributes unchanged. 
     logging.DEBUG: "\x1b[38;20m",
     logging.INFO: "\x1b[34;20m",
     logging.WARNING: "\x1b[33;20m",

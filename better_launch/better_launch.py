@@ -75,12 +75,17 @@ def _expose_ros2_launch_function(launch_func):
         ld.add_action(OpaqueFunction(ros2_wrapper))
         return ld
 
-    # 0: this function
-    # 1: launch_this
-    # 2: caller of launch_this
-    caller = inspect.stack()[2]
-    caller_globals = caller.frame.f_globals
-    caller_globals["generate_launch_description"] = generate_launch_description
+    stack = inspect.stack()
+    for i, frame_info in enumerate(stack):
+        if frame_info.function.startswith("launch_this"):
+            if i + 1 >= len(stack):
+                raise RuntimeError("Could not determine the calling module")
+            launch_frame = stack[i + 1]
+            caller_globals = launch_frame.frame.f_globals
+            caller_globals["generate_launch_description"] = generate_launch_description
+            break
+    else:
+        raise RuntimeError("This function must be called through launch_this")
 
 
 def launch_this(launch_func):
@@ -230,7 +235,7 @@ class BetterLaunch(metaclass=_BetterLaunchMeta):
 
     def hello(self):
         self.logger.info(
-            # Ascii art: https://asciiart.cc/view/10677
+            # Ascii art based on: https://asciiart.cc/view/10677
             f"""\
 Better Launch is starting!
 Please fasten your seatbelts and secure all baggage underneath your chair.
@@ -240,23 +245,23 @@ All log files can be found under \x1b[34;20m{roslog.launch_config.log_dir}\x1b[0
 
 Takeoff in 3... 2... 1...
 
-                        ,:
-                      ,' |
-                     /   :
-                  --'   /
-                  \/ /:/
-                  / ://_\\
-               __/   /
-               )'-. /
+           *            ,:
+    +                 ,' |
+               +     /   :
+       *          --'   /
++                 \/ /:/
+            *     / ://_\\
+       +       __/   /
+  -            )'-. /
                ./  :\\
-                /.' '
+        *       /.' '
               '/'
-              +
+   '          +
            .-"-
           (    )
        . .-'  '.
       ( (.   )8:
-  .'    / (_  )
+  .' _  / (_  ) '._
 """
         )
 
