@@ -1,142 +1,21 @@
 import os
 import time
-import re
-import logging
 import asyncio
 import pyperclip
 
 from textual import work
+from textual.app import App, ComposeResult
+from textual.widgets import ListView, ListItem, Header, Footer 
+from textual.containers import Horizontal
 from textual.binding import Binding
 from textual.reactive import reactive
-from textual.app import App, ComposeResult
-from textual.widgets import ListView, ListItem, Label, Header, Footer, Static, 
-from textual.containers import Horizontal, Container
-from textual.color import Color
 
 from ros2node.api import get_node_names
 
 from ros import logging as roslog
 from ros.ros_adapter import ROSAdapter
-from utils.log_formatter import RosLogFormatter
 
-
-class NodeStatus(Label):
-    ALIVE = 2
-    ERROR = 1
-    DEAD = 0
-    UNKNOWN = -1
-
-    # https://coolors.co/64c05d-ffd166-ef476f-858585
-    colormap = {
-        ALIVE: Color(100, 192, 93).css,
-        ERROR: Color(255, 209, 102).css,
-        DEAD: Color(239, 71, 111).css,
-        UNKNOWN: Color(133, 133, 133).css,
-    }
-
-    status = reactive(ALIVE)
-
-    def __init__(
-        self, keybind: str, name: str, namespace: str = None, status: int = ALIVE
-    ):
-        if not namespace:
-            match: re.Match = re.match(r"/?(.+)/([\w\d]+)", name)
-            if not match:
-                raise ValueError(f"Could not parse node name '{name}' - missing namespace")
-            namespace = match.group(1)
-            name = match.group(2)
-
-        self.keybind = keybind or ""
-        self.name = name
-        self.namespace = namespace.strip("/")
-        self.status = status
-        self.has_errors = False
-        self.mute = False
-
-        # TODO should use a Horizontal here so we can format the keybind separately
-        super().__init__(self.keybind + " " + self.name, id=self.fullname)
-
-    @property
-    def fullname(self):
-        return f"/{self.namespace}/{self.name}"
-
-    def watch_status(self, status: int):
-        self.styles.color = self.colormap.get(status, self.UNKNOWN)
-
-
-class NodeMenu(ListView):
-    """Custom widget that extends Container."""
-
-    DEFAULT_CSS = """
-    NodeMenu {
-        align: center middle;
-        width: 40;
-        padding: 2 4;
-        display: none;
-    }
-    """
-    def __init__(self, id: str = None):
-        super().__init__(*[
-            # TODO add icons
-            ListItem(Label(item))
-            for item in [
-                "toggle mute", 
-                "kill",
-            ]
-        ], id=id)
-
-        self.node = None
-
-    def show_for_node(self, node: NodeStatus):
-        # TODO update indicators 
-        self.node = node
-        self.display = True
-
-    def on_list_view_selected(self, item: ListItem):
-        if item.name == "toggle mute":
-            self.node.mute = not self.node.mute
-        elif item.name == "kill":
-            # TODO
-            pass
-        
-        # Unknown command
-
-
-class LogEntry(Label):
-    # https://coolors.co/d621ff-ef476f-ffd166-2a6eff-858585
-    colormap = {
-        "DEBUG": Color(133, 133, 133).css,
-        "INFO": Color(42, 110, 255).css,
-        "WARNING": Color(255, 209, 102).css,
-        "ERROR": Color(34, 97, 231).css,
-        "CRITICAL": Color(214, 33, 255).css,
-    }
-
-    def __init__(
-        self,
-        record: logging.LogRecord,
-        format: str = "{name:8s} {msg}",
-    ):
-        self.record = record
-        display = format.format(**record.__dict__)
-
-        super().__init__(
-            display,
-            id=f"{record.name}_{record.created}",
-        )
-
-        self.styles.background = LogEntry.colormap.get(record.levelname, "INFO")
-
-
-class TextualLogHandler(logging.Handler):
-    def __init__(self, app: App, level=0):
-        super().__init__(level)
-        self.formatter = RosLogFormatter(disable_colors=True)
-
-    def emit(self, record):
-        # The formatter will extract information like levelname and set it on the record
-        self.format(record)
-        self.app.call_from_thread(self.app._on_logging_event, record)
+from ui import NodeStatus, NodeMenu, LogEntry, TextualLogHandler
 
 
 # Inspired by xqms' rosmon: https://github.com/xqms/rosmon
