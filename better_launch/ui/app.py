@@ -15,7 +15,11 @@ from ros2node.api import get_node_names
 from ros import logging as roslog
 from ros.ros_adapter import ROSAdapter
 
-from ui import NodeStatus, NodeMenu, LogEntry, TextualLogHandler
+from .log_entry import LogEntry
+from .log_handler import TextualLogHandler
+from .node_menu import NodeMenu
+from .node_search import NodeSearch
+from .node_status import NodeStatus
 
 
 # Inspired by xqms' rosmon: https://github.com/xqms/rosmon
@@ -66,6 +70,7 @@ class BetterLaunchUI(App):
             "%%{severity}%%{time}%%{message}"
         )
 
+        # TODO Need to prevent BetterLaunch making changes to the launch config that would interfere with us
         roslog.launch_config.screen_handler = TextualLogHandler(self)
 
     def compose(self) -> ComposeResult:

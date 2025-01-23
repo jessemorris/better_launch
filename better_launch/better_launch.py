@@ -89,7 +89,7 @@ def _expose_ros2_launch_function(launch_func):
         raise RuntimeError("This function must be called through launch_this")
 
 
-def launch_this(launch_func):
+def launch_this(launch_func, start_ui: bool = True):
     glob = globals()
     if _is_launcher_defined in glob and _has_bl_instance not in glob:
         # Allow using launch_this only once unless we got included from another file
@@ -137,7 +137,11 @@ def launch_this(launch_func):
         launch_func()
 
         # Retrieve the BetterLaunch singleton and run it
-        BetterLaunch().spin()
+        BetterLaunch().execute_pending_ros_actions(wait=not start_ui)
+        if start_ui:
+            from ui import BetterLaunchUI
+
+            BetterLaunchUI().run()
 
     # All BL nodes and includes are async once started
     click_cmd = click.Command("main", callback=run, params=options)
@@ -274,13 +278,14 @@ Takeoff in 3... 2... 1...
 """
         )
 
-    def spin(self):
+    def execute_pending_ros_actions(self, wait: bool = True):
         if self._ros2_actions:
             # Apply our config to the ROS2 launch logging config
             import launch
 
             launch.logging.launch_config = roslog.launch_config
 
+            self.logger.info("Forwarding pending ROS2 actions to launch service")
             if not self._ros2_launcher:
                 if self._ros2_launcher is None:
                     self._ros2_launcher = launch.LaunchService(noninteractive=True)
@@ -289,15 +294,23 @@ Takeoff in 3... 2... 1...
             self._ros2_actions.clear()
             self._ros2_launcher.include_launch_description(ld)
 
-        if self._ros2_launcher and not (
-            self._ros2_launcher_thread and self._ros2_launcher_thread.is_alive()
-        ):
-            self._ros2_launcher_thread = threading.Thread(
-                target=self._ros2_launcher.run,
-                daemon=True,
-            )
-            self._ros2_launcher_thread.start()
+        if self._ros2_launcher:
+            if not (
+                self._ros2_launcher_thread and self._ros2_launcher_thread.is_alive()
+            ):
+                self.logger.info("Starting ROS2 launch service")
+                self._ros2_launcher_thread = threading.Thread(
+                    target=self._ros2_launcher.run,
+                    daemon=True,
+                )
+                self._ros2_launcher_thread.start()
 
+            if wait:
+                self.spin()
+        else:
+            self.logger.info("No ROS2 actions pending")
+
+    def spin(self):
         self.ros_adapter._thread.join()
 
     def get_unique_name(self, name: str = ""):
@@ -735,7 +748,6 @@ Takeoff in 3... 2... 1...
         )
 
     def include(self, pkg: str, launch_file: str, pass_all_args: bool = True, **kwargs):
-        global_args = dict(globals())
         if pass_all_args:
             local_args = self.all_args
         else:
@@ -752,6 +764,7 @@ Takeoff in 3... 2... 1...
                     # Assume launch file uses better_launch, too
                     try:
                         code = compile(content, launch_file, "exec")
+                        global_args = dict(globals())
                         global_args["_better_launcher_instance"] = self
                         exec(code, global_args, local_args)
                         return
