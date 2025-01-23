@@ -65,7 +65,6 @@ class convenience_module:
             print(f"Failed to execute xacro command: {e}")
             return None
 
-#currently working...............................
     def robot_state_publisher(self, package=None, description_file=None, description_dir=None,
                           xacro_args=None, **node_args):
     '''
@@ -91,7 +90,7 @@ class convenience_module:
     # Launch the robot state publisher with the desired URDF
     self.launcher.node("robot_state_publisher", **node_args)
 
-    
+
 #currently working...............................
     def add_gazebo(self, world_file: str, paused: bool = True):
         gazebo_args = {
