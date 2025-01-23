@@ -34,7 +34,7 @@ class convenience_module:
         self.launcher.include(config_pkg, moveit_launch_file_path)
 
    
-   import subprocess
+
 
 def robot_description(self, package=None, description_file=None, description_dir=None, xacro_args=None):
     '''
