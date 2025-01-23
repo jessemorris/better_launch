@@ -119,6 +119,7 @@ class BetterLaunchUI(App):
         if not self.sidebar.display:
             self.action_toggle_sidebar()
         
+        # TODO add new bindings for menu commands while menu is open
         self.node_menu.show_for_node(node)
         self.node_menu.focus()
 
@@ -182,12 +183,7 @@ class BetterLaunchUI(App):
         self.sidebar.display = not self.sidebar.display
 
     def action_mute_all(self):
-        if not self.paused:
-            self.paused = True
-        else:
-            # set all loggers disabled
-            for node in self.nodes:
-                node.mute = True
+        self.paused = True
 
     def action_unmute_all(self):
         if self.paused:
@@ -196,10 +192,6 @@ class BetterLaunchUI(App):
                 self._log(*self.backlog)
                 self.backlog.clear()
             self.paused = False
-        else:
-            # set all loggers enabled
-            for node in self.nodes:
-                node.mute = False
 
     def action_search_node(self):
         # TODO open search dialog

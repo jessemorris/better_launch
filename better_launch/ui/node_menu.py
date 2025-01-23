@@ -37,5 +37,8 @@ class NodeMenu(ListView):
         elif item.name == "kill":
             # TODO
             pass
-        
-        # Unknown command
+        else:
+            # Unknown command
+            return
+
+        self.display = False

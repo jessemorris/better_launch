@@ -11,6 +11,7 @@ from collections import deque
 import logging
 import yaml
 
+from rclpy.qos import QoSProfile
 from ament_index_python.packages import get_package_prefix
 
 try:
@@ -234,6 +235,13 @@ class BetterLaunch(metaclass=_BetterLaunchMeta):
 
         self.hello()
 
+    @staticmethod
+    def ros_version():
+        """
+        Returns the name of the currently sourced ros version (e.g. $ROS_VERSION)
+        """
+        return os.environ["ROS_DISTRO"]
+
     def hello(self):
         self.logger.info(
             # Ascii art based on: https://asciiart.cc/view/10677
@@ -419,6 +427,58 @@ Takeoff in 3... 2... 1...
             params = params["ros__parameters"]
 
         return params
+
+    def service(
+        self,
+        topic: str,
+        service_type: type,
+        callback: Callable,
+        qos_profile: QoSProfile | int = 10,
+    ):
+        return self.ros_adapter.ros_node.create_service(
+            service_type,
+            topic,
+            callback,
+            qos_profile=qos_profile,
+        )
+
+    def service_client(
+        self,
+        topic: str,
+        service_type: type,
+        timeout: float = 0.0,
+        qos_profile: QoSProfile | int = 10,
+    ):
+        client = self.ros_adapter.ros_node.create_client(
+            service_type, topic, qos_profile=qos_profile
+        )
+        if timeout > 0.0:
+            if not client.wait_for_service(timeout):
+                raise ValueError(f"Service client timed out ({topic}, {service_type})")
+        return client
+
+    def publisher(
+        self, topic: str, message_type: type, qos_profile: QoSProfile | int = 10
+    ):
+        return self.ros_adapter.ros_node.create_publisher(
+            message_type,
+            topic,
+            qos_profile=qos_profile,
+        )
+
+    def subscriber(
+        self,
+        topic: str,
+        message_type: type,
+        callback: Callable,
+        qos_profile: QoSProfile | int = 10,
+    ):
+        return self.ros_adapter.ros_node.create_subscriber(
+            message_type,
+            topic,
+            callback,
+            qos_profile=qos_profile,
+        )
 
     @contextmanager
     def group(self, ns: str = None):
