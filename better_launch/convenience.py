@@ -67,30 +67,32 @@ class convenience_module:
 
 #currently working...............................
     def robot_state_publisher(self, package=None, description_file=None, description_dir=None,
-                              xacro_args=None, **node_args):
-        '''
-        Add a robot state publisher node to the launch tree using the given description (urdf / xacro) file.
+                          xacro_args=None, **node_args):
+    '''
+    Add a robot state publisher node to the launch tree using the given description (urdf / xacro) file.
 
-        * package -- is the name of the package that contains the description file (if None then assume an absolute description file)
-        * description_file -- is the name of the urdf/xacro file
-        * description_dir -- the name of the directory containing the file (None to have it found)
-        * xacro_args -- arguments passed to xacro (will force use of xacro)
-        * node_args -- any additional node arguments such as remappings or parameters
-        '''
+    * package -- is the name of the package that contains the description file (if None then assume an absolute description file)
+    * description_file -- is the name of the urdf/xacro file
+    * description_dir -- the name of the directory containing the file (None to have it found)
+    * xacro_args -- arguments passed to xacro (will force use of xacro)
+    * node_args -- any additional node arguments such as remappings or parameters
+    '''
 
-        urdf_xml = robot_description(package, description_file, description_dir, xacro_args)
+    urdf_xml = robot_description(package, description_file, description_dir, xacro_args)
 
-        if 'parameters' in node_args:
-            # already some parameters, change to list of dictionaries
-            node_args['parameters'] = adapt_type(node_args['parameters'], NODE_PARAMS)
-            + [{'robot_description': urdf_xml}]
+    if 'parameters' in node_args:
+        if isinstance(node_args['parameters'], list):
+            node_args['parameters'].append({'robot_description': urdf_xml})
         else:
-            node_args['parameters'] = [{'robot_description': urdf_xml}]
+            node_args['parameters'] = [node_args['parameters'], {'robot_description': urdf_xml}]
+    else:
+        node_args['parameters'] = [{'robot_description': urdf_xml}]
 
-        # Launch the robot state publisher with the desired URDF
-        self.launcher.node("robot_state_publisher", **node_args)
+    # Launch the robot state publisher with the desired URDF
+    self.launcher.node("robot_state_publisher", **node_args)
 
-
+    
+#currently working...............................
     def add_gazebo(self, world_file: str, paused: bool = True):
         gazebo_args = {
             'world': world_file,
