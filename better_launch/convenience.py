@@ -34,38 +34,36 @@ class convenience_module:
         self.launcher.include(config_pkg, moveit_launch_file_path)
 
    
+    def robot_description(self, package=None, description_file=None, description_dir=None, xacro_args=None):
+        '''
+        Returns the robot description after potential xacro parse if the file ends with xacro or xacro args are defined.
+        '''
+        # Retrieve the full path to the description file using a method that resolves the path based on the input parameters
+        description_file = self.launcher.find(package, description_file, description_dir)
 
+        # If the file is a URDF and no xacro arguments are provided, simply read and return the file content
+        if type(description_file) == str and description_file.endswith('urdf') and xacro_args is None:
+                with open(description_file) as f:
+                    urdf_xml = f.read()
+                return urdf_xml
 
-def robot_description(self, package=None, description_file=None, description_dir=None, xacro_args=None):
-    '''
-    Returns the robot description after potential xacro parse if the file ends with xacro or xacro args are defined.
-    '''
-    # Retrieve the full path to the description file using a method that resolves the path based on the input parameters
-    description_file = self.launcher.find(package, description_file, description_dir)
+        cmd = ['xacro', description_file]
+        if xacro_args:
+            cmd += xacro_args if isinstance(xacro_args, list) else [xacro_args]
+        try:
+            with subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True) as proc:
+                stdout, stderr = proc.communicate() 
 
-    # If the file is a URDF and no xacro arguments are provided, simply read and return the file content
-    if type(description_file) == str and description_file.endswith('urdf') and xacro_args is None:
-            with open(description_file) as f:
-                urdf_xml = f.read()
-            return urdf_xml
-
-    cmd = ['xacro', description_file]
-    if xacro_args:
-        cmd += xacro_args if isinstance(xacro_args, list) else [xacro_args]
-    try:
-        with subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True) as proc:
-            stdout, stderr = proc.communicate() 
-
-            if proc.returncode == 0:  
-                return stdout  
-            else:
-                
-                print(f"Error processing xacro: {stderr}")
-                return None  
-    except Exception as e:
-        
-        print(f"Failed to execute xacro command: {e}")
-        return None
+                if proc.returncode == 0:  
+                    return stdout  
+                else:
+                    
+                    print(f"Error processing xacro: {stderr}")
+                    return None  
+        except Exception as e:
+            
+            print(f"Failed to execute xacro command: {e}")
+            return None
 
 #currently working...............................
     def robot_state_publisher(self, package=None, description_file=None, description_dir=None,
