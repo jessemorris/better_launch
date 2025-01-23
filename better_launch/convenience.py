@@ -29,7 +29,7 @@ class convenience_module:
         self.launcher.node('rviz2', 'rviz2', arguments = args)
 
 
-    def add_moveit(self, config_pkg: str, config_file: str):
+    def moveit(self, config_pkg: str, config_file: str):
         moveit_launch_file_path = self.launcher.find(config_pkg, f'{config_file}.launch.py')
         self.launcher.include(config_pkg, moveit_launch_file_path)
 
