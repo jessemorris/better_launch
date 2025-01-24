@@ -71,3 +71,160 @@ def robot_state_publisher(launcher: BetterLaunch, package=None, description_file
         node_args['parameters'] = [{'robot_description': urdf_xml}]
     launcher.node("robot_state_publisher", **node_args)
 
+def declare_gazebo_axes(axes={}):
+    '''
+    Declares classical Gazebo axes as launch arguments.
+    If axes is void then declares all 6 axes with default value 0.
+    Otherwise declares the given axes with the given defaults.
+    '''
+    gz_axes = ('x', 'y', 'z', 'yaw', 'pitch', 'roll')
+    if axes:
+        filtered_axes = [axis for axis in gz_axes if axis in axes]
+        declared_axes = {axis: axes[axis] for axis in filtered_axes}
+    else:
+        declared_axes = {axis: 0. for axis in gz_axes}
+
+    return declared_axes
+
+def gazebo_axes_args(declared_axes):
+    '''
+    Generate arguments corresponding to Gazebo spawner.
+    '''
+    axes_mapping = {'x': 'x', 'y': 'y', 'z': 'z', 'roll': 'R', 'pitch': 'P', 'yaw': 'Y'}
+    args = []
+    for axis, tag in axes_mapping.items():
+        if axis in declared_axes:
+            args.append(['-' + tag, declared_axes[axis]])
+    flattened_args = [str(item) for sublist in args for item in sublist]
+    return flattened_args
+
+def create_gz_bridge(launcher: BetterLaunch, bridges: Union[GazeboBridge,List[Union[GazeboBridge,Tuple]]], name = 'gz_bridge'):
+        '''
+        Create a ros_gz_bridge::parameter_bridge with the passed GazeboBridge instances
+        The bridge has a default name if not specified
+        If any bridge is used for sensor_msgs/Image, ros_{gz,ign}_image will be used instead
+        '''
+        # adapt types
+        if isinstance(bridges, GazeboBridge):
+            bridges = [bridges]
+        if len(bridges) == 0:
+            return
+
+        # lazy list of bridges
+        for idx,bridge in enumerate(bridges):
+            if not isinstance(bridge, GazeboBridge):
+                bridges[idx] = GazeboBridge(*bridge)
+
+        ros_gz = 'ros_' + ros_gz_prefix()
+
+        # add camera_info for image bridges
+        im_bridges = [bridge for bridge in bridges if bridge.is_image]
+
+        for bridge in im_bridges:
+
+            gz_head, gz_tail = bridge.gz_topic.split_tail()
+            ros_head, ros_tail = bridge.ros_topic.split_tail()
+
+            if not all(isinstance(tail, Text) and 'image' in tail for tail in (ros_tail, gz_tail)):
+                continue
+
+            cam = []
+            for tail in (gz_tail, ros_tail):
+                idx = tail.rfind('image')
+                cam.append(tail[:idx] + 'camera_info')
+
+            bridges.append(GazeboBridge(gz_head + [cam[0]], ros_head + [cam[1]], 'sensor_msgs/CameraInfo', GazeboBridge.gz2ros))
+
+        std_config = sum([bridge.yaml() for bridge in bridges if not bridge.is_image], [])
+
+        from tempfile import NamedTemporaryFile
+
+        if std_config.has_elems():
+            from tempfile import NamedTemporaryFile
+
+            # Use YAML-based configuration, handles Gazebo topics that are invalid to ROS
+            dst = NamedTemporaryFile().name
+
+            # Construct the command using string formatting
+            cmd = f'echo "{std_config}" >> {dst}'
+
+            # Execute the command using subprocess.Popen
+            process = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+            stdout, stderr = process.communicate()
+
+            if process.returncode != 0:
+                print(f"Error in command execution: {stderr}")
+            else:
+                launcher.node(f'{ros_gz}_bridge', 'parameter_bridge', name=name,
+                            parameters={'config_file': dst})
+
+        if len(im_bridges):
+            # Use remapping to ROS topics
+            remappings = []
+            for bridge in im_bridges:
+                for ext in ('', '/compressed', '/compressedDepth', '/theora'):
+                    remapped_gz_topic = f'{bridge.gz_topic}{ext}'
+                    remapped_ros_topic = f'{bridge.ros_topic}{ext}'
+                    remappings.append((remapped_gz_topic, remapped_ros_topic))
+
+            launcher.node(f'{ros_gz}_image', 'image_bridge', name=f'{name}_image',
+                        arguments=[bridge.gz_topic for bridge in im_bridges],
+                        remappings=remappings)
+
+def gz_world_tf(launcher: BetterLaunch, world_frame = None):
+        '''
+        Runs a static_transform_publisher to connect `world` and Gazebo world name, if different from `world`
+        '''
+        if world_frame is None:
+            world_frame = GazeboBridge.world()
+        if world_frame != 'world':
+            launcher.node('tf2_ros', 'static_transform_publisher',
+                      name = 'gz_world_tf',
+                      arguments = ['--frame-id', 'world','--child-frame-id', world_frame])
+
+def create_gz_clock_bridge(GazeboBridge, name = 'gz_clock_bridge'):
+        '''
+        Create a ros_gz_bridge::parameter_bridge for the /clock topic
+        Typically used in the launch file that runs the simulation before spawning things in
+        '''
+    return(GazeboBridge.clock(), name)
+
+
+def gz_launch(launcher: BetterLaunch, world_file, gz_args = None, full_world = None, save_after = 5.):
+        '''
+        Wraps gz_sim_launch to be Ignition/GzSim agnostic
+        default version is Fortress (6), will use GZ_VERSION if present
+        if `full_world` is given as a raw `string` then the resulting SDF will be saved, including base world and spawned entities
+        '''
+        if isinstance(full_world, str):
+            if exists(full_world):
+                launch_file, launch_arguments = gz_launch_setup(full_world, gz_args)
+            else:
+                launch_file, launch_arguments = gz_launch_setup(world_file, gz_args)
+                save_gz_world(launcher, full_world, save_after)
+        else:
+            launch_file, launch_arguments = gz_launch_setup(world_file, gz_args)
+        return launcher.include(launch_file = launch_file, launch_arguments = launch_arguments)
+
+def save_gz_world(launcher: BetterLaunch, dst, after = 5.):
+    '''
+    Saves the current world under dst
+    Resolves any spawned URDF through their description parameter and converts to SDF
+    '''
+    from .events import When
+    with launcher.group(when = When(delay = after)):
+        launcher.node('simple_launch', 'generate_gz_world', arguments = [dst])
+
+def spawn_gz_model(launcher: BetterLaunch, name, topic = 'robot_description', model_file = None, spawn_args = []):
+        '''
+        Spawns a model into Gazebo under the given name, from the given topic or file
+        Additional spawn_args can be given to specify e.g. the initial pose
+        '''
+
+        if model_file is not None:
+            spawn_args = flatten(spawn_args + ['-file',model_file,'-name', name])
+        else:
+            spawn_args = flatten(spawn_args + ['-topic',topic,'-name', name])
+
+        pkg = 'ros_ign_gazebo' if ros_gz_prefix() == 'ign' else 'ros_gz_sim'
+        launcher.node(package = pkg, executable = 'create', arguments=spawn_args)
