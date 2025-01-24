@@ -1,5 +1,4 @@
 # TODO Create convenience module for common stuff like joint_state_publisher, robot_state_publisher, moveit, rviz, gazebo (see simple_launch)
-
 from better_launch import BetterLaunch
 import subprocess
 
@@ -51,25 +50,34 @@ def robot_description(launcher: BetterLaunch, package=None, description_file=Non
         print(f"Failed to execute xacro command: {e}")
         return None
 
-def robot_state_publisher(launcher: BetterLaunch, package=None, description_file=None, description_dir=None, xacro_args=None, **node_args):
+def robot_state_publisher(launcher: BetterLaunch, package: Optional[str] = None, description_file: Optional[str] = None, description_dir: Optional[str] = None, xacro_args: Optional[Dict[str, Any]] = None, **node_args: Dict[str, Any]):
     '''
-        Add a robot state publisher node to the launch tree using the given description (urdf / xacro) file.
+    Add a robot state publisher node to the launch tree using the given description (URDF/Xacro) file.
 
-        * package -- is the name of the package that contains the description file (if None then assume an absolute description file)
-        * description_file -- is the name of the urdf/xacro file
-        * description_dir -- the name of the directory containing the file (None to have it found)
-        * xacro_args -- arguments passed to xacro (will force use of xacro)
-        * node_args -- any additional node arguments such as remappings or parameters
-        '''
-    urdf_xml = robot_description(launcher, package, description_file, description_dir, xacro_args)
-    if 'parameters' in node_args:
-        if isinstance(node_args['parameters'], list):
-            node_args['parameters'].append({'robot_description': urdf_xml})
-        else:
-            node_args['parameters'] = [node_args['parameters'], {'robot_description': urdf_xml}]
-    else:
-        node_args['parameters'] = [{'robot_description': urdf_xml}]
-    launcher.node("robot_state_publisher", **node_args)
+    Args:
+    - package: Name of the package containing the description file; if None, an absolute path is assumed.
+    - description_file: Name of the URDF/Xacro file.
+    - description_dir: Directory containing the file; if None, the location is derived.
+    - xacro_args: Arguments passed to the Xacro processor.
+    - node_args: Additional node arguments such as remappings or parameters.
+    '''
+    # Generate the robot description XML from URDF or Xacro files
+    try:
+        urdf_xml = robot_description(launcher, package, description_file, description_dir, xacro_args)
+    except FileNotFoundError as e:
+        print(f"Error loading robot description: {e}")
+        return
+
+    params = node_args.get('parameters', [])
+    if not isinstance(params, list):
+        params = [params]
+    params.append({'robot_description': urdf_xml})
+    node_args['parameters'] = params
+
+    try:
+        launcher.node("robot_state_publisher", **node_args)
+    except Exception as e:
+        print(f"Error launching robot state publisher node: {e}")
 
 def declare_gazebo_axes(axes={}):
     '''
