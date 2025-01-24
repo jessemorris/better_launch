@@ -16,7 +16,7 @@ def concept(
         bl.node("mypkg", "test.py", main_node_name)
 
         if start_all:
-            bl.include("otherpkg", "otherpkg.launch.py", **bl.all_args)
+            bl.include("otherpkg", "otherpkg.launch.py", **bl.launch_args)
 
         with bl.compose():
             # Automatically detects
@@ -26,17 +26,16 @@ def concept(
         bl.lifecycle_node("my_lifecycle_pkg", "lifecycle_node.py", target_state=bl.LIFECYCLE_STARTED)
 
 
-# TODO we could create a UI like rosmon did!
-# https://github.com/xqms/rosmon
-
-
 @launch_this
-def test():
+def test(enable_x: bool):
+    """
+    This is how nice your launch files could be!
+    """
     bl = BetterLaunch()
 
     with bl.group("test"):
         bl.node(
             "examples_rclpy_minimal_publisher",
             "publisher_local_function",
-            "test_node"
+            "test_node",
         )

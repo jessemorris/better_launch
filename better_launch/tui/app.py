@@ -1,5 +1,7 @@
+from typing import Callable
 import os
 import time
+import logging
 import asyncio
 import pyperclip
 
@@ -12,11 +14,11 @@ from textual.reactive import reactive
 
 from ros2node.api import get_node_names
 
-from ros import logging as roslog
 from ros.ros_adapter import ROSAdapter
+import ros.logging as roslog
+from utils.log_record_forwarder import LogRecordForwarder
 
 from .log_entry import LogEntry
-from .log_handler import TextualLogHandler
 from .node_menu import NodeMenu
 from .node_search import NodeSearch
 from .node_status import NodeStatus
@@ -51,27 +53,21 @@ class BetterLaunchUI(App):
 
     def __init__(
         self,
-        ros_adapter: ROSAdapter,
+        launch_func: Callable, 
         disable_colors: bool = False,
         max_log_length: bool = 1000,
     ):
-        super().__init__(ansi_color=not disable_colors)
+        if disable_colors:
+            os.environ["NO_COLOR"] = "1"
+        
+        super().__init__()
 
         self.nodes = {}
         self.backlog = []
-        self.paused = False
-
-        self.ros_adapter = ros_adapter
+        self.mute = False
         self.max_log_length = max_log_length
 
-        # Make sure all ros loggers follow a parsable format
-        os.environ["RCUTILS_COLORIZED_OUTPUT"] = "0"
-        os.environ["RCUTILS_CONSOLE_OUTPUT_FORMAT"] = (
-            "%%{severity}%%{time}%%{message}"
-        )
-
-        # TODO Need to prevent BetterLaunch making changes to the launch config that would interfere with us
-        roslog.launch_config.screen_handler = TextualLogHandler(self)
+        self.launch_func = launch_func
 
     def compose(self) -> ComposeResult:
         yield Header(show_clock=True)
@@ -90,7 +86,26 @@ class BetterLaunchUI(App):
         yield Footer(show_command_palette=False)
 
     def on_mount(self):
-        self.check_nodes_status()
+        self.run_launch_function()
+
+    def on_exit(self):
+        #self.ros_adapter.shutdown()
+        print("UI terminating")
+
+    # TODO BL sets up signal handling which must be done on the main thread
+    # TODO however, that means we may not be able to watch logging during startup if we're blocking here
+    @work(thread=True)
+    def run_launch_function(self):
+        def log_to_ui(record: logging.LogRecord):
+            if self.is_running:
+                self.call_later(self.on_log_record, record)
+
+        log_handler = roslog.launch_config.screen_handler
+        if not isinstance(log_handler, LogRecordForwarder):
+            raise RuntimeError("Something modified the logging handler, UI cant't start")
+        
+        log_handler.add_listener(log_to_ui)
+        self.launch_func()
 
     # TODO thread or asyncio? fine for now
     @work(thread=True)
@@ -141,7 +156,7 @@ class BetterLaunchUI(App):
         self.call_later(clear_notification())
 
     def _get_next_node_key(self):
-        num_items = self.sidebar.children
+        num_items = len(self.sidebar.children)
         if num_items < 10:
             # Node number starting at 0
             return str(num_items)
@@ -151,12 +166,12 @@ class BetterLaunchUI(App):
 
         return None
 
-    def _on_logging_event(self, record):
+    def on_log_record(self, record):
         # This will be called by our logging handler
 
         if record.name not in self.nodes:
             keybind = self._get_next_node_key()
-            node = NodeStatus(record.name)
+            node = NodeStatus(keybind, record.name)
             self.nodes[record.name] = node
             self.sidebar.append(node)
 
@@ -167,7 +182,7 @@ class BetterLaunchUI(App):
             # Logger is muted, message will not be recorded
             return
 
-        if self.paused:
+        if self.mute:
             # Save the raw messages and add them once we get unmuted
             self.backlog.append(record)
         else:
@@ -188,15 +203,15 @@ class BetterLaunchUI(App):
         self.sidebar.display = not self.sidebar.display
 
     def action_mute_all(self):
-        self.paused = True
+        self.mute = True
 
     def action_unmute_all(self):
-        if self.paused:
+        if self.mute:
             # Add messages we missed while muted
             if self.backlog:
                 self._log(*self.backlog)
                 self.backlog.clear()
-            self.paused = False
+            self.mute = False
 
     def action_search_node(self):
         # TODO open search dialog
