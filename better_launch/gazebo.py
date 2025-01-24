@@ -282,7 +282,7 @@ class GazeboBridge:
         logger.info(f'GazeboBridge: found world "{GazeboBridge._world_name}"')
         return GazeboBridge._world_name
 
-        @staticmethod
+    @staticmethod
     def model_prefix(model):
         return f'/world/{GazeboBridge.world()}/model/' + model
         if isinstance(model, str):
