@@ -31,6 +31,7 @@ from ros.ros_adapter import ROSAdapter
 from ros import logging as roslog
 from ros.logging import LaunchConfig as LogConfig
 from utils.log_formatter import RosLogFormatter, default_colormap
+from utils.log_record_forwarder import LogRecordForwarder
 from utils.substitutions import default_substitution_handlers, substitute_tokens
 
 
@@ -77,26 +78,60 @@ def _expose_ros2_launch_function(launch_func):
         ld.add_action(OpaqueFunction(ros2_wrapper))
         return ld
 
+    # Add our generate_launch_description function to the module launch_this was called from
     stack = inspect.stack()
     for i, frame_info in enumerate(stack):
         if frame_info.function.startswith("launch_this"):
             if i + 1 >= len(stack):
                 raise RuntimeError("Could not determine the calling module")
-            launch_frame = stack[i + 1]
-            caller_globals = launch_frame.frame.f_globals
+            launchfile_frame = stack[i + 1]
+            caller_globals = launchfile_frame.frame.f_globals
             caller_globals["generate_launch_description"] = generate_launch_description
             break
     else:
         raise RuntimeError("This function must be called through launch_this")
 
 
-def launch_this(launch_func, start_ui: bool = True):
+def launch_this(
+    launch_func,
+    ui: bool = True,
+    join: bool = True,
+    log_config: LogConfig = None,
+):
     glob = globals()
     if _is_launcher_defined in glob and _has_bl_instance not in glob:
         # Allow using launch_this only once unless we got included from another file
         raise RuntimeError("Can only use one launch decorator")
 
     glob[_is_launcher_defined] = True
+
+    # Get the filename of the original launchfile
+    # NOTE be careful not to instantiate BetterLaunch before launch_func has run
+    if _has_bl_instance in glob:
+        stack = inspect.stack()
+        for frame_info in stack:
+            if frame_info.function.startswith("launch_this"):
+                BetterLaunch.launchfile = frame_info.filename
+                break
+        else:
+            print("Launchfile resolution failed")
+
+        del frame_info
+
+    # Signal handlers have to be installed on the main thread. Since the BetterLaunch singleton 
+    # could be instantiated first on a different thread we do it here where we can set stronger 
+    # restrictions.
+    def sigint_handler(sig, frame):
+        BetterLaunch()._on_sigint(sig, frame)
+    
+    def sigterm_handler(sig, frame):
+        BetterLaunch()._on_sigint(sig, frame)
+
+    signal.signal(signal.SIGINT, sigint_handler)
+    signal.signal(signal.SIGTERM, sigterm_handler)
+
+    if platform.system() != "Windows":
+        signal.signal(signal.SIGQUIT, sigterm_handler)
 
     # If we were started by ros launch (e.g. through 'ros2 launch <some-bl-launch-file>') we need
     # to expose a "generate_launch_description" method instead of running by ourselves.
@@ -125,27 +160,68 @@ def launch_this(launch_func, start_ui: bool = True):
 
     # If we get here we were not included by ROS2
 
-    # Expose launch_func args through click
+    # Logging setup
+    if log_config:
+        roslog.launch_config = log_config
+        # roslog.reset()
+    else:
+        roslog.launch_config.level = logging.INFO
+        if "OVERRIDE_LAUNCH_SCREEN_FORMAT" not in os.environ:
+            colormap = dict(default_colormap)
+            colormap[logging.INFO] = "\x1b[32;20m"
+            roslog.launch_config.screen_formatter = RosLogFormatter(
+                colormap=colormap
+            )
+
+    if ui:
+        # Make sure all ros loggers follow a parsable format
+        os.environ["RCUTILS_COLORIZED_OUTPUT"] = "0"
+        os.environ["RCUTILS_CONSOLE_OUTPUT_FORMAT"] = "%%{severity}%%{time}%%{message}"
+
+        if "OVERRIDE_LAUNCH_SCREEN_FORMAT" in os.environ:
+            del os.environ["OVERRIDE_LAUNCH_SCREEN_FORMAT"]
+
+        # Install the log handler
+        roslog.launch_config.screen_handler = LogRecordForwarder()
+
+    # Expose launch_func args through click. This enables using launch files like other
+    # python files, e.g. './my_better_launchfile.py --help'
     import click
 
     options = []
     sig = inspect.signature(launch_func)
     for param in sig.parameters.values():
-        default = param.default
-        options.append(click.Option(f"--{param.name}", default=default))
+        default = None
+        if param.default is not param.empty:
+            default = param.default
 
-    def run():
-        launch_func()
+        ptype = None
+        if default is param.empty and param.annotation is not param.empty:
+            ptype = param.annotation
 
-        # Retrieve the BetterLaunch singleton and run it
-        BetterLaunch().execute_pending_ros_actions(wait=not start_ui)
-        if start_ui:
-            from ui import BetterLaunchUI
+        # TODO extract argument documentation from docstring and add it as help text
+        options.append(click.Option([f"--{param.name}"], type=ptype, default=default))
 
-            BetterLaunchUI().run()
+    def run(*args, **kwargs):
+        def wrapper():
+            launch_func(*args, **kwargs)
 
-    # All BL nodes and includes are async once started
-    click_cmd = click.Command("main", callback=run, params=options)
+            # Retrieve the BetterLaunch singleton
+            bl = BetterLaunch()
+            bl.execute_pending_ros_actions(join=join and not ui)
+
+        if ui:
+            from tui import BetterLaunchUI
+
+            app = BetterLaunchUI(wrapper)
+            app.run()
+            print("UI terminated")
+        else:
+            wrapper()
+
+    click_cmd = click.Command(
+        "main", callback=run, params=options, help=launch_func.__doc__
+    )
     try:
         click_cmd.main()
     except SystemExit as e:
@@ -156,8 +232,9 @@ def launch_this(launch_func, start_ui: bool = True):
 class _BetterLaunchMeta(type):
     # Allows reusing an already existing BetterLaunch instance.
     # Important for launch file includes.
+    # TODO what should happen if BetterLaunch is instantiated again with different arguments? 
+    # TODO Override? Update/merge? Localize on include?
     def __call__(cls, *args, **kwargs):
-        # TODO should be stored on the class to allow subclassing
         existing_instance = globals().get(_has_bl_instance, None)
         if existing_instance is not None:
             return existing_instance
@@ -169,53 +246,50 @@ class _BetterLaunchMeta(type):
 
 
 class BetterLaunch(metaclass=_BetterLaunchMeta):
+    launchfile: str = None
+
     def __init__(
         self,
         name: str = None,
         launch_args: dict = None,
-        base_namespace: str = "/",
-        log_config: LogConfig = None,
+        root_namespace: str = "/",
     ):
         if not name:
-            stack = inspect.stack()
-            for frame_info in stack:
-                if frame_info.function.startswith("launch_this"):
-                    launch_file = frame_info.filename
-                    break
-            else:
-                raise ValueError("No name was provided and caller module resolution failed")
-            
-            del frame_info
-            
-            name = os.path.basename(launch_file)
+            name = os.path.basename(BetterLaunch.launchfile)
             name = os.path.splitext(name)[0]
             if name.endswith(".launch"):
                 name = os.path.splitext(name)[0]
 
-        self.all_args = launch_args or {}
-
-        if base_namespace is None:
-            base_namespace = "/"
-        elif not base_namespace.startswith("/"):
-            base_namespace = "/" + base_namespace
-
-        if log_config:
-            roslog.launch_config = log_config
-            #roslog.reset()
-        else:
-            roslog.launch_config.level = logging.INFO
-            if "OVERRIDE_LAUNCH_SCREEN_FORMAT" not in os.environ:
-                colormap = dict(default_colormap)
-                colormap[logging.INFO] = "\x1b[32;20m"
-                roslog.launch_config.screen_formatter = RosLogFormatter(colormap=colormap)
-
+        # roslog.launch_config must be setup before instantiation of BetterLaunch
         self.logger = roslog.get_logger(name)
 
-        # For those cases where we need to interact with ROS somehow (e.g. service calls)
-        self.ros_adapter = ROSAdapter()
-        self._shutdown_future = Future()
+        if launch_args is None:
+            # Retrieve the arguments of the function that launch_this was decorating
+            stack = inspect.stack()
+            for i, frame_info in enumerate(stack):
+                if frame_info.function == "launch_this":
+                    if i + 1 >= len(stack):
+                        raise RuntimeError("Could not determine the launch function")
+                    launch_frame = stack[i - 1]
+                    calling_function = launch_frame.frame.f_globals[launch_frame.function]
+                    sig = inspect.signature(calling_function)
+                    bound_args = sig.bind(**launch_frame.frame.f_locals)
+                    bound_args.apply_defaults()
+                    launch_args = dict(bound_args.arguments)
+                    break
 
-        self._group_root = Group(self, None, base_namespace)
+            del frame_info
+
+        self.launch_args = launch_args
+
+        # For those cases where we need to interact with ROS (e.g. service calls)
+        self.ros_adapter = ROSAdapter()
+
+        if root_namespace is None:
+            root_namespace = "/"
+        root_namespace = "/" + root_namespace.strip("/")
+
+        self._group_root = Group(self, None, root_namespace)
         self._group_stack = deque()
         self._group_stack.append(self._group_root)
 
@@ -226,13 +300,8 @@ class BetterLaunch(metaclass=_BetterLaunchMeta):
         self._ros2_launcher = None
         self._ros2_launcher_thread = None
 
-        self.sigint_received = False
-
-        signal.signal(signal.SIGINT, self._on_sigint)
-        signal.signal(signal.SIGTERM, self._on_sigterm)
-
-        if platform.system() != "Windows":
-            signal.signal(signal.SIGQUIT, self._on_sigterm)
+        self._sigint_received = False
+        self._shutdown_future = Future()
 
         self.hello()
 
@@ -247,10 +316,10 @@ class BetterLaunch(metaclass=_BetterLaunchMeta):
         self.logger.info(
             # Ascii art based on: https://asciiart.cc/view/10677
             f"""
-Better Launch is starting!
+\x1b[1;20mBetter Launch is starting!\x1b[0m
 Please fasten your seatbelts and secure all baggage underneath your chair.
 
-Default log level is \x1b[34;20m{roslog.launch_config.level}\x1b[0m
+Default log level is \x1b[34;20m{roslog.launch_config.level} ({logging.getLevelName(roslog.launch_config.level)})\x1b[0m
 All log files can be found under \x1b[34;20m{roslog.launch_config.log_dir}\x1b[0m
 
 Takeoff in 3... 2... 1...
@@ -275,7 +344,7 @@ Takeoff in 3... 2... 1...
 """
         )
 
-    def execute_pending_ros_actions(self, wait: bool = True):
+    def execute_pending_ros_actions(self, join: bool = True):
         if self._ros2_actions:
             # Apply our config to the ROS2 launch logging config
             import launch
@@ -302,7 +371,7 @@ Takeoff in 3... 2... 1...
                 )
                 self._ros2_launcher_thread.start()
 
-            if wait:
+            if join:
                 self.spin()
         else:
             self.logger.info("No ROS2 actions pending")
@@ -344,10 +413,10 @@ Takeoff in 3... 2... 1...
         return self._group_stack[-1]
 
     def _on_sigint(self, sig, frame):
-        if not self.sigint_received:
+        if not self._sigint_received:
             self.logger.warning(f"Received (SIGINT), forwarding to child processes...")
             self.shutdown("user interrupt", signal.SIGINT)
-            self.sigint_received = True
+            self._sigint_received = True
         else:
             self.logger.warning(f"Received (SIGINT) again, escalating to sigterm")
             self._on_sigterm(sig, frame)
@@ -746,7 +815,7 @@ Takeoff in 3... 2... 1...
 
     def include(self, pkg: str, launch_file: str, pass_all_args: bool = True, **kwargs):
         if pass_all_args:
-            local_args = self.all_args
+            local_args = self.launch_args
         else:
             local_args = {}
 

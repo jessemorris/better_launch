@@ -1,19 +1,24 @@
+from typing import Callable
 import logging
-from textual.app import App
 
 from utils.log_formatter import RosLogFormatter
 
 
-class TextualLogHandler(logging.Handler):
-    def __init__(self, app: App, level=0):
+class LogRecordForwarder(logging.Handler):
+    def __init__(self, level=0):
         super().__init__(level)
-        self.app = app
         self.formatter = RosLogFormatter(disable_colors=True)
+        self.listeners = []
+
+    def add_listener(self, callback: Callable[[logging.LogRecord], None]):
+        self.listeners.append(callback)
 
     def emit(self, record):
         # The formatter will extract information like levelname and set it on the record
         self.format(record)
-        self.app.call_from_thread(self.app._on_logging_event, record)
+        for cb in self.listeners:
+            cb(record)
 
     def setFormatter(self, fmt):
+        # Direct access to self.formatter is still allowed
         raise RuntimeError("setFormatter is disabled for TextualLogHandler")

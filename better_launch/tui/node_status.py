@@ -25,12 +25,14 @@ class NodeStatus(Label):
         self, keybind: str, name: str, namespace: str = None, status: int = ALIVE
     ):
         if not namespace:
-            match: re.Match = re.match(r"/?(.+)/([\w\d]+)", name)
+            match: re.Match = re.match(r"/?(.*)/([\w\d+-_ ]+)", name)
             if not match:
                 raise ValueError(f"Could not parse node name '{name}' - missing namespace")
             namespace = match.group(1)
             name = match.group(2)
 
+        # TODO some of these are already defined in the base
+        # TODO separate this into a dataclass and a label implementation
         self.keybind = keybind or ""
         self.name = name
         self.namespace = namespace.strip("/")
