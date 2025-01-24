@@ -218,16 +218,31 @@ def gz_launch(launcher: BetterLaunch, world_file, gz_args = None, full_world = N
         return launcher.include(launch_file = launch_file, launch_arguments = launch_arguments)
 
 
-# Currently working on.........................................................................................................
+def save_gz_world(launcher: BetterLaunch, dst, after=5.0):
+    '''
+    Saves the current world under dst.
+    Resolves any spawned URDF through their description parameter and converts to SDF.
+    Uses a timer to delay the action of saving the world.
+    '''
 
-def save_gz_world(launcher: BetterLaunch, dst, after = 5.):
-    '''
-    Saves the current world under dst
-    Resolves any spawned URDF through their description parameter and converts to SDF
-    '''
-    from .events import When
-    with launcher.group(when = When(delay = after)):
-        launcher.node('better_launch', 'generate_gz_world', arguments = [dst])
+    class When:
+        def __init__(self, delay=None):
+            self.delay = delay
+
+        def __enter__(self):
+            # Mimic delay functionality, perhaps delaying the setup of actions
+            import time
+            if self.delay:
+                time.sleep(self.delay)
+
+        def __exit__(self, exc_type, exc_val, exc_tb):
+            # Cleanup or reset after the action is set up (if needed)
+            pass
+
+    with launcher.group(when=When(delay=after)):
+        launcher.node('better_launch', 'generate_gz_world', arguments=[dst])
+
+
 
 def spawn_gz_model(launcher: BetterLaunch, name, topic='robot_description', model_file=None, spawn_args=[]):
     '''
