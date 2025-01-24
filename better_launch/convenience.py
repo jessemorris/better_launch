@@ -1,6 +1,9 @@
 # TODO Create convenience module for common stuff like joint_state_publisher, robot_state_publisher, moveit, rviz, gazebo (see simple_launch)
 from better_launch import BetterLaunch
 import subprocess
+from .gazebo import only_show_args, silent_exec, GazeboBridge, ros_gz_prefix, gz_launch_setup
+from os.path import join, exists
+from typing import Text, List, Iterable, Tuple, Union
 
 def joint_state_publisher(launcher: BetterLaunch, use_gui=True, **node_args):
     '''
@@ -195,7 +198,7 @@ def create_gz_clock_bridge(GazeboBridge, name = 'gz_clock_bridge'):
         Create a ros_gz_bridge::parameter_bridge for the /clock topic
         Typically used in the launch file that runs the simulation before spawning things in
         '''
-    return(GazeboBridge.clock(), name)
+        return(GazeboBridge.clock(), name)
 
 
 def gz_launch(launcher: BetterLaunch, world_file, gz_args = None, full_world = None, save_after = 5.):
@@ -221,7 +224,7 @@ def save_gz_world(launcher: BetterLaunch, dst, after = 5.):
     '''
     from .events import When
     with launcher.group(when = When(delay = after)):
-        launcher.node('simple_launch', 'generate_gz_world', arguments = [dst])
+        launcher.node('better_launch', 'generate_gz_world', arguments = [dst])
 
 def spawn_gz_model(launcher: BetterLaunch, name, topic = 'robot_description', model_file = None, spawn_args = []):
         '''
