@@ -53,7 +53,7 @@ def robot_description(launcher: BetterLaunch, package=None, description_file=Non
         print(f"Failed to execute xacro command: {e}")
         return None
 
-def robot_state_publisher(launcher: BetterLaunch, package: Optional[str] = None, description_file: Optional[str] = None, description_dir: Optional[str] = None, xacro_args: Optional[Dict[str, Any]] = None, **node_args: Dict[str, Any]):
+def robot_state_publisher(launcher: BetterLaunch, package=None, description_file=None, description_dir=None, xacro_args=None):
     '''
     Add a robot state publisher node to the launch tree using the given description (URDF/Xacro) file.
 
@@ -70,7 +70,7 @@ def robot_state_publisher(launcher: BetterLaunch, package: Optional[str] = None,
     except FileNotFoundError as e:
         print(f"Error loading robot description: {e}")
         return
-
+    node_args = launcher.node(node_args)
     params = node_args.get('parameters', [])
     if not isinstance(params, list):
         params = [params]
@@ -229,16 +229,24 @@ def save_gz_world(launcher: BetterLaunch, dst, after = 5.):
     with launcher.group(when = When(delay = after)):
         launcher.node('better_launch', 'generate_gz_world', arguments = [dst])
 
-def spawn_gz_model(launcher: BetterLaunch, name, topic = 'robot_description', model_file = None, spawn_args = []):
-        '''
-        Spawns a model into Gazebo under the given name, from the given topic or file
-        Additional spawn_args can be given to specify e.g. the initial pose
-        '''
+def spawn_gz_model(launcher: BetterLaunch, name, topic='robot_description', model_file=None, spawn_args=[]):
+    '''
+    Spawns a model into Gazebo under the given name, from the given topic or file.
+    Additional spawn_args can be given to specify e.g., the initial pose.
+    '''
 
-        if model_file is not None:
-            spawn_args = flatten(spawn_args + ['-file',model_file,'-name', name])
-        else:
-            spawn_args = flatten(spawn_args + ['-topic',topic,'-name', name])
+    def flatten(nested):
+        i = 0
+        while i < len(nested):
+            while isinstance(nested[i], (list, tuple)):
+                nested[i:i+1] = nested[i]  # Replace the element with its contents
+            i += 1
+        return [elem for elem in nested if elem is not None]
 
-        pkg = 'ros_ign_gazebo' if ros_gz_prefix() == 'ign' else 'ros_gz_sim'
-        launcher.node(package = pkg, executable = 'create', arguments=spawn_args)
+    if model_file is not None:
+        spawn_args = flatten(spawn_args + ['-file', model_file, '-name', name])
+    else:
+        spawn_args = flatten(spawn_args + ['-topic', topic, '-name', name])
+
+    pkg = 'ros_ign_gazebo' if ros_gz_prefix() == 'ign' else 'ros_gz_sim'
+    launcher.node(package=pkg, executable='create', arguments=spawn_args)
