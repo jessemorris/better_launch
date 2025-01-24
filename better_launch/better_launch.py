@@ -29,6 +29,7 @@ except ImportError:
 from elements import Group, Node, Composer, LifecycleNode, LifecycleStage
 from ros.ros_adapter import ROSAdapter
 from ros import logging as roslog
+from ros.logging import LaunchConfig as LogConfig
 from utils.log_formatter import RosLogFormatter, default_colormap
 from utils.substitutions import default_substitution_handlers, substitute_tokens
 
@@ -170,23 +171,27 @@ class _BetterLaunchMeta(type):
 class BetterLaunch(metaclass=_BetterLaunchMeta):
     def __init__(
         self,
-        ns: str = "/",
         launch_args: dict = None,
         name: str = None,
-        *,
-        log_level: int = logging.INFO,
+        ns: str = "/",
+        log_config: LogConfig = None,
     ):
         if launch_args is None:
-            frame = inspect.currentframe()
-            try:
-                # Get the caller's locals
-                launch_args = {
-                    k: v
-                    for k, v in frame.f_back.f_locals.items()
-                    if not k.startswith("_")
-                }
-            finally:
-                del frame
+            # TODO should we keep this behavior?
+            # Retrieve the arguments of the function that launch_this was decorating
+            stack = inspect.stack()
+            for i, frame_info in enumerate(stack):
+                if frame_info.function.startswith("launch_this"):
+                    if i + 1 >= len(stack):
+                        raise RuntimeError("Could not determine the launch function")
+                    launch_frame = stack[i - 1]
+                    calling_function = launch_frame.frame.f_globals[launch_frame.function]
+                    sig = inspect.signature(calling_function)
+                    bound_args = sig.bind(**launch_frame.frame.f_locals)
+                    bound_args.apply_defaults()
+                    launch_args = dict(bound_args.arguments)
+                    break
+            del frame_info
 
         if not name:
             # 0: this function, 1: launch_func
@@ -207,18 +212,19 @@ class BetterLaunch(metaclass=_BetterLaunchMeta):
         self.ros_adapter = ROSAdapter()
         self._shutdown_future = Future()
 
-        self._logscreen_handler = None
-        self._logfile_handlers = {}
-
-        roslog.launch_config.level = log_level
-        if "OVERRIDE_LAUNCH_SCREEN_FORMAT" not in os.environ:
-            colormap = dict(default_colormap)
-            colormap[logging.INFO] = "\x1b[32;20m"
-            roslog.launch_config.screen_formatter = RosLogFormatter(colormap=colormap)
+        if log_config:
+            roslog.launch_config = log_config
+            #roslog.reset()
+        else:
+            roslog.launch_config.level = logging.INFO
+            if "OVERRIDE_LAUNCH_SCREEN_FORMAT" not in os.environ:
+                colormap = dict(default_colormap)
+                colormap[logging.INFO] = "\x1b[32;20m"
+                roslog.launch_config.screen_formatter = RosLogFormatter(colormap=colormap)
 
         self.logger = roslog.get_logger(name)
 
-        self.all_args = launch_args
+        self.all_args = launch_args or {}
         self.sigint_received = False
 
         if ns is None:
@@ -249,7 +255,7 @@ class BetterLaunch(metaclass=_BetterLaunchMeta):
     def hello(self):
         self.logger.info(
             # Ascii art based on: https://asciiart.cc/view/10677
-            f"""\
+            f"""
 Better Launch is starting!
 Please fasten your seatbelts and secure all baggage underneath your chair.
 
