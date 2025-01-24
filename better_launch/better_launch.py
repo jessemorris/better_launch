@@ -107,7 +107,7 @@ def launch_this(
 
     # Get the filename of the original launchfile
     # NOTE be careful not to instantiate BetterLaunch before launch_func has run
-    if _has_bl_instance in glob:
+    if not _has_bl_instance in glob:
         stack = inspect.stack()
         for frame_info in stack:
             if frame_info.function.startswith("launch_this"):
@@ -196,7 +196,7 @@ def launch_this(
             default = param.default
 
         ptype = None
-        if default is param.empty and param.annotation is not param.empty:
+        if default is None and param.annotation is not param.empty:
             ptype = param.annotation
 
         # TODO extract argument documentation from docstring and add it as help text

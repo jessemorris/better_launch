@@ -22,3 +22,9 @@ class LogRecordForwarder(logging.Handler):
     def setFormatter(self, fmt):
         # Direct access to self.formatter is still allowed
         raise RuntimeError("setFormatter is disabled for TextualLogHandler")
+
+
+# TODO move to ros.handlers, this doesn't work for some reason
+from ros.handlers import with_per_logger_formatting
+
+LogRecordForwarder = with_per_logger_formatting(LogRecordForwarder)

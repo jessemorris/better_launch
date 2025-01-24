@@ -21,7 +21,7 @@ from utils.log_record_forwarder import LogRecordForwarder
 from .log_entry import LogEntry
 from .node_menu import NodeMenu
 from .node_search import NodeSearch
-from .node_status import NodeStatus
+from .node_status import NodeStatus, NodeStatusLabel
 
 
 # Inspired by xqms' rosmon: https://github.com/xqms/rosmon
@@ -92,8 +92,6 @@ class BetterLaunchUI(App):
         #self.ros_adapter.shutdown()
         print("UI terminating")
 
-    # TODO BL sets up signal handling which must be done on the main thread
-    # TODO however, that means we may not be able to watch logging during startup if we're blocking here
     @work(thread=True)
     def run_launch_function(self):
         def log_to_ui(record: logging.LogRecord):
@@ -115,12 +113,13 @@ class BetterLaunchUI(App):
         )
 
         for item in self.sidebar.children:
-            if not isinstance(item, NodeStatus):
+            if not isinstance(item, NodeStatusLabel):
                 continue
 
             # TODO ignoring lifecycle node status for now
-            if item.fullname in live_nodes:
-                if item.has_errors:
+            node = item.node_details
+            if node.fullname in live_nodes:
+                if node.has_errors:
                     item.status = NodeStatus.ERROR
                 else:
                     item.status = NodeStatus.ALIVE
@@ -131,11 +130,11 @@ class BetterLaunchUI(App):
 
     def on_list_view_selected(self, selected: ListView.Selected):
         if selected.list_view == self.sidebar:
-            self.open_node_menu(selected.item.get_child_by_type(NodeStatus))
+            self.open_node_menu(selected.item.get_child_by_type(NodeStatusLabel))
         elif selected.list_view == self.logview:
             self.copy_log_entry(selected.item.get_child_by_type(LogEntry))
     
-    def open_node_menu(self, node: NodeStatus):
+    def open_node_menu(self, node: NodeStatusLabel):
         if not self.sidebar.display:
             self.action_toggle_sidebar()
         
@@ -171,14 +170,14 @@ class BetterLaunchUI(App):
 
         if record.name not in self.nodes:
             keybind = self._get_next_node_key()
-            node = NodeStatus(keybind, record.name)
+            node = NodeStatusLabel(keybind, NodeStatus(record.name))
             self.nodes[record.name] = node
             self.sidebar.append(node)
 
             if keybind:
                 self.bind(keybind, "open_node_menu", description=record.name)
             
-        if self.nodes[record.name].mute:
+        if self.nodes[record.name].node_details.mute:
             # Logger is muted, message will not be recorded
             return
 
@@ -189,7 +188,8 @@ class BetterLaunchUI(App):
             self._log(record)
 
     def _log(self, *records):
-        self.logview.extend(ListItem([LogEntry(r) for r in records]))
+        # TODO wrap lines
+        self.logview.extend([ListItem(LogEntry(r)) for r in records])
 
         # restrict number of list items
         num_entries = len(self.logview.children)
