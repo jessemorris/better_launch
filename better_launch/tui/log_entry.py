@@ -1,10 +1,10 @@
 import logging
 
-from textual.widgets import Label
+from textual.widgets import Static
 from textual.color import Color
 
 
-class LogEntry(Label):
+class LogEntry(Static):
     # https://coolors.co/d621ff-ef476f-ffd166-2a6eff-858585
     colormap = {
         "DEBUG": Color(133, 133, 133).css,
@@ -24,7 +24,6 @@ class LogEntry(Label):
 
         super().__init__(
             display,
-            id=f"{record.name}_{record.created}",
         )
 
         self.styles.background = LogEntry.colormap.get(record.levelname, "INFO")
