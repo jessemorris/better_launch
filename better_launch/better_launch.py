@@ -171,46 +171,33 @@ class _BetterLaunchMeta(type):
 class BetterLaunch(metaclass=_BetterLaunchMeta):
     def __init__(
         self,
-        launch_args: dict = None,
         name: str = None,
-        ns: str = "/",
+        launch_args: dict = None,
+        base_namespace: str = "/",
         log_config: LogConfig = None,
     ):
-        if launch_args is None:
-            # TODO should we keep this behavior?
-            # Retrieve the arguments of the function that launch_this was decorating
-            stack = inspect.stack()
-            for i, frame_info in enumerate(stack):
-                if frame_info.function.startswith("launch_this"):
-                    if i + 1 >= len(stack):
-                        raise RuntimeError("Could not determine the launch function")
-                    launch_frame = stack[i - 1]
-                    calling_function = launch_frame.frame.f_globals[launch_frame.function]
-                    sig = inspect.signature(calling_function)
-                    bound_args = sig.bind(**launch_frame.frame.f_locals)
-                    bound_args.apply_defaults()
-                    launch_args = dict(bound_args.arguments)
-                    break
-            del frame_info
-
         if not name:
-            # 0: this function, 1: launch_func
-            caller = inspect.stack()[1]
-            caller_module = inspect.getmodule(caller[0])
-            name = os.path.basename(caller_module.__file__)
+            stack = inspect.stack()
+            for frame_info in stack:
+                if frame_info.function.startswith("launch_this"):
+                    launch_file = frame_info.filename
+                    break
+            else:
+                raise ValueError("No name was provided and caller module resolution failed")
+            
+            del frame_info
+            
+            name = os.path.basename(launch_file)
             name = os.path.splitext(name)[0]
             if name.endswith(".launch"):
                 name = os.path.splitext(name)[0]
 
-        signal.signal(signal.SIGINT, self._on_sigint)
-        signal.signal(signal.SIGTERM, self._on_sigterm)
+        self.all_args = launch_args or {}
 
-        if platform.system() != "Windows":
-            signal.signal(signal.SIGQUIT, self._on_sigterm)
-
-        # For those cases where we need to interact with ROS somehow (e.g. service calls)
-        self.ros_adapter = ROSAdapter()
-        self._shutdown_future = Future()
+        if base_namespace is None:
+            base_namespace = "/"
+        elif not base_namespace.startswith("/"):
+            base_namespace = "/" + base_namespace
 
         if log_config:
             roslog.launch_config = log_config
@@ -224,15 +211,11 @@ class BetterLaunch(metaclass=_BetterLaunchMeta):
 
         self.logger = roslog.get_logger(name)
 
-        self.all_args = launch_args or {}
-        self.sigint_received = False
+        # For those cases where we need to interact with ROS somehow (e.g. service calls)
+        self.ros_adapter = ROSAdapter()
+        self._shutdown_future = Future()
 
-        if ns is None:
-            ns = "/"
-        elif not ns.startswith("/"):
-            ns = "/" + ns
-
-        self._group_root = Group(self, None, ns)
+        self._group_root = Group(self, None, base_namespace)
         self._group_stack = deque()
         self._group_stack.append(self._group_root)
 
@@ -242,6 +225,14 @@ class BetterLaunch(metaclass=_BetterLaunchMeta):
         self._ros2_actions = []
         self._ros2_launcher = None
         self._ros2_launcher_thread = None
+
+        self.sigint_received = False
+
+        signal.signal(signal.SIGINT, self._on_sigint)
+        signal.signal(signal.SIGTERM, self._on_sigterm)
+
+        if platform.system() != "Windows":
+            signal.signal(signal.SIGQUIT, self._on_sigterm)
 
         self.hello()
 
