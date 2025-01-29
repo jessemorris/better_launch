@@ -1,1 +1,1 @@
-from .app import BetterLaunchUI
+from .textual_app import BetterLaunchUI
