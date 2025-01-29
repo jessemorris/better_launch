@@ -16,7 +16,7 @@ from pprint import pformat
 from textwrap import indent
 
 from ros import logging as roslog
-from utils.log_formatter import RosLogFormatter
+from utils.better_logging import RosLogFormatter
 
 
 _node_counter = 0
@@ -112,6 +112,12 @@ class Node:
     @property
     def is_shutdown(self):
         return self.launcher.is_shutdown
+
+    @property
+    def pid(self):
+        if not self.is_running:
+            return -1
+        return self._process.pid
 
     def start(self):
         if self.is_shutdown:

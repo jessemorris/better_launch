@@ -27,12 +27,15 @@ except ImportError:
     __uuid_generator = lambda: uuid.uuid4().hex
 
 from elements import Group, Node, Composer, LifecycleNode, LifecycleStage
+from utils.better_logging import (
+    log_default_colormap,
+    RosLogFormatter,
+    LogRecordForwarder,
+)
+from utils.substitutions import default_substitution_handlers, substitute_tokens
 from ros.ros_adapter import ROSAdapter
 from ros import logging as roslog
 from ros.logging import LaunchConfig as LogConfig
-from utils.log_formatter import RosLogFormatter, default_colormap
-from utils.log_record_forwarder import LogRecordForwarder
-from utils.substitutions import default_substitution_handlers, substitute_tokens
 
 
 _is_launcher_defined = "__better_launch_this_defined"
@@ -118,12 +121,12 @@ def launch_this(
 
         del frame_info
 
-    # Signal handlers have to be installed on the main thread. Since the BetterLaunch singleton 
-    # could be instantiated first on a different thread we do it here where we can set stronger 
+    # Signal handlers have to be installed on the main thread. Since the BetterLaunch singleton
+    # could be instantiated first on a different thread we do it here where we can set stronger
     # restrictions.
     def sigint_handler(sig, frame):
         BetterLaunch()._on_sigint(sig, frame)
-    
+
     def sigterm_handler(sig, frame):
         BetterLaunch()._on_sigint(sig, frame)
 
@@ -167,11 +170,9 @@ def launch_this(
     else:
         roslog.launch_config.level = logging.INFO
         if "OVERRIDE_LAUNCH_SCREEN_FORMAT" not in os.environ:
-            colormap = dict(default_colormap)
+            colormap = dict(log_default_colormap)
             colormap[logging.INFO] = "\x1b[32;20m"
-            roslog.launch_config.screen_formatter = RosLogFormatter(
-                colormap=colormap
-            )
+            roslog.launch_config.screen_formatter = RosLogFormatter(colormap=colormap)
 
     if ui:
         # Make sure all ros loggers follow a parsable format
@@ -210,6 +211,7 @@ def launch_this(
             bl = BetterLaunch()
             bl.execute_pending_ros_actions(join=join and not ui)
 
+        # TODO need to disable UI when included
         if ui:
             from tui import BetterLaunchUI
 
@@ -232,7 +234,7 @@ def launch_this(
 class _BetterLaunchMeta(type):
     # Allows reusing an already existing BetterLaunch instance.
     # Important for launch file includes.
-    # TODO what should happen if BetterLaunch is instantiated again with different arguments? 
+    # TODO what should happen if BetterLaunch is instantiated again with different arguments?
     # TODO Override? Update/merge? Localize on include?
     def __call__(cls, *args, **kwargs):
         existing_instance = globals().get(_has_bl_instance, None)
@@ -271,7 +273,9 @@ class BetterLaunch(metaclass=_BetterLaunchMeta):
                     if i + 1 >= len(stack):
                         raise RuntimeError("Could not determine the launch function")
                     launch_frame = stack[i - 1]
-                    calling_function = launch_frame.frame.f_globals[launch_frame.function]
+                    calling_function = launch_frame.frame.f_globals[
+                        launch_frame.function
+                    ]
                     sig = inspect.signature(calling_function)
                     bound_args = sig.bind(**launch_frame.frame.f_locals)
                     bound_args.apply_defaults()
@@ -302,6 +306,7 @@ class BetterLaunch(metaclass=_BetterLaunchMeta):
 
         self._sigint_received = False
         self._shutdown_future = Future()
+        self._shutdown_callbacks = []
 
         self.hello()
 
@@ -434,6 +439,9 @@ Takeoff in 3... 2... 1...
     def is_shutdown(self):
         return self._shutdown_future.done()
 
+    def add_shutdown_callback(self, callback: Callable):
+        self._shutdown_callbacks.append(callback)
+
     def shutdown(self, reason: str, signum: int = signal.SIGTERM):
         self.ros_adapter.shutdown()
 
@@ -449,6 +457,16 @@ Takeoff in 3... 2... 1...
             self._shutdown_future.set_result(None)
         except:
             pass
+
+        # Call any callbacks, but only once
+        callbacks = self._shutdown_callbacks
+        self._shutdown_callbacks = []
+
+        for cb in callbacks:
+            try:
+                cb()
+            except Exception as e:
+                self.logger.warning(f"Shutdown callback failed: {e}")
 
     def find(self, package: str, file_name: str = None, file_dir: str = None):
         package_dir = get_package_prefix(package) if package else None

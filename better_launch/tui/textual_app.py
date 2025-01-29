@@ -16,7 +16,7 @@ from ros2node.api import get_node_names
 
 from ros.ros_adapter import ROSAdapter
 import ros.logging as roslog
-from utils.log_record_forwarder import LogRecordForwarder
+from utils.better_logging import LogRecordForwarder
 
 from .log_entry import LogEntry
 from .node_menu import NodeMenu
