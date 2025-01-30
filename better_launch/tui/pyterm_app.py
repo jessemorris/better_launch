@@ -180,7 +180,19 @@ Namespace: {node.namespace}
         self.manager.add(confirm, assign=False)
 
 
-class BetterLaunchTUI:
+class BetterUI:
+    @classmethod
+    def setup_logging(cls):
+        # Make sure all ros loggers follow a parsable format
+        os.environ["RCUTILS_COLORIZED_OUTPUT"] = "0"
+        os.environ["RCUTILS_CONSOLE_OUTPUT_FORMAT"] = "%%{severity}%%{time}%%{message}"
+
+        if "OVERRIDE_LAUNCH_SCREEN_FORMAT" in os.environ:
+            del os.environ["OVERRIDE_LAUNCH_SCREEN_FORMAT"]
+
+        # Install the log handler
+        roslog.launch_config.screen_handler = LogRecordForwarder()
+
     def __init__(
         self,
         disable_colors: bool = False,
@@ -197,7 +209,7 @@ class BetterLaunchTUI:
         self.max_log_length = max_log_length
         self.launch_thread = None
 
-    def start(self, launch_func: Callable):
+    def start(self, launch_func: Callable, *args, **kwargs):
         self._ptg_init()
 
         with ptg.WindowManager(autorun=False) as wm:
@@ -236,7 +248,7 @@ class BetterLaunchTUI:
             )
 
         # Run the launch function in a background thread
-        self.launch_thread = threading.Thread(target=launch_func, daemon=False)
+        self.launch_thread = threading.Thread(target=launch_func, args=args, kwargs=kwargs)
         self.launch_thread.start()
 
         # Start the UI loop

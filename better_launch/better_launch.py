@@ -163,6 +163,10 @@ def launch_this(
 
     # If we get here we were not included by ROS2
 
+    # Disable UI when included from another launch file
+    if _bl_singleton_instance in glob:
+        ui = False
+
     # Logging setup
     if log_config:
         roslog.launch_config = log_config
@@ -174,23 +178,25 @@ def launch_this(
             colormap[logging.INFO] = "\x1b[32;20m"
             roslog.launch_config.screen_formatter = RosLogFormatter(colormap=colormap)
 
-    if ui:
-        # Make sure all ros loggers follow a parsable format
-        os.environ["RCUTILS_COLORIZED_OUTPUT"] = "0"
-        os.environ["RCUTILS_CONSOLE_OUTPUT_FORMAT"] = "%%{severity}%%{time}%%{message}"
-
-        if "OVERRIDE_LAUNCH_SCREEN_FORMAT" in os.environ:
-            del os.environ["OVERRIDE_LAUNCH_SCREEN_FORMAT"]
-
-        # Install the log handler
-        roslog.launch_config.screen_handler = LogRecordForwarder()
-
     # Expose launch_func args through click. This enables using launch files like other
     # python files, e.g. './my_better_launchfile.py --help'
     import click
 
     options = []
     sig = inspect.signature(launch_func)
+
+    # Optional: extract more fine-grained information from the docstring
+    try:
+        from docstring_parser import parse as parse_docstring
+
+        _doc = parse_docstring(launch_func.__doc__)
+        launch_func_doc = _doc.short_description
+        param_docstrings = {p.arg_name: p.description for p in _doc.params}
+    except ImportError:
+        launch_func_doc = launch_func.__doc__
+        param_docstrings = {}
+
+    # Create CLI options for click
     for param in sig.parameters.values():
         default = None
         if param.default is not param.empty:
@@ -200,29 +206,35 @@ def launch_this(
         if default is None and param.annotation is not param.empty:
             ptype = param.annotation
 
-        # TODO extract argument documentation from docstring and add it as help text
-        options.append(click.Option([f"--{param.name}"], type=ptype, default=default))
+        options.append(
+            click.Option(
+                [f"--{param.name}"],
+                type=ptype,
+                default=default,
+                help=param_docstrings.get(param, param),
+            )
+        )
+
+    # Wrap the launch function so we can do some preparation and cleanup tasks
+    def launch_func_wrapper(*args, **kwargs):
+        launch_func(*args, **kwargs)
+
+        # Retrieve the BetterLaunch singleton
+        bl = BetterLaunch()
+        bl.execute_pending_ros_actions(join=join and not ui)
 
     def run(*args, **kwargs):
-        def wrapper():
-            launch_func(*args, **kwargs)
-
-            # Retrieve the BetterLaunch singleton
-            bl = BetterLaunch()
-            bl.execute_pending_ros_actions(join=join and not ui)
-
-        # TODO need to disable UI when included
         if ui:
-            from tui import BetterLaunchUI
+            from tui.pyterm_app import BetterUI
 
-            app = BetterLaunchUI(wrapper)
-            app.run()
-            print("UI terminated")
+            BetterUI.setup_logging()
+            app = BetterUI()
+            app.start(launch_func_wrapper, *args, **kwargs)
         else:
-            wrapper()
+            launch_func_wrapper(*args, **kwargs)
 
     click_cmd = click.Command(
-        "main", callback=run, params=options, help=launch_func.__doc__
+        "main", callback=run, params=options, help=launch_func_doc
     )
     try:
         click_cmd.main()
