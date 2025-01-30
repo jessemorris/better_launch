@@ -72,8 +72,8 @@ def _launch_this_wrapper(
     # Get the filename of the original launchfile
     # NOTE be careful not to instantiate BetterLaunch before launch_func has run
     if not _bl_singleton_instance in glob:
-        BetterLaunch.launchfile = find_calling_frame(_launch_this_wrapper).filename
-        print(f"> Starting launch file:\n  {BetterLaunch.launchfile}\n")
+        BetterLaunch._launchfile = find_calling_frame(_launch_this_wrapper).filename
+        print(f"> Starting launch file:\n  {BetterLaunch._launchfile}\n")
     else:
         includefile = find_calling_frame(_launch_this_wrapper).filename
         print(f"> Including launch file:\n  {includefile}\n")
@@ -140,7 +140,7 @@ def _launch_this_wrapper(
     import click
 
     options = []
-    sig = inspect.signature(launch_func)
+    launch_func_sig = inspect.signature(launch_func)
 
     # Optional: extract more fine-grained information from the docstring
     try:
@@ -154,7 +154,7 @@ def _launch_this_wrapper(
         param_docstrings = {}
 
     # Create CLI options for click
-    for param in sig.parameters.values():
+    for param in launch_func_sig.parameters.values():
         default = None
         if param.default is not param.empty:
             default = param.default
@@ -182,6 +182,11 @@ def _launch_this_wrapper(
         bl.execute_pending_ros_actions(join=join and not ui)
 
     def run(*args, **kwargs):
+        # By default BetterLaunch has access to all arguments from its launch function
+        bound_args = launch_func_sig.bind(*args, **kwargs)
+        bound_args.apply_defaults()
+        BetterLaunch._launch_args = dict(bound_args.arguments)
+
         if ui:
             from tui.pyterm_app import BetterUI
 
@@ -269,7 +274,8 @@ class _BetterLaunchMeta(type):
 
 
 class BetterLaunch(metaclass=_BetterLaunchMeta):
-    launchfile: str = None
+    _launchfile: str = None
+    _launch_args: dict = {}
 
     def __init__(
         self,
@@ -278,7 +284,7 @@ class BetterLaunch(metaclass=_BetterLaunchMeta):
         root_namespace: str = "/",
     ):
         if not name:
-            name = os.path.basename(BetterLaunch.launchfile)
+            name = os.path.basename(BetterLaunch._launchfile)
             name = os.path.splitext(name)[0]
             if name.endswith(".launch"):
                 name = os.path.splitext(name)[0]
@@ -286,11 +292,8 @@ class BetterLaunch(metaclass=_BetterLaunchMeta):
         # roslog.launch_config must be setup before instantiation of BetterLaunch
         self.logger = roslog.get_logger(name)
 
-        if launch_args is None:
-            # Retrieve the arguments of the function that launch_this was decorating
-            launch_args = find_decorated_function_args(_launch_this_wrapper)
-
-        self.launch_args = launch_args
+        if launch_args is not None:
+            BetterLaunch._launch_args = launch_args
 
         # For those cases where we need to interact with ROS (e.g. service calls)
         self.ros_adapter = ROSAdapter()
@@ -315,13 +318,6 @@ class BetterLaunch(metaclass=_BetterLaunchMeta):
         self._shutdown_callbacks = []
 
         self.hello()
-
-    @staticmethod
-    def ros_version():
-        """
-        Returns the name of the currently sourced ros version (e.g. $ROS_VERSION)
-        """
-        return os.environ["ROS_DISTRO"]
 
     def hello(self):
         self.logger.info(
@@ -414,6 +410,21 @@ Takeoff in 3... 2... 1...
             nodes.extend(g.nodes)
 
         return nodes
+
+    @staticmethod
+    def ros_version():
+        """
+        Returns the name of the currently sourced ros version (e.g. $ROS_VERSION)
+        """
+        return os.environ["ROS_DISTRO"]
+
+    @property
+    def launchfile(self):
+        return BetterLaunch._launchfile
+
+    @property
+    def launch_args(self):
+        return BetterLaunch._launch_args
 
     @property
     def shared_node(self):
