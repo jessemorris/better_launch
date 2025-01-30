@@ -117,13 +117,13 @@ class NodesList(ptg.Window):
         pubs.sort()
         pubs_text = ""
         for topic, types in pubs:
-            pubs_text += f"  {topic} [{', '.join(types)}]\n"
+            pubs_text += f"\n  {topic} [{', '.join(types)}]"
 
         subs = shared_node.get_subscriber_names_and_types_by_node(node.name, node.namespace)
         subs.sort()
         subs_text = ""
         for topic, types in subs:
-            subs_text += f"  {topic} [{', '.join(types)}]\n"
+            subs_text += f"\n  {topic} [{', '.join(types)}]"
 
         info_text = f"""\
 [bold]{node.name}[/bold]
@@ -136,11 +136,9 @@ Namespace: {node.namespace}
   Args:    {node.node_args}
   Env:     {node.env}
 
-[bold]Publishers:[/bold]
-{pubs_text.rstrip("\n")}
+[bold]Publishers:[/bold] {pubs_text}
 
-[bold]Subscriptions:[/bold]
-{subs_text.rstrip("\n")}
+[bold]Subscriptions:[/bold] {subs_text}
 """
 
         def done():

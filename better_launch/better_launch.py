@@ -27,12 +27,13 @@ except ImportError:
     __uuid_generator = lambda: uuid.uuid4().hex
 
 from elements import Group, Node, Composer, LifecycleNode, LifecycleStage
-from utils.better_logging import (
-    log_default_colormap,
-    RosLogFormatter,
-    LogRecordForwarder,
-)
+from utils.better_logging import log_default_colormap, RosLogFormatter
 from utils.substitutions import default_substitution_handlers, substitute_tokens
+from utils.introspection import (
+    find_calling_frame,
+    find_function_frame,
+    find_decorated_function_args,
+)
 from ros.ros_adapter import ROSAdapter
 from ros import logging as roslog
 from ros.logging import LaunchConfig as LogConfig
@@ -42,62 +43,22 @@ _is_launcher_defined = "__better_launch_this_defined"
 _bl_singleton_instance = "__better_launch_instance"
 
 
-def _expose_ros2_launch_function(launch_func):
-    def generate_launch_description():
-        from launch import LaunchDescription, LaunchContext
-        from launch.actions import DeclareLaunchArgument, OpaqueFunction
-
-        ld = LaunchDescription()
-
-        # Declare launch arguments from the function signature
-        sig = inspect.signature(launch_func)
-        for param in sig.parameters.values():
-            default = param.default
-            if default is not inspect.Parameter.empty:
-                default = str(param.default)
-
-            ld.add_action(DeclareLaunchArgument(param.name, default_value=default))
-
-        def ros2_wrapper(context: LaunchContext, *args, **kwargs):
-            # args and kwargs are only used by OpaqueFunction when using it like partial
-            launch_args = {}
-            for k, v in context.launch_configurations.items():
-                try:
-                    launch_args[k] = literal_eval(v)
-                except ValueError:
-                    # Probably a string
-                    # NOTE this should also make passing args to ROS2 much easier
-                    launch_args[k] = v
-
-            # Call the launch function
-            launch_func(**launch_args)
-
-            # Retrieve the BetterLaunch singleton
-            bl = BetterLaunch()
-
-            # Opaque functions are allowed to return additional actions
-            return bl._ros2_actions
-
-        ld.add_action(OpaqueFunction(ros2_wrapper))
-        return ld
-
-    # Add our generate_launch_description function to the module launch_this was called from
-    stack = inspect.stack()
-    for i, frame_info in enumerate(stack):
-        if frame_info.function.startswith("launch_this"):
-            if i + 1 >= len(stack):
-                raise RuntimeError("Could not determine the calling module")
-            launchfile_frame = stack[i + 1]
-            caller_globals = launchfile_frame.frame.f_globals
-            caller_globals["generate_launch_description"] = generate_launch_description
-            break
-    else:
-        raise RuntimeError("This function must be called through launch_this")
-
-
 def launch_this(
-    launch_func,
-    ui: bool = True,
+    launch_func: Callable = None,
+    *,
+    ui: bool = False,
+    join: bool = True,
+    log_config: LogConfig = None,
+):
+    def decoration_helper(func):
+        return _launch_this_wrapper(func, ui=ui, join=join, log_config=log_config)
+
+    return decoration_helper if launch_func is None else decoration_helper(launch_func)
+
+
+def _launch_this_wrapper(
+    launch_func: Callable,
+    ui: bool = False,
     join: bool = True,
     log_config: LogConfig = None,
 ):
@@ -111,15 +72,11 @@ def launch_this(
     # Get the filename of the original launchfile
     # NOTE be careful not to instantiate BetterLaunch before launch_func has run
     if not _bl_singleton_instance in glob:
-        stack = inspect.stack()
-        for frame_info in stack:
-            if frame_info.function.startswith("launch_this"):
-                BetterLaunch.launchfile = frame_info.filename
-                break
-        else:
-            print("Launchfile resolution failed")
-
-        del frame_info
+        BetterLaunch.launchfile = find_calling_frame(_launch_this_wrapper).filename
+        print(f"> Starting launch file:\n  {BetterLaunch.launchfile}\n")
+    else:
+        includefile = find_calling_frame(_launch_this_wrapper).filename
+        print(f"> Including launch file:\n  {includefile}\n")
 
     # Signal handlers have to be installed on the main thread. Since the BetterLaunch singleton
     # could be instantiated first on a different thread we do it here where we can set stronger
@@ -211,7 +168,8 @@ def launch_this(
                 [f"--{param.name}"],
                 type=ptype,
                 default=default,
-                help=param_docstrings.get(param, param),
+                show_default=True,
+                help=param_docstrings.get(param.name, ""),
             )
         )
 
@@ -242,6 +200,51 @@ def launch_this(
         if e.code != 0:
             raise
 
+
+def _expose_ros2_launch_function(launch_func):
+    def generate_launch_description():
+        from launch import LaunchDescription, LaunchContext
+        from launch.actions import DeclareLaunchArgument, OpaqueFunction
+
+        ld = LaunchDescription()
+
+        # Declare launch arguments from the function signature
+        sig = inspect.signature(launch_func)
+        for param in sig.parameters.values():
+            default = param.default
+            if default is not inspect.Parameter.empty:
+                default = str(param.default)
+
+            ld.add_action(DeclareLaunchArgument(param.name, default_value=default))
+
+        def ros2_wrapper(context: LaunchContext, *args, **kwargs):
+            # args and kwargs are only used by OpaqueFunction when using it like partial
+            launch_args = {}
+            for k, v in context.launch_configurations.items():
+                try:
+                    launch_args[k] = literal_eval(v)
+                except ValueError:
+                    # Probably a string
+                    # NOTE this should also make passing args to ROS2 much easier
+                    launch_args[k] = v
+
+            # Call the launch function
+            launch_func(**launch_args)
+
+            # Retrieve the BetterLaunch singleton
+            bl = BetterLaunch()
+
+            # Opaque functions are allowed to return additional actions
+            return bl._ros2_actions
+
+        ld.add_action(OpaqueFunction(ros2_wrapper))
+        return ld
+
+    # Add our generate_launch_description function to the module launch_this was called from
+    launch_frame = find_calling_frame(_launch_this_wrapper)
+    caller_globals = launch_frame.frame.f_globals
+    caller_globals["generate_launch_description"] = generate_launch_description
+    
 
 class _BetterLaunchMeta(type):
     _singleton_future = Future()
@@ -285,22 +288,7 @@ class BetterLaunch(metaclass=_BetterLaunchMeta):
 
         if launch_args is None:
             # Retrieve the arguments of the function that launch_this was decorating
-            stack = inspect.stack()
-            for i, frame_info in enumerate(stack):
-                if frame_info.function == "launch_this":
-                    if i + 1 >= len(stack):
-                        raise RuntimeError("Could not determine the launch function")
-                    launch_frame = stack[i - 1]
-                    calling_function = launch_frame.frame.f_globals[
-                        launch_frame.function
-                    ]
-                    sig = inspect.signature(calling_function)
-                    bound_args = sig.bind(**launch_frame.frame.f_locals)
-                    bound_args.apply_defaults()
-                    launch_args = dict(bound_args.arguments)
-                    break
-
-            del frame_info
+            launch_args = find_decorated_function_args(_launch_this_wrapper)
 
         self.launch_args = launch_args
 
