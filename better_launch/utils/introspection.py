@@ -20,6 +20,7 @@ def find_function_frame(func):
         _description_
     """
     for frame_info in inspect.stack():
+        print(frame_info.function)
         if frame_info.frame.f_code is func.__code__:
             return frame_info
 

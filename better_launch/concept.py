@@ -16,7 +16,7 @@ def concept(
         bl.node("mypkg", "test.py", main_node_name)
 
         if start_all:
-            bl.include("otherpkg", "otherpkg.launch.py", **bl.launch_args)
+            bl.include("otherpkg", "otherpkg.launch.py", **bl._launch_args)
 
         with bl.compose():
             # Automatically detects
