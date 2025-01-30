@@ -26,7 +26,9 @@ def concept(
         bl.lifecycle_node("my_lifecycle_pkg", "lifecycle_node.py", target_state=bl.LIFECYCLE_STARTED)
 
 
-@launch_this
+# NOTE arguments default to NONE if not specified
+# TODO do required arguments make sense for launch files?
+@launch_this(ui=True)
 def test(enable_x: bool):
     """
     This is how nice your launch files could be!
