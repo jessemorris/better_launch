@@ -8,7 +8,6 @@ import pytermgui as ptg
 import pyperclip
 
 from better_launch import BetterLaunch
-from ros.ros_adapter import ROSAdapter
 import ros.logging as roslog
 from utils.better_logging import LogRecordForwarder
 
@@ -112,19 +111,19 @@ class NodesList(ptg.Window):
 
         # ROS2 prints a lot of useless stuff and avoids the things that are interesting most of
         # the time, like who is actually subscribed where. Let's fix this!
-        shared_node = BetterLaunch().ros_adapter
+        shared_node = BetterLaunch.wait_for_instance().shared_node
         
-        subs = shared_node.get_subscriber_names_and_types_by_node(node.name, node.namespace)
-        subs.sort()
-        subs_text = ""
-        for topic, types in subs:
-            subs_text += f"  {topic} [{', '.join(types)}]\n"
-
         pubs = shared_node.get_publisher_names_and_types_by_node(node.name, node.namespace)
         pubs.sort()
         pubs_text = ""
         for topic, types in pubs:
             pubs_text += f"  {topic} [{', '.join(types)}]\n"
+
+        subs = shared_node.get_subscriber_names_and_types_by_node(node.name, node.namespace)
+        subs.sort()
+        subs_text = ""
+        for topic, types in subs:
+            subs_text += f"  {topic} [{', '.join(types)}]\n"
 
         info_text = f"""\
 [bold]{node.name}[/bold]
@@ -153,6 +152,7 @@ Namespace: {node.namespace}
             ptg.Button("Okay", done),
             is_modal = True,
         )
+        info.bind(ptg.keys.ESC, info.close)
         info.center()
         self.manager.add(info, assign=False)
 
@@ -175,6 +175,7 @@ Namespace: {node.namespace}
             ),
             is_modal = True,
         )
+        confirm.bind(ptg.keys.ESC, confirm.close)
         confirm.center()
         self.manager.add(confirm, assign=False)
 
@@ -196,6 +197,58 @@ class BetterLaunchTUI:
         self.max_log_length = max_log_length
         self.launch_thread = None
 
+    def start(self, launch_func: Callable):
+        self._ptg_init()
+
+        with ptg.WindowManager(autorun=False) as wm:
+            wm.bind(
+                ptg.keys.ESC,
+                lambda *_: self._close_focused(wm),
+                # For closing windows
+            )
+            wm.bind(
+                ptg.keys.CTRL_Q,
+                lambda *_: self._quit(wm),
+                "Quit",
+            )
+            wm.bind(
+                ptg.keys.F1,
+                lambda *_: self._open_nodes_list(wm),
+                "Nodes",
+            )
+            wm.bind(
+                ptg.keys.F9,
+                lambda *_: self._toggle_mute(wm),
+                "Toggle mute",
+            )
+
+            wm.layout = self._create_layout()
+
+            wm.add(self._create_header(wm), assign="header", animate=False)
+            wm.add(self._create_body(wm), assign="body", animate=False)
+            wm.add(self._create_footer(wm), assign="footer", animate=False)
+
+            wm.toast(
+                "[bl.title]Welcome to [/bl.title bl.brand_title]"
+                + "BetterLaunch[/bl.brand_title bl.title]!",
+                offset=ptg.terminal.height // 2 - 3,
+                delay=700,
+            )
+
+        # Run the launch function in a background thread
+        self.launch_thread = threading.Thread(target=launch_func, daemon=False)
+        self.launch_thread.start()
+
+        # Start the UI loop
+        # Make sure we wait until the user has created the singleton
+        bl = BetterLaunch.wait_for_instance()
+        bl.add_shutdown_callback(wm.stop)
+        
+        wm.run()
+
+        if not bl.is_shutdown():
+            bl.shutdown("UI terminated")
+
     def _close_focused(self, wm: ptg.WindowManager) -> None:
         if wm.focused is None:
             return
@@ -212,8 +265,11 @@ class BetterLaunchTUI:
     def _open_nodes_list(self, wm: ptg.WindowManager) -> None:
         # This is NOT 'ros2 node kill' as we only manage our own nodes
         # TODO should probably include components, too?
-        nodes = BetterLaunch().all_nodes()
+        nodes = BetterLaunch.wait_for_instance().all_nodes()
+
         menu = NodesList(nodes)
+        #menu.center()
+        menu.bind(ptg.keys.ESC, menu.close)
         wm.add(menu, assign=False)
 
     def _toggle_mute(self, wm: ptg.WindowManager) -> None:
@@ -289,53 +345,3 @@ class BetterLaunchTUI:
             )
 
         return ptg.Window(content, box="EMPTY", id="bl.footer", is_persistent=True)
-
-    def start(self, launch_func: Callable):
-        self._ptg_init()
-
-        with ptg.WindowManager(autorun=False) as wm:
-            wm.bind(
-                ptg.keys.ESC,
-                lambda *_: self._close_focused(wm),
-                # For closing windows
-            )
-            wm.bind(
-                ptg.keys.CTRL_Q,
-                lambda *_: self._quit(wm),
-                "Quit",
-            )
-            wm.bind(
-                ptg.keys.F1,
-                lambda *_: self._open_nodes_list(wm),
-                "Nodes",
-            )
-            wm.bind(
-                ptg.keys.F9,
-                lambda *_: self._toggle_mute(wm),
-                "Toggle mute",
-            )
-
-            wm.layout = self._create_layout()
-
-            wm.add(self._create_header(wm), assign="header", animate=False)
-            wm.add(self._create_body(wm), assign="body", animate=False)
-            wm.add(self._create_footer(wm), assign="footer", animate=False)
-
-            wm.toast(
-                "[bl.title]Welcome to [/bl.title bl.brand_title]"
-                + "BetterLaunch[/bl.brand_title bl.title]!",
-                offset=ptg.terminal.height // 2 - 3,
-                delay=700,
-            )
-
-        # Run the launch function in a background thread
-        self.launch_thread = threading.Thread(target=launch_func, daemon=False)
-        self.launch_thread.start()
-
-        # Start the UI loop
-        # TODO there is a chance that this runs before the launch func which might mess things up
-        bl = BetterLaunch()
-        bl.add_shutdown_callback(wm.stop)
-        wm.run()
-        # TODO if betterlaunch has shutdown already this will call it again, which is not nice
-        bl.shutdown("UI terminated")

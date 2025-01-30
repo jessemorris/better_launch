@@ -39,7 +39,7 @@ from ros.logging import LaunchConfig as LogConfig
 
 
 _is_launcher_defined = "__better_launch_this_defined"
-_has_bl_instance = "__better_launch_instance"
+_bl_singleton_instance = "__better_launch_instance"
 
 
 def _expose_ros2_launch_function(launch_func):
@@ -102,7 +102,7 @@ def launch_this(
     log_config: LogConfig = None,
 ):
     glob = globals()
-    if _is_launcher_defined in glob and _has_bl_instance not in glob:
+    if _is_launcher_defined in glob and _bl_singleton_instance not in glob:
         # Allow using launch_this only once unless we got included from another file
         raise RuntimeError("Can only use one launch decorator")
 
@@ -110,7 +110,7 @@ def launch_this(
 
     # Get the filename of the original launchfile
     # NOTE be careful not to instantiate BetterLaunch before launch_func has run
-    if not _has_bl_instance in glob:
+    if not _bl_singleton_instance in glob:
         stack = inspect.stack()
         for frame_info in stack:
             if frame_info.function.startswith("launch_this"):
@@ -232,19 +232,25 @@ def launch_this(
 
 
 class _BetterLaunchMeta(type):
+    _singleton_future = Future()
+
     # Allows reusing an already existing BetterLaunch instance.
     # Important for launch file includes.
-    # TODO what should happen if BetterLaunch is instantiated again with different arguments?
-    # TODO Override? Update/merge? Localize on include?
+    # TODO should calling again with different args have any effect on the existing instance?
     def __call__(cls, *args, **kwargs):
-        existing_instance = globals().get(_has_bl_instance, None)
+        existing_instance = globals().get(_bl_singleton_instance, None)
         if existing_instance is not None:
             return existing_instance
 
         obj = cls.__new__(cls, *args, **kwargs)
-        globals()[_has_bl_instance] = obj
+        globals()[_bl_singleton_instance] = obj
         obj.__init__(*args, **kwargs)
+
+        cls._singleton_future.set_result(obj)
         return obj
+
+    def wait_for_instance(cls, timeout: float = None) -> "BetterLaunch":
+        return cls._singleton_future.result(timeout)
 
 
 class BetterLaunch(metaclass=_BetterLaunchMeta):
@@ -410,6 +416,10 @@ Takeoff in 3... 2... 1...
         return nodes
 
     @property
+    def shared_node(self):
+        return self.ros_adapter.ros_node
+
+    @property
     def group_root(self) -> Group:
         return self._group_stack[0]
 
@@ -532,7 +542,7 @@ Takeoff in 3... 2... 1...
         callback: Callable,
         qos_profile: QoSProfile | int = 10,
     ):
-        return self.ros_adapter.ros_node.create_service(
+        return self.ros_node.create_service(
             service_type,
             topic,
             callback,
@@ -546,7 +556,7 @@ Takeoff in 3... 2... 1...
         timeout: float = 0.0,
         qos_profile: QoSProfile | int = 10,
     ):
-        client = self.ros_adapter.ros_node.create_client(
+        client = self.ros_node.create_client(
             service_type, topic, qos_profile=qos_profile
         )
         if timeout > 0.0:
@@ -557,7 +567,7 @@ Takeoff in 3... 2... 1...
     def publisher(
         self, topic: str, message_type: type, qos_profile: QoSProfile | int = 10
     ):
-        return self.ros_adapter.ros_node.create_publisher(
+        return self.ros_node.create_publisher(
             message_type,
             topic,
             qos_profile=qos_profile,
@@ -570,7 +580,7 @@ Takeoff in 3... 2... 1...
         callback: Callable,
         qos_profile: QoSProfile | int = 10,
     ):
-        return self.ros_adapter.ros_node.create_subscriber(
+        return self.ros_node.create_subscriber(
             message_type,
             topic,
             callback,
