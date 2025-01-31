@@ -1,8 +1,8 @@
-from typing import Callable
+from typing import Callable, cast
 import os
-import time
 import logging
 import threading
+from itertools import zip_longest
 from collections import deque
 import pytermgui as ptg
 import pyperclip
@@ -46,17 +46,86 @@ class LogEntry(ptg.Splitter):
         icon = style(self._get_char(level))
 
         source_label = ptg.Label(
-            record.name + ": ", parent_align=ptg.HorizontalAlignment.RIGHT
+            record.name + ": ",
+            weight=3,
+            parent_align=ptg.HorizontalAlignment.RIGHT
         )
-        source_label.relative_width = 0.2
         self.lazy_add(source_label)
 
-        icon_label = ptg.Label(icon)
-        icon_label.static_width = 1
+        icon_label = ptg.Label(icon, weight=1)
         self.lazy_add(icon_label)
 
-        message_label = ptg.Label(record.msg, parent_align=ptg.HorizontalAlignment.LEFT)
+        # TODO Seems to be messed up by multiline log messages
+        message_label = ptg.Label(
+            record.msg, 
+            weight=10, 
+            parent_align=ptg.HorizontalAlignment.LEFT
+        )
         self.lazy_add(message_label)
+
+    def get_lines(self) -> list[str]:
+        # An error will be raised if `separator` is not the correct type (str).
+        separator = self._get_style("separator")(self._get_char("separator"))  # type: ignore
+        separator_length = ptg.regex.real_length(separator)
+
+        self.positioned_line_buffer = []
+        vertical_lines = []
+        total_offset = 0
+
+        # Splitter usually distributes space evenly, but we want weighted distribution
+        weight_sum = sum(getattr(w, "weight", 1) for w in self._widgets)
+        available_width = self.width - (len(self._widgets) - 1) * separator_length
+
+        for widget in self._widgets:
+            inner = []
+
+            weight = getattr(widget, "weight", 1)
+            target_width, error = divmod(available_width * weight, weight_sum)
+
+            if widget.size_policy is ptg.SizePolicy.STATIC:
+                target_width += target_width - widget.width
+                width = widget.width
+            else:
+                widget.width = target_width + error
+                width = widget.width
+                error = 0
+
+            aligned: str | None = None
+            for line in widget.get_lines():
+                # See `enums.py` for information about this ignore
+                padding, aligned = self._align_line(
+                    cast(ptg.HorizontalAlignment, widget.parent_align), width, line
+                )
+                inner.append(aligned)
+
+            new_pos = (
+                self.pos[0] + padding + total_offset,
+                self.pos[1] + (1 if type(widget).__name__ == "Container" else 0),
+            )
+
+            diff_x = new_pos[0] - widget.pos[0]
+            diff_y = new_pos[1] - widget.pos[1]
+
+            widget.pos = new_pos
+
+            for pos, line in widget.positioned_line_buffer:
+                self.positioned_line_buffer.append(
+                    ((pos[0] + diff_x, pos[1] + diff_y), line)
+                )
+
+            widget.positioned_line_buffer = []
+
+            if aligned is not None:
+                total_offset += ptg.regex.real_length(inner[-1]) + separator_length
+
+            vertical_lines.append(inner)
+
+        lines = []
+        for horizontal in zip_longest(*vertical_lines, fillvalue=" " * target_width):
+            lines.append((ptg.ansi_interface.reset() + separator).join(horizontal))
+
+        self.height = max(widget.height for widget in self)
+        return lines
 
 
 class LogView(ptg.Window):
@@ -354,7 +423,7 @@ class BetterUI:
     def _create_body(self, wm: ptg.WindowManager):
         content = LogView(
             self.max_log_length,
-            box="EMPTY",
+            box="SINGLE",
             id="bl.log",
             is_persistent=True,
             vertical_align=ptg.VerticalAlignment.TOP,
