@@ -14,7 +14,7 @@ from utils.better_logging import LogRecordForwarder
 
 class LogEntry(ptg.Splitter):
     styles = ptg.StyleManager.merge(
-        ptg.Container.styles,
+        ptg.Splitter.styles,
         debug="grey",
         info="blue",
         warning="yellow",
@@ -23,15 +23,22 @@ class LogEntry(ptg.Splitter):
     )
 
     chars = {
-        "separator": " ",
-        "debug": "⚑",  # "›»§🔍",
-        "info": "✓",  # "●@#i🏷️",
-        "warning": "▲",  # "🚧",
-        "error": "⨯",  # "✗!🛑",
-        "critical": "🔥",  # "🔥⚡",
+        **ptg.Splitter.chars,
+        **{
+            "separator": " ",
+            "debug": "⚑",  # "›»§🔍",
+            "info": "✓",  # "●@#i🏷️",
+            "warning": "▲",  # "🚧",
+            "error": "⨯",  # "✗!🛑",
+            "critical": "🔥",  # "🔥⚡",
+        },
     }
 
+    vertical_align = ptg.VerticalAlignment.TOP
+    overflow = ptg.Overflow.RESIZE
+
     def __init__(self, record: logging.LogRecord):
+        super().__init__()
         self.record = record
 
         level = record.levelname.lower()
@@ -42,23 +49,29 @@ class LogEntry(ptg.Splitter):
             record.name + ": ", parent_align=ptg.HorizontalAlignment.RIGHT
         )
         source_label.relative_width = 0.2
+        self.lazy_add(source_label)
 
         icon_label = ptg.Label(icon)
         icon_label.static_width = 1
+        self.lazy_add(icon_label)
 
-        message_label = ptg.Label(record.msg)
-
-        super().__init__(source_label, icon_label, message_label)
+        message_label = ptg.Label(record.msg, parent_align=ptg.HorizontalAlignment.LEFT)
+        self.lazy_add(message_label)
 
 
 class LogView(ptg.Window):
+    overflow = ptg.Overflow.SCROLL
+
     def __init__(self, max_lines: int = 1000, **kwargs):
         super().__init__(**kwargs)
         # Sneakily replace our widget list with a double ended queue
         self._widgets = deque(maxlen=max_lines)
 
+        self.width = int(self.terminal.width * 2 / 3)
+        self.height = int(self.terminal.height * 2 / 3)
+        self.center(store=False)
+        
     def on_log_record(self, record: logging.LogRecord):
-        # TODO is it okay to defer the update?
         # TODO implement muting
         self._add_widget(LogEntry(record), run_get_lines=True)
 
@@ -69,7 +82,7 @@ class LogView(ptg.Window):
         record = self.selected.record
         text = "[{created}] [{name}] {message}".format(record.__dict__)
         pyperclip.copy(text)
-        
+
         self.manager.toast(f"[blue]Copied to clipboard[/blue]", delay=700)
 
     def handle_key(self, key: str) -> bool:
@@ -81,7 +94,7 @@ class LogView(ptg.Window):
             return True
 
         return False
-        
+
     def on_left_click(self, event: ptg.MouseEvent) -> bool:
         self.copy_to_clipboard()
         return True
@@ -112,14 +125,18 @@ class NodesList(ptg.Window):
         # ROS2 prints a lot of useless stuff and avoids the things that are interesting most of
         # the time, like who is actually subscribed where. Let's fix this!
         shared_node = BetterLaunch.wait_for_instance().shared_node
-        
-        pubs = shared_node.get_publisher_names_and_types_by_node(node.name, node.namespace)
+
+        pubs = shared_node.get_publisher_names_and_types_by_node(
+            node.name, node.namespace
+        )
         pubs.sort()
         pubs_text = ""
         for topic, types in pubs:
             pubs_text += f"\n  {topic} [{', '.join(types)}]"
 
-        subs = shared_node.get_subscriber_names_and_types_by_node(node.name, node.namespace)
+        subs = shared_node.get_subscriber_names_and_types_by_node(
+            node.name, node.namespace
+        )
         subs.sort()
         subs_text = ""
         for topic, types in subs:
@@ -148,7 +165,7 @@ Namespace: {node.namespace}
         info = ptg.Window(
             ptg.Label(info_text),
             ptg.Button("Okay", done),
-            is_modal = True,
+            is_modal=True,
         )
         info.bind(ptg.keys.ESC, info.close)
         info.center()
@@ -159,7 +176,7 @@ Namespace: {node.namespace}
             return
 
         node = self.nodes[self.selected_index]
-        
+
         def kill_node():
             node.shutdown("Terminated by UI")
             self.manager.toast(f"[blue]Node {node.name} killed[/blue]")
@@ -171,7 +188,7 @@ Namespace: {node.namespace}
                 ptg.Button("Kill", kill_node),
                 ptg.Button("Cancel", lambda: confirm.close()),
             ),
-            is_modal = True,
+            is_modal=True,
         )
         confirm.bind(ptg.keys.ESC, confirm.close)
         confirm.center()
@@ -210,25 +227,52 @@ class BetterUI:
     def start(self, launch_func: Callable, *args, **kwargs):
         self._ptg_init()
 
+        def _close_focused(wm: ptg.WindowManager) -> None:
+            if wm.focused is None:
+                return
+
+            # Find foremost non-persistent window
+            for window in wm:
+                if not window.is_persistent:
+                    window.close()
+                    return
+
+        def _quit(wm: ptg.WindowManager) -> None:
+            wm.stop()
+
+        def _open_nodes_list(wm: ptg.WindowManager) -> None:
+            # This is NOT 'ros2 node kill' as we only manage our own nodes
+            # TODO should probably include components, too?
+            nodes = BetterLaunch.wait_for_instance().all_nodes()
+
+            menu = NodesList(nodes)
+            # menu.center()
+            menu.bind(ptg.keys.ESC, menu.close)
+            wm.add(menu, assign=False)
+
+        def _toggle_mute(wm: ptg.WindowManager) -> None:
+            # TODO
+            pass
+
         with ptg.WindowManager(autorun=False) as wm:
             wm.bind(
                 ptg.keys.ESC,
-                lambda *_: self._close_focused(wm),
+                lambda *_: _close_focused(wm),
                 # For closing windows
             )
             wm.bind(
                 ptg.keys.CTRL_Q,
-                lambda *_: self._quit(wm),
+                lambda *_: _quit(wm),
                 "Quit",
             )
             wm.bind(
                 ptg.keys.F1,
-                lambda *_: self._open_nodes_list(wm),
+                lambda *_: _open_nodes_list(wm),
                 "Nodes",
             )
             wm.bind(
                 ptg.keys.F9,
-                lambda *_: self._toggle_mute(wm),
+                lambda *_: _toggle_mute(wm),
                 "Toggle mute",
             )
 
@@ -238,6 +282,8 @@ class BetterUI:
             wm.add(self._create_body(wm), assign="body", animate=False)
             wm.add(self._create_footer(wm), assign="footer", animate=False)
 
+            wm.layout.apply()
+
             wm.toast(
                 "[bl.title]Welcome to [/bl.title bl.brand_title]"
                 + "BetterLaunch[/bl.brand_title bl.title]!",
@@ -246,45 +292,20 @@ class BetterUI:
             )
 
         # Run the launch function in a background thread
-        self.launch_thread = threading.Thread(target=launch_func, args=args, kwargs=kwargs)
+        self.launch_thread = threading.Thread(
+            target=launch_func, args=args, kwargs=kwargs
+        )
         self.launch_thread.start()
 
         # Start the UI loop
         # Make sure we wait until the user has created the singleton
         bl = BetterLaunch.wait_for_instance()
         bl.add_shutdown_callback(wm.stop)
-        
+
         wm.run()
 
-        if not bl.is_shutdown():
+        if not bl.is_shutdown:
             bl.shutdown("UI terminated")
-
-    def _close_focused(self, wm: ptg.WindowManager) -> None:
-        if wm.focused is None:
-            return
-
-        # Find foremost non-persistent window
-        for window in wm:
-            if not window.is_persistent:
-                window.close()
-                return
-
-    def _quit(self, wm: ptg.WindowManager) -> None:
-        wm.stop()
-
-    def _open_nodes_list(self, wm: ptg.WindowManager) -> None:
-        # This is NOT 'ros2 node kill' as we only manage our own nodes
-        # TODO should probably include components, too?
-        nodes = BetterLaunch.wait_for_instance().all_nodes()
-
-        menu = NodesList(nodes)
-        #menu.center()
-        menu.bind(ptg.keys.ESC, menu.close)
-        wm.add(menu, assign=False)
-
-    def _toggle_mute(self, wm: ptg.WindowManager) -> None:
-        # TODO
-        pass
 
     def _ptg_init(self):
         # Borders and such
@@ -322,10 +343,23 @@ class BetterUI:
         )
         content.styles.fill = "bl.header"
 
-        return ptg.Window(content, box="EMPTY", id="bl.header", is_persistent=True)
+        return ptg.Window(
+            content,
+            box="EMPTY",
+            id="bl.header",
+            is_persistent=True,
+            vertical_align=ptg.VerticalAlignment.TOP,
+        )
 
     def _create_body(self, wm: ptg.WindowManager):
-        content = LogView(self.max_log_length)
+        content = LogView(
+            self.max_log_length,
+            box="EMPTY",
+            id="bl.log",
+            is_persistent=True,
+            vertical_align=ptg.VerticalAlignment.TOP,
+            parent_align=ptg.HorizontalAlignment.LEFT,
+        )
 
         log_handler = roslog.launch_config.screen_handler
         if not isinstance(log_handler, LogRecordForwarder):
@@ -334,7 +368,7 @@ class BetterUI:
             )
         log_handler.add_listener(content.on_log_record)
 
-        return ptg.Window(content, box="EMPTY", id="bl.log", is_persistent=True)
+        return content
 
     def _create_footer(self, wm: ptg.WindowManager):
         content = ptg.Splitter().styles(fill="bl.footer")
@@ -354,4 +388,10 @@ class BetterUI:
                 )
             )
 
-        return ptg.Window(content, box="EMPTY", id="bl.footer", is_persistent=True)
+        return ptg.Window(
+            content,
+            box="EMPTY",
+            id="bl.footer",
+            is_persistent=True,
+            vertical_align=ptg.VerticalAlignment.BOTTOM,
+        )
