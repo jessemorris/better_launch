@@ -173,28 +173,34 @@ def _launch_this_wrapper(
             )
         )
 
-    # Wrap the launch function so we can do some preparation and cleanup tasks
-    def launch_func_wrapper(*args, **kwargs):
-        launch_func(*args, **kwargs)
-
-        # Retrieve the BetterLaunch singleton
-        bl = BetterLaunch()
-        bl.execute_pending_ros_actions(join=join and not ui)
-
     def run(*args, **kwargs):
+        # Wrap the launch function so we can do some preparation and cleanup tasks
+        def launch_func_wrapper():
+            launch_func(*args, **kwargs)
+
+            # Retrieve the BetterLaunch singleton
+            bl = BetterLaunch()
+            bl.execute_pending_ros_actions(join=join and not ui)
+
         # By default BetterLaunch has access to all arguments from its launch function
         bound_args = launch_func_sig.bind(*args, **kwargs)
         bound_args.apply_defaults()
         BetterLaunch._launch_args = dict(bound_args.arguments)
 
         if ui:
-            from tui.pyterm_app import BetterUI
+            # from tui.pyterm_app import BetterUI
+            # 
+            # BetterUI.setup_logging()
+            # app = BetterUI()
+            # app.start(launch_func_wrapper)
+
+            from tui.textual_app import BetterUI
 
             BetterUI.setup_logging()
-            app = BetterUI()
-            app.start(launch_func_wrapper, *args, **kwargs)
+            app = BetterUI(launch_func_wrapper)
+            app.run()
         else:
-            launch_func_wrapper(*args, **kwargs)
+            launch_func_wrapper()
 
     click_cmd = click.Command(
         "main", callback=run, params=options, help=launch_func_doc
