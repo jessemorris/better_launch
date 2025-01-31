@@ -1,4 +1,4 @@
-from typing import Literal
+from typing import Mapping
 import os
 import platform
 import signal
@@ -25,11 +25,12 @@ _node_counter = 0
 class Node:
     def __init__(
         self,
-        launcher,
+        launcher: "BetterLaunch",
         executable: str,
         name: str,
-        node_args: dict[str, Any] = None,
+        node_args: str|dict[str, Any] = None,
         *,
+        cmd_args: list[str] = None,
         log_level: int = logging.INFO,
         output_config: str | dict[str, set[str]] = "screen",
         reparse_logs: bool = True,
@@ -61,9 +62,9 @@ class Node:
         self.env = env or {}
         self.isolate_env = isolate_env
         self.node_args = node_args or {}
-        self.node_args.setdefault(
-            "--log-level", logging.getLevelName(log_level)
-        )
+        self.cmd_args = ["--log-level", logging.getLevelName(log_level)]
+        if cmd_args:
+            self.cmd_args.extend(cmd_args)
         self.remap = remap or {}
         # launch_ros/actions/node.py:495
         self.remap["__node"] = name
@@ -140,14 +141,14 @@ class Node:
                 f"{self.name}-{self.node_id}", self.output_config
             )
 
+            final_cmd = [self.cmd] + self.cmd_args + ["--ros-args"]
+
             # Attach additional node args
-            final_cmd = [self.cmd]
             for key, value in self.node_args.items():
-                final_cmd.extend([key, str(value)])
+                final_cmd.extend(["-p", f"{key}:={value}"])
 
             # Remappings become part of the command's ros-args
             # launch_ros/actions/node.py:206
-            final_cmd.append("--ros-args")
             for src, dst in self.remap.items():
                 # launch_ros/actions/node.py:481
                 final_cmd.extend(["-r", f"{src}:={dst}"])
