@@ -7,14 +7,14 @@ import pyperclip
 
 from textual import work
 from textual.app import App, ComposeResult
-from textual.widgets import ListView, ListItem, Header, Footer, DataTable
+from textual.widgets import ListView, ListItem, Header, Footer
 from textual.containers import Horizontal
 from textual.binding import Binding
 from textual.reactive import reactive
 
 from ros2node.api import get_node_names
 
-from ros.ros_adapter import ROSAdapter
+from better_launch import BetterLaunch
 import ros.logging as roslog
 from utils.better_logging import LogRecordForwarder
 
@@ -35,18 +35,34 @@ class BetterUI(App):
     ]
 
     DEFAULT_CSS = """
-    Screen {
         #sidebar {
-            width: auto;
-            height: 1fr;
+            width: 20%;
+            min_width: 20;
             max_width: 40%;
+            height: 1fr;
             background: $panel;
         }
-        #log_output {
+        #logview {
             width: 1fr;
             height: 1fr;
         }
-    }
+        LogEntry {
+            .source {
+                width: 20;
+                height: 1;
+                text-align: right;
+            }
+            .icon {
+                width: 3;
+                height: 1;
+                text-align: center;
+            }
+            .message {
+                width: 100%;
+                text-align: left;
+                padding-left: 1;
+            }
+        }
     """
 
     @classmethod
@@ -84,14 +100,12 @@ class BetterUI(App):
 
         # Could use a Tree view instead
         self.sidebar = ListView(id="sidebar")
+        # TODO OptionList is more performant
         self.logview = ListView(id="logview")
 
         with Horizontal():
             yield self.sidebar
             yield self.logview
-
-        self.node_menu = NodeMenu()
-        yield self.node_menu
 
         yield Footer(show_command_palette=False)
 
@@ -99,10 +113,15 @@ class BetterUI(App):
         self.run_launch_function()
 
     def on_exit(self):
-        #self.ros_adapter.shutdown()
-        print("UI terminating")
+        try:
+            bl = BetterLaunch.wait_for_instance(0.0)
 
-    @work(thread=True)
+            if not bl.is_shutdown:
+                bl.shutdown("UI terminated")
+        except TimeoutError:
+            pass
+
+    @work(thread=True, exit_on_error=True, group="launch_func")
     def run_launch_function(self):
         def log_to_ui(record: logging.LogRecord):
             if self.is_running:
@@ -115,13 +134,21 @@ class BetterUI(App):
         log_handler.add_listener(log_to_ui)
         self.launch_func()
 
-        # TODO join ros_adapter thread, call self.exit, call bl.shutdown
+        bl = BetterLaunch.wait_for_instance()
+        bl.spin()
 
-    # TODO thread or asyncio? fine for now
+        self.exit(message="BetterLaunch terminated")
+        if not bl.is_shutdown:
+            bl.shutdown()
+
+    # TODO not used right now
     @work(thread=True)
     def check_nodes_status(self):
+        bl = BetterLaunch.wait_for_instance()
+
+        # Should maybe just manage our own nodes?
         live_nodes = set(
-            n.full_name for n in get_node_names(node=self.ros_adapter.ros_node)
+            n.full_name for n in get_node_names(node=bl.shared_node)
         )
 
         for item in self.sidebar.children:
@@ -147,15 +174,12 @@ class BetterUI(App):
             self.copy_log_entry(selected.item.get_child_by_type(LogEntry))
     
     def open_menu_for_node(self, node: NodeStatusLabel):
-        if not self.sidebar.display:
-            self.action_toggle_sidebar()
-        
-        # TODO add new bindings for menu commands while menu is open
-        self.node_menu.show_for_node(node)
-        self.node_menu.focus()
+        self.push_screen(NodeMenu(node))
 
     def copy_log_entry(self, entry: LogEntry):
-        text = "[{created}] [{name}] {message}".format(entry.record.__dict__)
+        # TODO check this somewhere before we start
+        pyperclip.is_available()
+        text = "[{created}] [{name}] {message}".format(**entry.record.__dict__)
         pyperclip.copy(text)
 
         self.sub_title = "Copied to clipboard!"
@@ -184,7 +208,7 @@ class BetterUI(App):
             keybind = self._get_next_node_key()
             node = NodeStatusLabel(keybind, NodeStatus(record.name))
             self.nodes[record.name] = node
-            self.sidebar.append(node)
+            self.sidebar.append(ListItem(node))
 
             if keybind:
                 self.bind(keybind, "open_node_menu", description=record.name)

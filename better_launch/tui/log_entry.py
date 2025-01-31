@@ -1,10 +1,12 @@
 import logging
 
-from textual.widgets import Static
+from textual.widgets import Static, ListItem
+from textual.containers import HorizontalGroup
 from textual.color import Color
+from rich.color import Color as RichColor
 
 
-class LogEntry(Static):
+class LogEntry(HorizontalGroup):
     # https://coolors.co/d621ff-ef476f-ffd166-2a6eff-858585
     colormap = {
         "DEBUG": Color(133, 133, 133).css,
@@ -14,16 +16,32 @@ class LogEntry(Static):
         "CRITICAL": Color(214, 33, 255).css,
     }
 
+    iconmap = {
+        "DEBUG": "⚑",  # "›»§🔍",
+        "INFO": "✓",  # "●@#i🏷️",
+        "WARNING": "▲",  # "🚧",
+        "ERROR": "⨯",  # "✗!🛑",
+        "CRITICAL": "🔥",  # "🔥⚡",
+    }
+
     def __init__(
         self,
         record: logging.LogRecord,
-        format: str = "{name:8s} {msg}",
     ):
+        super().__init__()
         self.record = record
-        display = format.format(**record.__dict__)
 
-        super().__init__(
-            display,
-        )
+    def compose(self):
+        r = self.record
 
-        self.styles.background = LogEntry.colormap.get(record.levelname, "INFO")
+        source = Static(f"{r.name}:", classes="source")
+        r_color = getattr(r, "sourcecolor_int", 1)
+        source.styles.color = Color.from_rich_color(RichColor.from_ansi(r_color))
+        yield source
+
+        icon = Static(LogEntry.iconmap.get(r.levelname, "INFO"), classes="icon")
+        icon.styles.color = LogEntry.colormap.get(r.levelname, "INFO")
+        yield icon
+
+        msg = Static(r.msg, classes="message")
+        yield msg

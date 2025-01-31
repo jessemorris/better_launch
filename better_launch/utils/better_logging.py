@@ -52,7 +52,7 @@ def _with_per_logger_formatting(cls):
 
 
 class RosLogFormatter(logging.Formatter):
-    default_screen_format = "[{levelcolor}{levelname}{colorreset}] [{formattercolor}{name}{colorreset}] [{asctime}]\n{message}"
+    default_screen_format = "[{levelcolor}{levelname}{colorreset}] [{sourcecolor}{name}{colorreset}] [{asctime}]\n{message}"
     default_file_format = "[{levelname}] [{asctime}] {message}"
 
     def __init__(
@@ -83,12 +83,14 @@ class RosLogFormatter(logging.Formatter):
             record.msg = match.group(3)
 
         if self.disable_colors:
+            record.sourcecolor_int = 1
             record.levelcolor = ""
-            record.formattercolor = ""
+            record.sourcecolor = ""
             record.colorreset = ""
         else:
+            record.sourcecolor_int = self.mycolor
             record.levelcolor = self.colormap.get(record.levelno, "")
-            record.formattercolor = f"\x1b[38;5;{self.mycolor}m"
+            record.sourcecolor = f"\x1b[38;5;{self.mycolor}m"
             record.colorreset = "\x1b[0m"
 
         return super().format(record)
