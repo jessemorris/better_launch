@@ -49,12 +49,12 @@ class LifecycleNode(Node):
     def __init__(
         self,
         launcher,
-        group,
         executable: str,
         name: str,
-        node_args: dict[str, Any] = None,
         target_stage: int = LifecycleStage.PRISTINE,
+        node_args: dict[str, Any] = None,
         *,
+        cmd_args: list[str] = None,
         log_level: int = logging.INFO,
         output_config: str | dict[str, set[str]] = "screen",
         reparse_logs: bool = True,
@@ -68,10 +68,10 @@ class LifecycleNode(Node):
     ):
         super().__init__(
             launcher,
-            group,
             executable,
             name,
             node_args,
+            cmd_args=cmd_args,
             log_level=log_level,
             output_config=output_config,
             reparse_logs=reparse_logs,

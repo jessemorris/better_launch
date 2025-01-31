@@ -1,4 +1,4 @@
-from typing import Any, Callable
+from typing import Any, Callable, Mapping
 import logging
 from composition_interfaces.srv import LoadNode
 
@@ -9,11 +9,11 @@ class Composer(Node):
     def __init__(
         self,
         launcher,
-        group,
         name: str,
         language: str,
         node_args: dict[str, Any] = None,
         *,
+        cmd_args: list[str] = None,
         log_level: int = logging.INFO,
         output_config: str | dict[str, set[str]] = "screen",
         reparse_logs: bool = True,
@@ -42,10 +42,10 @@ class Composer(Node):
 
         super().__init__(
             launcher,
-            group,
             executable,
             name,
             node_args,
+            cmd_args=cmd_args,
             log_level=log_level,
             output_config=output_config,
             reparse_logs=reparse_logs,
@@ -72,18 +72,26 @@ class Composer(Node):
         pkg,
         plugin,
         name,
+        component_args: dict[str, Any] = None,
+        *,
         remap: dict = None,
-        component_args: dict = None,
         apply_composer_remaps: bool = True,
         use_intra_process_comms: bool = True,
         **extra_composer_args: dict,
     ):
+        # Reference: https://github.com/ros2/launch_ros/blob/rolling/launch_ros/launch_ros/actions/load_composable_nodes.py
         req = LoadNode.Request()
         req.package_name = pkg
         req.plugin_name = plugin
         req.node_name = name
         req.node_namespace = self.namespace
-        req.parameters = [component_args] if component_args else []
+        req.parameters = []
+
+        if isinstance(component_args, str):
+            component_args = self.launcher.load_params(component_args)
+        
+        if component_args:
+            req.parameters.append(component_args)
 
         remaps = {}
         if apply_composer_remaps:
