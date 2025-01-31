@@ -293,7 +293,7 @@ class BetterUI:
         self.max_log_length = max_log_length
         self.launch_thread = None
 
-    def start(self, launch_func: Callable, *args, **kwargs):
+    def start(self, launch_func: Callable,):
         self._ptg_init()
 
         def _close_focused(wm: ptg.WindowManager) -> None:
@@ -361,9 +361,7 @@ class BetterUI:
             )
 
         # Run the launch function in a background thread
-        self.launch_thread = threading.Thread(
-            target=launch_func, args=args, kwargs=kwargs
-        )
+        self.launch_thread = threading.Thread(target=launch_func)
         self.launch_thread.start()
 
         # Start the UI loop

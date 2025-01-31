@@ -7,7 +7,7 @@ import pyperclip
 
 from textual import work
 from textual.app import App, ComposeResult
-from textual.widgets import ListView, ListItem, Header, Footer 
+from textual.widgets import ListView, ListItem, Header, Footer, DataTable
 from textual.containers import Horizontal
 from textual.binding import Binding
 from textual.reactive import reactive
@@ -25,15 +25,13 @@ from .node_status import NodeStatus, NodeStatusLabel
 
 
 # Inspired by xqms' rosmon: https://github.com/xqms/rosmon
-class BetterLaunchUI(App):
+class BetterUI(App):
     TITLE = "BetterLaunch"
 
     BINDINGS = [
-        Binding("f1", "toggle_sidebar", "Toggle sidebar"),
-        Binding("f9", "mute_all", "Mute all"),
-        Binding("f10", "unmute_all", "Unmute all"),
+        Binding("f1", "toggle_sidebar", "Nodes"),
+        Binding("f9", "toggle_mute", "Mute/Unmute"),
         Binding("/", "search_node", "Node search"),
-        Binding("escape", "close_node_menu", show=False)
     ]
 
     DEFAULT_CSS = """
@@ -50,6 +48,18 @@ class BetterLaunchUI(App):
         }
     }
     """
+
+    @classmethod
+    def setup_logging(cls):
+        # Make sure all ros loggers follow a parsable format
+        os.environ["RCUTILS_COLORIZED_OUTPUT"] = "0"
+        os.environ["RCUTILS_CONSOLE_OUTPUT_FORMAT"] = "%%{severity}%%{time}%%{message}"
+
+        if "OVERRIDE_LAUNCH_SCREEN_FORMAT" in os.environ:
+            del os.environ["OVERRIDE_LAUNCH_SCREEN_FORMAT"]
+
+        # Install the log handler
+        roslog.launch_config.screen_handler = LogRecordForwarder()
 
     def __init__(
         self,
@@ -105,6 +115,8 @@ class BetterLaunchUI(App):
         log_handler.add_listener(log_to_ui)
         self.launch_func()
 
+        # TODO join ros_adapter thread, call self.exit, call bl.shutdown
+
     # TODO thread or asyncio? fine for now
     @work(thread=True)
     def check_nodes_status(self):
@@ -130,11 +142,11 @@ class BetterLaunchUI(App):
 
     def on_list_view_selected(self, selected: ListView.Selected):
         if selected.list_view == self.sidebar:
-            self.open_node_menu(selected.item.get_child_by_type(NodeStatusLabel))
+            self.open_menu_for_node(selected.item.get_child_by_type(NodeStatusLabel))
         elif selected.list_view == self.logview:
             self.copy_log_entry(selected.item.get_child_by_type(LogEntry))
     
-    def open_node_menu(self, node: NodeStatusLabel):
+    def open_menu_for_node(self, node: NodeStatusLabel):
         if not self.sidebar.display:
             self.action_toggle_sidebar()
         
@@ -202,16 +214,15 @@ class BetterLaunchUI(App):
     def action_toggle_sidebar(self):
         self.sidebar.display = not self.sidebar.display
 
-    def action_mute_all(self):
-        self.mute = True
-
-    def action_unmute_all(self):
+    def action_toggle_mute(self):
         if self.mute:
             # Add messages we missed while muted
             if self.backlog:
                 self._log(*self.backlog)
                 self.backlog.clear()
             self.mute = False
+        else:
+            self.mute = True
 
     def action_search_node(self):
         # TODO open search dialog
@@ -219,7 +230,3 @@ class BetterLaunchUI(App):
 
     def action_close_node_menu(self):
         self.node_menu.display = False
-
-
-if __name__ == "__main__":
-    BetterLaunchUI().run()
