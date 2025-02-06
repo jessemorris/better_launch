@@ -1,6 +1,5 @@
 from typing import Callable, cast
 import os
-import time
 import logging
 import asyncio
 import pyperclip
@@ -21,7 +20,6 @@ from utils.better_logging import LogRecordForwarder
 from elements import Node, LifecycleNode, Composer, LifecycleStage
 from .log_entry import LogEntry
 from .sidebar import NodeLabel, NodeInfoScreen
-from .node_search import NodeSearch
 from .choice_dialog import ChoiceDialog
 
 
@@ -203,7 +201,7 @@ class BetterUI(App):
                     ChoiceDialog(valid_stages, f"Transition {node.name} to"),
                     on_lifecycle_choice,
                 )
-                
+
             elif action == "kill":
                 self.push_screen(
                     ChoiceDialog(["yes", "cancel"], f"Kill {node.name}?"),
@@ -218,18 +216,18 @@ class BetterUI(App):
         self.push_screen(ChoiceDialog(choices, node.name), on_node_menu_choice)
 
     def copy_log_entry(self, entry: LogEntry):
-        # TODO check this somewhere before we start
-        pyperclip.is_available()
-        text = "[{created}] [{name}] {message}".format(**entry.record.__dict__)
-        pyperclip.copy(text)
-
-        self.sub_title = "Copied to clipboard!"
+        if pyperclip.is_available():
+            text = "[{created}] [{name}] {message}".format(**entry.record.__dict__)
+            pyperclip.copy(text)
+            self.sub_title = "Copied to clipboard!"
+        else:
+            self.sub_title = "pyperclip failed, see documentation"
 
         async def clear_notification():
             await asyncio.sleep(3.0)
             self.sub_title = self.SUB_TITLE
 
-        self.call_later(clear_notification())
+        self.call_later(clear_notification)
 
     def _get_next_node_key(self):
         num_items = len(self.sidebar.children)

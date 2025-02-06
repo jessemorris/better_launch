@@ -1,6 +1,6 @@
 import logging
 
-from textual.widgets import Static, ListItem
+from textual.widgets import Static
 from textual.containers import HorizontalGroup
 from textual.color import Color
 from rich.color import Color as RichColor
