@@ -1,6 +1,6 @@
 from textual.binding import Binding
-from textual.widgets import ListView, ListItem, Label, Static, Button
-from textual.containers import VerticalScroll, HorizontalGroup, VerticalGroup
+from textual.widgets import Label, Static, Button
+from textual.containers import VerticalScroll
 from textual.screen import ModalScreen
 
 from better_launch import BetterLaunch
