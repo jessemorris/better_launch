@@ -197,8 +197,6 @@ class Node:
             self.logger.error(
                 f"An exception occurred while executing process:\n{traceback.format_exc()}"
             )
-        finally:
-            self._cleanup()
 
     def _watch_process(
         self,

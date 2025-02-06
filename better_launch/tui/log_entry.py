@@ -34,14 +34,14 @@ class LogEntry(HorizontalGroup):
     def compose(self):
         r = self.record
 
-        source = Static(f"{r.name}:", classes="source")
+        source = Static(f"{r.name}:", id="source")
         r_color = getattr(r, "sourcecolor_int", 1)
         source.styles.color = Color.from_rich_color(RichColor.from_ansi(r_color))
         yield source
 
-        icon = Static(LogEntry.iconmap.get(r.levelname, "INFO"), classes="icon")
+        icon = Static(LogEntry.iconmap.get(r.levelname, "INFO"), id="icon")
         icon.styles.color = LogEntry.colormap.get(r.levelname, "INFO")
         yield icon
 
-        msg = Static(r.msg, classes="message")
+        msg = Static(r.msg, id="message")
         yield msg
