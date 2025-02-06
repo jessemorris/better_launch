@@ -18,10 +18,11 @@ from better_launch import BetterLaunch
 import ros.logging as roslog
 from utils.better_logging import LogRecordForwarder
 
+from elements import Node
 from .log_entry import LogEntry
-from .node_menu import NodeMenu
+from .sidebar import NodeLabel, NodeInfoScreen
 from .node_search import NodeSearch
-from .node_status import NodeStatus, NodeStatusLabel
+from .choice_dialog import ChoiceDialog
 
 
 # Inspired by xqms' rosmon: https://github.com/xqms/rosmon
@@ -29,9 +30,10 @@ class BetterUI(App):
     TITLE = "BetterLaunch"
 
     BINDINGS = [
-        Binding("f1", "toggle_sidebar", "Nodes"),
+        Binding("f1", "toggle_sidebar", "Sidebar"),
+        Binding("f2", "toggle_log_names", "Names"),
+        Binding("f3", "toggle_log_icons", "Icons"),
         Binding("f9", "toggle_mute", "Mute/Unmute"),
-        Binding("/", "search_node", "Node search"),
     ]
 
     DEFAULT_CSS = """
@@ -45,22 +47,23 @@ class BetterUI(App):
         #logview {
             width: 1fr;
             height: 1fr;
-        }
-        LogEntry {
-            .source {
-                width: 20;
-                height: 1;
-                text-align: right;
-            }
-            .icon {
-                width: 3;
-                height: 1;
-                text-align: center;
-            }
-            .message {
-                width: 100%;
-                text-align: left;
-                padding-left: 1;
+
+            LogEntry {
+                #source {
+                    width: 20;
+                    height: 1;
+                    text-align: right;
+                }
+                #icon {
+                    width: 3;
+                    height: 1;
+                    text-align: center;
+                }
+                #message {
+                    width: 100%;
+                    text-align: left;
+                    padding-left: 1;
+                }
             }
         }
     """
@@ -79,19 +82,22 @@ class BetterUI(App):
 
     def __init__(
         self,
-        launch_func: Callable, 
+        launch_func: Callable,
         disable_colors: bool = False,
         max_log_length: bool = 1000,
     ):
         if disable_colors:
             os.environ["NO_COLOR"] = "1"
-        
+
         super().__init__()
 
         self.nodes = {}
         self.backlog = []
-        self.mute = False
         self.max_log_length = max_log_length
+
+        self.mute = False
+        self.show_log_sources = True
+        self.show_log_icons = True
 
         self.launch_func = launch_func
 
@@ -129,52 +135,71 @@ class BetterUI(App):
 
         log_handler = roslog.launch_config.screen_handler
         if not isinstance(log_handler, LogRecordForwarder):
-            raise RuntimeError("Something modified the logging handler, UI cant't start")
-        
+            raise RuntimeError(
+                "Something modified the logging handler, UI cant't start"
+            )
+
         log_handler.add_listener(log_to_ui)
         self.launch_func()
 
         bl = BetterLaunch.wait_for_instance()
+        self.call_later(
+            lambda: self.sidebar.extend(
+                [
+                    ListItem(NodeLabel(n, self._get_next_node_key()))
+                    for n in bl.all_nodes()
+                ]
+            )
+        )
         bl.spin()
 
         self.exit(message="BetterLaunch terminated")
         if not bl.is_shutdown:
             bl.shutdown()
 
-    # TODO not used right now
-    @work(thread=True)
-    def check_nodes_status(self):
-        bl = BetterLaunch.wait_for_instance()
+    def on_log_record(self, record: logging.LogRecord):
+        # This will be called by our logging handler
+        if self.mute:
+            # Save the raw messages and add them once we get unmuted
+            self.backlog.append(record)
+        else:
+            self._log(record)
 
-        # Should maybe just manage our own nodes?
-        live_nodes = set(
-            n.full_name for n in get_node_names(node=bl.shared_node)
-        )
+    def _log(self, *records):
+        self.logview.extend([ListItem(LogEntry(r)) for r in records])
 
-        for item in self.sidebar.children:
-            if not isinstance(item, NodeStatusLabel):
-                continue
+        # restrict number of list items
+        num_entries = len(self.logview.children)
+        if num_entries > self.max_log_length:
+            self.logview.remove_items(range(0, num_entries - self.max_log_length + 1))
 
-            # TODO ignoring lifecycle node status for now
-            node = item.node_details
-            if node.fullname in live_nodes:
-                if node.has_errors:
-                    item.status = NodeStatus.ERROR
-                else:
-                    item.status = NodeStatus.ALIVE
-            else:
-                item.status = NodeStatus.DEAD
-
-        time.sleep(1.0)
+        if not self.logview.is_vertical_scrollbar_grabbed:
+            self.logview.scroll_end()
 
     def on_list_view_selected(self, selected: ListView.Selected):
         if selected.list_view == self.sidebar:
-            self.open_menu_for_node(selected.item.get_child_by_type(NodeStatusLabel))
+            self.open_menu_for_node(selected.item.get_child_by_type(NodeLabel))
         elif selected.list_view == self.logview:
             self.copy_log_entry(selected.item.get_child_by_type(LogEntry))
-    
-    def open_menu_for_node(self, node: NodeStatusLabel):
-        self.push_screen(NodeMenu(node))
+
+    def open_menu_for_node(self, label: NodeLabel):
+        def on_node_menu_choice(action: str = None):
+            if action == "info":
+                self.push_screen(NodeInfoScreen(label.node))
+            elif action == "kill":
+
+                def on_kill_choice(choice: str):
+                    if choice == "yes":
+                        label.node.shutdown("Shutdown by user")
+
+                self.push_screen(
+                    ChoiceDialog(["yes", "cancel"], f"Kill {label.node.name}?"),
+                    on_kill_choice,
+                )
+
+        self.push_screen(
+            ChoiceDialog(["info", "kill"], label.node.name), on_node_menu_choice
+        )
 
     def copy_log_entry(self, entry: LogEntry):
         # TODO check this somewhere before we start
@@ -201,42 +226,38 @@ class BetterUI(App):
 
         return None
 
-    def on_log_record(self, record):
-        # This will be called by our logging handler
-
-        if record.name not in self.nodes:
-            keybind = self._get_next_node_key()
-            node = NodeStatusLabel(keybind, NodeStatus(record.name))
-            self.nodes[record.name] = node
-            self.sidebar.append(ListItem(node))
-
-            if keybind:
-                self.bind(keybind, "open_node_menu", description=record.name)
-            
-        if self.nodes[record.name].node_details.mute:
-            # Logger is muted, message will not be recorded
-            return
-
-        if self.mute:
-            # Save the raw messages and add them once we get unmuted
-            self.backlog.append(record)
-        else:
-            self._log(record)
-
-    def _log(self, *records):
-        # TODO wrap lines
-        self.logview.extend([ListItem(LogEntry(r)) for r in records])
-
-        # restrict number of list items
-        num_entries = len(self.logview.children)
-        if num_entries > self.max_log_length:
-            self.logview.remove_items(range(0, num_entries - self.max_log_length + 1))
-
-        if not self.logview.is_vertical_scrollbar_grabbed:
-            self.logview.scroll_end()
-
     def action_toggle_sidebar(self):
         self.sidebar.display = not self.sidebar.display
+
+    def action_toggle_log_names(self):
+        show = not self.show_log_sources
+        self.show_log_sources = show
+
+        if show:
+            self.stylesheet.add_source(
+                "#logview #source {display: block;}", read_from="toggle_log_names"
+            )
+        else:
+            self.stylesheet.add_source(
+                "#logview #source {display: none;}", read_from="toggle_log_names"
+            )
+
+        self.refresh_css()
+
+    def action_toggle_log_icons(self):
+        show = not self.show_log_sources
+        self.show_log_sources = show
+
+        if show:
+            self.stylesheet.add_source(
+                "#logview #icon {display: block;}", read_from="toggle_log_icons"
+            )
+        else:
+            self.stylesheet.add_source(
+                "#logview #icon {display: none;}", read_from="toggle_log_icons"
+            )
+
+        self.refresh_css()
 
     def action_toggle_mute(self):
         if self.mute:

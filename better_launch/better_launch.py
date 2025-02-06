@@ -39,6 +39,12 @@ from ros import logging as roslog
 from ros.logging import LaunchConfig as LogConfig
 
 
+__all__ = [
+    "launch_this",
+    "BetterLaunch",
+]
+
+
 _is_launcher_defined = "__better_launch_this_defined"
 _bl_singleton_instance = "__better_launch_instance"
 
@@ -395,7 +401,7 @@ Takeoff in 3... 2... 1...
     def get_unique_name(self, name: str = ""):
         return name + "_" + __uuid_generator()
 
-    def all_groups(self):
+    def all_groups(self) -> list[Group]:
         # Assemble all groups
         groups: list[Group] = [self.group_root]
         queue: list[Group] = [self.group_root]
@@ -408,7 +414,7 @@ Takeoff in 3... 2... 1...
 
         return groups
 
-    def all_nodes(self):
+    def all_nodes(self) -> list[Node]:
         nodes = []
         groups = self.all_groups()
 
