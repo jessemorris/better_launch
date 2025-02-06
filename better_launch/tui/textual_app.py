@@ -1,4 +1,4 @@
-from typing import Callable
+from typing import Callable, cast
 import os
 import time
 import logging
@@ -18,7 +18,7 @@ from better_launch import BetterLaunch
 import ros.logging as roslog
 from utils.better_logging import LogRecordForwarder
 
-from elements import Node
+from elements import Node, LifecycleNode, Composer, LifecycleStage
 from .log_entry import LogEntry
 from .sidebar import NodeLabel, NodeInfoScreen
 from .node_search import NodeSearch
@@ -183,23 +183,39 @@ class BetterUI(App):
             self.copy_log_entry(selected.item.get_child_by_type(LogEntry))
 
     def open_menu_for_node(self, label: NodeLabel):
+        node = label.node
+
+        def on_lifecycle_choice(choice: str):
+            cast(LifecycleNode, node).transition(LifecycleStage[choice.upper()])
+
+        def on_kill_choice(choice: str):
+            if choice == "yes":
+                node.shutdown("Shutdown by user")
+
         def on_node_menu_choice(action: str = None):
             if action == "info":
-                self.push_screen(NodeInfoScreen(label.node))
-            elif action == "kill":
+                self.push_screen(NodeInfoScreen(node))
 
-                def on_kill_choice(choice: str):
-                    if choice == "yes":
-                        label.node.shutdown("Shutdown by user")
-
+            elif action == "lifecycle":
+                valid_stages = list(LifecycleStage)
+                valid_stages.remove(node.current_stage)
                 self.push_screen(
-                    ChoiceDialog(["yes", "cancel"], f"Kill {label.node.name}?"),
+                    ChoiceDialog(valid_stages, f"Transition {node.name} to"),
+                    on_lifecycle_choice,
+                )
+                
+            elif action == "kill":
+                self.push_screen(
+                    ChoiceDialog(["yes", "cancel"], f"Kill {node.name}?"),
                     on_kill_choice,
                 )
 
-        self.push_screen(
-            ChoiceDialog(["info", "kill"], label.node.name), on_node_menu_choice
-        )
+        if isinstance(node, LifecycleNode):
+            choices = ["info", "lifecycle", "kill"]
+        else:
+            choices = ["info", "kill"]
+
+        self.push_screen(ChoiceDialog(choices, node.name), on_node_menu_choice)
 
     def copy_log_entry(self, entry: LogEntry):
         # TODO check this somewhere before we start

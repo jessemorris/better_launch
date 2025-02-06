@@ -61,6 +61,7 @@ class Composer(Node):
 
         self.language = language
         self.component_remaps = component_remaps
+        self.loaded_components = []
         self._load_node_client = self.launcher.ros_adapter.create_client(
             LoadNode, f"{self.name}/_container/load_node"
         )
@@ -112,6 +113,7 @@ class Composer(Node):
         if res.success:
             if res.full_node_name:
                 name = res.full_node_name
+            self.loaded_components.append(name)
             self.logger.info(f"Loaded {pkg}/{plugin} as {name}")
         else:
             self.logger.error(f"Loading {pkg}/{plugin} failed: {res.error_message}")

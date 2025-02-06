@@ -4,7 +4,7 @@ from textual.containers import VerticalScroll, HorizontalGroup, VerticalGroup
 from textual.screen import ModalScreen
 
 from better_launch import BetterLaunch
-from elements import Node
+from elements import Node, LifecycleNode, Composer
 
 
 class NodeLabel(Label):
@@ -51,6 +51,15 @@ class NodeInfoScreen(ModalScreen):
         # the time, like who is actually subscribed where. Let's fix this!
         shared_node = BetterLaunch.wait_for_instance().shared_node
 
+        # Additional information about the node subclass
+        node_type_info = ""
+        if isinstance(node, LifecycleNode):
+            node_type_info = f"Stage:     {node.current_stage.name.capitalize()}\n"
+        elif isinstance(node, Composer):
+            components = [f"  - {c}\n" for c in node.loaded_components]
+            node_type_info = f"\n[bold]Components:[/bold]\n{components}\n"
+
+        # Topics the node is publishing
         pubs = shared_node.get_publisher_names_and_types_by_node(
             node.name, node.namespace
         )
@@ -59,6 +68,7 @@ class NodeInfoScreen(ModalScreen):
         for topic, types in pubs:
             pubs_text += f"\n  {topic} [{', '.join(types)}]"
 
+        # Topics the node is subscribed to
         subs = shared_node.get_subscriber_names_and_types_by_node(
             node.name, node.namespace
         )
@@ -68,9 +78,10 @@ class NodeInfoScreen(ModalScreen):
             subs_text += f"\n  {topic} [{', '.join(types)}]"
 
         info_text = f"""\
-[bold]{node.name}[/bold]
+[bold]{node.name} ({node.__class__.__name__})[/bold]
 Status:    {'[green]alive[/green]' if node.is_running else '[red]dead[/red]'}
 Namespace: {node.namespace}
+{node_type_info}\
 
 [bold]Process:[/bold]
   PID:     {node.pid}
