@@ -29,11 +29,7 @@ except ImportError:
 from elements import Group, Node, Composer, LifecycleNode, LifecycleStage
 from utils.better_logging import log_default_colormap, RosLogFormatter
 from utils.substitutions import default_substitution_handlers, substitute_tokens
-from utils.introspection import (
-    find_calling_frame,
-    find_function_frame,
-    find_decorated_function_args,
-)
+from utils.introspection import find_calling_frame
 from ros.ros_adapter import ROSAdapter
 from ros import logging as roslog
 from ros.logging import LaunchConfig as LogConfig
@@ -85,8 +81,8 @@ def _launch_this_wrapper(
         print(f"> Including launch file:\n  {includefile}\n")
 
     # Signal handlers have to be installed on the main thread. Since the BetterLaunch singleton
-    # could be instantiated first on a different thread we do it here where we can set stronger
-    # restrictions.
+    # could be instantiated first on a different thread we do it here where we can make stronger
+    # requirements.
     def sigint_handler(sig, frame):
         BetterLaunch()._on_sigint(sig, frame)
 
