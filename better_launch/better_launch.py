@@ -75,10 +75,11 @@ def _launch_this_wrapper(
     # NOTE be careful not to instantiate BetterLaunch before launch_func has run
     if not _bl_singleton_instance in glob:
         BetterLaunch._launchfile = find_calling_frame(_launch_this_wrapper).filename
-        print(f"> Starting launch file:\n  {BetterLaunch._launchfile}\n")
+        print(f"Starting launch file:\n{BetterLaunch._launchfile}\n")
+        print(f"Log files will be saved at\n{roslog.launch_config.log_dir}\n")
     else:
         includefile = find_calling_frame(_launch_this_wrapper).filename
-        print(f"> Including launch file:\n  {includefile}\n")
+        print(f"Including launch file:\n{includefile}\n")
 
     # Signal handlers have to be installed on the main thread. Since the BetterLaunch singleton
     # could be instantiated first on a different thread we do it here where we can make stronger
@@ -334,14 +335,14 @@ class BetterLaunch(metaclass=_BetterLaunchMeta):
         self.hello()
 
     def hello(self):
-        self.logger.info(
-            # Ascii art based on: https://asciiart.cc/view/10677
-            f"""
+        # Ascii art based on: https://asciiart.cc/view/10677
+        msg = f"""
 \x1b[1;20mBetter Launch is starting!\x1b[0m
 Please fasten your seatbelts and secure all baggage underneath your chair.
 
 Default log level is \x1b[34;20m{roslog.launch_config.level} ({logging.getLevelName(roslog.launch_config.level)})\x1b[0m
-All log files can be found under \x1b[34;20m{roslog.launch_config.log_dir}\x1b[0m
+All log files can be found at
+\x1b[34;20m{roslog.launch_config.log_dir}\x1b[0m
 
 Takeoff in 3... 2... 1...
 
@@ -363,7 +364,9 @@ Takeoff in 3... 2... 1...
       ( (.   )8:
   .' _  / (_  ) '._
 """
-        )
+        # We don't want to log this
+        print(msg)
+        self.logger.critical(f"Log files at {roslog.launch_config.log_dir}")
 
     def execute_pending_ros_actions(self, join: bool = True):
         if self._ros2_actions:
