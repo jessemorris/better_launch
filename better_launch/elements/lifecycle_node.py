@@ -41,7 +41,7 @@ _transition_map = {
     ],
     State.PRIMARY_STATE_FINALIZED: [
         (Transition.TRANSITION_DESTROY, State.PRIMARY_STATE_UNKNOWN)
-    ]
+    ],
 }
 
 
@@ -56,7 +56,9 @@ class LifecycleNode(Node):
         *,
         cmd_args: list[str] = None,
         log_level: int = logging.INFO,
-        output_config: str | dict[str, set[str]] = "screen",
+        output_config: (
+            Node.LogSink | dict[Node.LogSource, set[Node.LogSink]]
+        ) = "screen",
         reparse_logs: bool = True,
         remap: dict[str, str] = None,
         env: dict[str, str] = None,
@@ -147,10 +149,14 @@ class LifecycleNode(Node):
     def transition(self, target_stage: LifecycleStage) -> bool:
         # Figure out if and how we can get from our current state to the target state
         target_state_id = _stage_to_state_map[target_stage]
-        transition_path = self._find_transition_path(self.current_state_id, target_state_id)
+        transition_path = self._find_transition_path(
+            self.current_state_id, target_state_id
+        )
 
         if not transition_path:
-            raise ValueError(f"Could not find a valid transition sequence for {self.current_stage}->{target_stage}")
+            raise ValueError(
+                f"Could not find a valid transition sequence for {self.current_stage}->{target_stage}"
+            )
 
         for transition in transition_path:
             if not self._do_transition(transition):

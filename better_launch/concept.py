@@ -41,3 +41,7 @@ def test(enable_x: bool):
             "publisher_local_function",
             "test_node",
         )
+
+    with bl.compose("composed"):
+        bl.component("composition", "composition::Talker", "comp_talker")
+        bl.component("composition", "composition::Listener", "comp_listener")

@@ -11,7 +11,7 @@ from collections import deque
 import logging
 import yaml
 
-from rclpy.qos import QoSProfile
+from rclpy.qos import QoSProfile, qos_profile_services_default
 from ament_index_python.packages import get_package_prefix
 
 try:
@@ -191,7 +191,7 @@ def _launch_this_wrapper(
 
         if ui:
             # from tui.pyterm_app import BetterUI
-            # 
+            #
             # BetterUI.setup_logging()
             # app = BetterUI()
             # app.start(launch_func_wrapper)
@@ -257,7 +257,7 @@ def _expose_ros2_launch_function(launch_func):
     launch_frame = find_calling_frame(_launch_this_wrapper)
     caller_globals = launch_frame.frame.f_globals
     caller_globals["generate_launch_description"] = generate_launch_description
-    
+
 
 class _BetterLaunchMeta(type):
     _singleton_future = Future()
@@ -559,9 +559,12 @@ Takeoff in 3... 2... 1...
         topic: str,
         service_type: type,
         callback: Callable,
-        qos_profile: QoSProfile | int = 10,
+        qos_profile: QoSProfile = None,
     ):
-        return self.ros_node.create_service(
+        if not qos_profile:
+            qos_profile = qos_profile_services_default
+
+        return self.shared_node.create_service(
             service_type,
             topic,
             callback,
@@ -573,9 +576,12 @@ Takeoff in 3... 2... 1...
         topic: str,
         service_type: type,
         timeout: float = 0.0,
-        qos_profile: QoSProfile | int = 10,
+        qos_profile: QoSProfile = None,
     ):
-        client = self.ros_node.create_client(
+        if not qos_profile:
+            qos_profile = qos_profile_services_default
+
+        client = self.shared_node.create_client(
             service_type, topic, qos_profile=qos_profile
         )
         if timeout > 0.0:
@@ -586,7 +592,7 @@ Takeoff in 3... 2... 1...
     def publisher(
         self, topic: str, message_type: type, qos_profile: QoSProfile | int = 10
     ):
-        return self.ros_node.create_publisher(
+        return self.shared_node.create_publisher(
             message_type,
             topic,
             qos_profile=qos_profile,
@@ -599,7 +605,7 @@ Takeoff in 3... 2... 1...
         callback: Callable,
         qos_profile: QoSProfile | int = 10,
     ):
-        return self.ros_node.create_subscriber(
+        return self.shared_node.create_subscriber(
             message_type,
             topic,
             callback,
@@ -624,11 +630,13 @@ Takeoff in 3... 2... 1...
         pkg: str,
         exec: str,
         name: str = None,
-        node_args: str|dict[str, Any] = None,
+        node_args: str | dict[str, Any] = None,
         *,
         cmd_args: list[str] = None,
         log_level: int = logging.INFO,
-        output_config: str | dict[str, set[str]] = "screen",
+        output_config: (
+            Node.LogSink | dict[Node.LogSource, set[Node.LogSink]]
+        ) = "screen",
         reparse_logs: bool = True,
         anonymous: bool = False,
         hidden: bool = False,
@@ -694,11 +702,13 @@ Takeoff in 3... 2... 1...
         exec: str,
         name: str = None,
         target_state: LifecycleStage = LifecycleStage.PRISTINE,
-        node_args: str|dict[str, Any] = None,
+        node_args: str | dict[str, Any] = None,
         *,
         cmd_args: list[str] = None,
         log_level: int = logging.INFO,
-        output_config: str | dict[str, set[str]] = "screen",
+        output_config: (
+            Node.LogSink | dict[Node.LogSource, set[Node.LogSink]]
+        ) = "screen",
         reparse_logs: bool = True,
         anonymous: bool = False,
         hidden: bool = False,
@@ -709,7 +719,6 @@ Takeoff in 3... 2... 1...
         respawn_delay: float = 0.0,
         use_shell: bool = False,
         emulate_tty: bool = False,
-        stderr_to_stdout: bool = False,
         **kwargs,
     ):
         # TODO a lot of this is redundant with node() -> common function?
@@ -751,7 +760,6 @@ Takeoff in 3... 2... 1...
             respawn_delay=respawn_delay,
             use_shell=use_shell,
             emulate_tty=emulate_tty,
-            stderr_to_stdout=stderr_to_stdout,
             **kwargs,
         )
 
@@ -763,21 +771,23 @@ Takeoff in 3... 2... 1...
         self,
         name: str,
         language: str = "cpp",
+        composer_mode: Composer.ComposerMode = "normal",
+        component_remaps: dict[str, str] = None,
         *,
-        cmd_args: list[str] = None,
         log_level: int = logging.INFO,
-        output_config: str | dict[str, set[str]] = "screen",
+        output_config: (
+            Node.LogSink | dict[Node.LogSource, set[Node.LogSink]]
+        ) = "screen",
         reparse_logs: bool = True,
         anonymous: bool = False,
         hidden: bool = False,
-        remap: dict[str, str] = None,
+        composer_remaps: dict[str, str] = None,
         env: dict[str, str] = None,
         on_exit: Callable = None,
         max_respawns: int = 0,
         respawn_delay: float = 0.0,
         use_shell: bool = False,
         emulate_tty: bool = False,
-        stderr_to_stdout: bool = False,
         **kwargs,
     ):
         if self._composition_node is not None:
@@ -793,7 +803,8 @@ Takeoff in 3... 2... 1...
         # Assemble additional node remaps from our group branch
         g = self.group_tip
         remaps = g.assemble_remaps()
-        remaps.update(remap)
+        if composer_remaps:
+            remaps.update(composer_remaps)
 
         # Why do I hear mad hatter music???
         # launch_ros/actions/node.py:497
@@ -804,19 +815,18 @@ Takeoff in 3... 2... 1...
             self,
             name,
             language,
-            cmd_args=cmd_args,
-            process_log_level=log_level,
+            composer_mode=composer_mode,
+            component_remaps=component_remaps,
+            log_level=log_level,
             output_config=output_config,
             reparse_logs=reparse_logs,
-            remap=remap,
+            composer_remaps=remaps,
             env=env,
             on_exit=on_exit,
             max_respawns=max_respawns,
             respawn_delay=respawn_delay,
             use_shell=use_shell,
             emulate_tty=emulate_tty,
-            stderr_to_stdout=stderr_to_stdout,
-            start_immediately=True,  # always start, otherwise adding components is troublesome
             **kwargs,
         )
 
@@ -832,7 +842,7 @@ Takeoff in 3... 2... 1...
         pkg: str,
         plugin: str,
         name: str,
-        component_args: str|dict[str, Any] = None,
+        component_args: str | dict[str, Any] = None,
         *,
         remap: dict[str, str] = None,
         apply_composer_remaps: bool = True,

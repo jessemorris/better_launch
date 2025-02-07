@@ -1,4 +1,4 @@
-from typing import Mapping
+from typing import Mapping, Literal
 import os
 import platform
 import signal
@@ -23,16 +23,20 @@ _node_counter = 0
 
 
 class Node:
+    # See ros/logging.py for details
+    LogSource = Literal["stdout", "stderr", "both"]
+    LogSink = Literal["screen", "log", "both", "own_log", "full"]
+
     def __init__(
         self,
         launcher: "BetterLaunch",
         executable: str,
         name: str,
-        node_args: str|dict[str, Any] = None,
+        node_args: str | dict[str, Any] = None,
         *,
         cmd_args: list[str] = None,
         log_level: int = logging.INFO,
-        output_config: str | dict[str, set[str]] = "screen",
+        output_config: LogSink | dict[LogSource, set[LogSink]] = "screen",
         reparse_logs: bool = True,
         remap: dict[str, str] = None,
         env: dict[str, str] = None,
@@ -173,7 +177,9 @@ class Node:
                 screen_handler.setFormatterFor(logerr, formatter)
 
             env_str = indent(pformat(self.env), "")
-            self.logger.info(f"Starting process '{' '.join(final_cmd)}'\n-> env ={env_str}")
+            self.logger.info(
+                f"Starting process '{' '.join(final_cmd)}'\n-> env ={env_str}"
+            )
 
             # Start the node process
             self._process = subprocess.Popen(
