@@ -30,7 +30,7 @@ class BetterUI(App):
         Binding("f1", "toggle_sidebar", "Sidebar"),
         Binding("f2", "toggle_log_names", "Names"),
         Binding("f3", "toggle_log_icons", "Icons"),
-        Binding("f9", "toggle_mute", "Mute/Unmute"),
+        Binding("space", "toggle_mute", "Mute"),
         Binding("ctrl+q", "quit", "Quit"),
     ]
 
@@ -118,7 +118,10 @@ class BetterUI(App):
         self.run_launch_function()
 
     def exit(self, reason: str = "UI terminated"):
-        self.exit_reason = reason
+        # This might be invoked more than once
+        if not self.exit_reason:
+            self.exit_reason = reason
+
         super().exit()
 
         bl = BetterLaunch.instance()
@@ -181,6 +184,7 @@ class BetterUI(App):
         if num_entries > self.max_log_length:
             self.logview.remove_items(range(0, num_entries - self.max_log_length + 1))
 
+        # TODO find a way to prevent scrolling when the user has intentionally highlighted an item
         if not self.logview.is_vertical_scrollbar_grabbed:
             self.logview.scroll_end()
 
@@ -234,6 +238,8 @@ class BetterUI(App):
             self.notify(
                 "pyperclip failed, see documentation", severity="error", timeout=3.0
             )
+
+        self.logview.index = None
 
     def _get_next_node_key(self):
         num_items = len(self.sidebar.children)
