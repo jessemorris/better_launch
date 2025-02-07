@@ -77,6 +77,7 @@ def _launch_this_wrapper(
         BetterLaunch._launchfile = find_calling_frame(_launch_this_wrapper).filename
         print(f"Starting launch file:\n{BetterLaunch._launchfile}\n")
         print(f"Log files will be saved at\n{roslog.launch_config.log_dir}\n")
+        print("==================================================")
     else:
         includefile = find_calling_frame(_launch_this_wrapper).filename
         print(f"Including launch file:\n{includefile}\n")
