@@ -1,7 +1,6 @@
 from typing import Callable, cast
 import os
 import logging
-import asyncio
 import pyperclip
 
 from textual import work
@@ -89,6 +88,7 @@ class BetterUI(App):
             os.environ["NO_COLOR"] = "1"
 
         super().__init__()
+        self.exit_reason = ""
 
         self.nodes = {}
         self.backlog = []
@@ -117,14 +117,23 @@ class BetterUI(App):
     def on_mount(self):
         self.run_launch_function()
 
-    def on_exit(self):
-        try:
-            bl = BetterLaunch.wait_for_instance(0.0)
+    def exit(self, reason: str = "UI terminated"):
+        self.exit_reason = reason
+        super().exit()
 
-            if not bl.is_shutdown:
-                bl.shutdown("UI terminated")
-        except TimeoutError:
-            pass
+        bl = BetterLaunch.instance()
+        if bl and not bl.is_shutdown:
+            bl.shutdown(reason)
+
+    async def _shutdown(self):
+        # Passing a message to super.exit will be treated as an error, so we instead handle any
+        # post-shutdown stuff here
+        await super()._shutdown()
+
+        if self.exit_reason:
+            from rich.console import Console
+
+            Console().print(f"[bright_green]BetterUI exit: {self.exit_reason}[/bright_green]")
 
     @work(thread=True, exit_on_error=True, group="launch_func")
     def run_launch_function(self):
@@ -151,10 +160,7 @@ class BetterUI(App):
             )
         )
         bl.spin()
-
-        self.exit(message="BetterLaunch terminated")
-        if not bl.is_shutdown:
-            bl.shutdown()
+        self.exit("BetterLaunch terminated")
 
     def on_log_record(self, record: logging.LogRecord):
         # This will be called by our logging handler
@@ -165,6 +171,9 @@ class BetterUI(App):
             self._log(record)
 
     def _log(self, *records):
+        if self._exit:
+            return
+        
         self.logview.extend([ListItem(LogEntry(r)) for r in records])
 
         # restrict number of list items
@@ -220,15 +229,11 @@ class BetterUI(App):
         if pyperclip.is_available():
             text = "[{created}] [{name}] {message}".format(**entry.record.__dict__)
             pyperclip.copy(text)
-            self.sub_title = "Copied to clipboard!"
+            self.notify("Copied to clipboard!", timeout=2.0)
         else:
-            self.sub_title = "pyperclip failed, see documentation"
-
-        async def clear_notification():
-            await asyncio.sleep(3.0)
-            self.sub_title = self.SUB_TITLE
-
-        self.call_later(clear_notification)
+            self.notify(
+                "pyperclip failed, see documentation", severity="error", timeout=3.0
+            )
 
     def _get_next_node_key(self):
         num_items = len(self.sidebar.children)
@@ -294,7 +299,7 @@ class BetterUI(App):
     def action_quit(self):
         def on_quit_choice(reply: str):
             if reply == "yes":
-                self.exit()
+                self.exit("User quit UI")
 
         self.push_screen(
             ChoiceDialog(["yes", "no"], "Quit launcher and terminate all nodes?"),
