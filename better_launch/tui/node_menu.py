@@ -11,7 +11,14 @@ class NodeLabel(Label):
     def __init__(self, node: Node, keybind: str):
         self.node = node
         self.keybind = keybind
-        super().__init__(f"[u]{keybind}[/u] {node.name}")
+
+        suffix = ""
+        if isinstance(node, LifecycleNode):
+            suffix = " (L)"
+        elif isinstance(node, Composer):
+            suffix = " (C)"
+
+        super().__init__(f"[u]{keybind}[/u] {node.name}{suffix}")
         # TODO watch node status
 
 

@@ -8,6 +8,23 @@ from .node import Node
 
 
 class Component(AbstractNode):
+    def __init__(
+        self,
+        composer: "Composer",
+        package: str,
+        executable: str,
+        name: str,
+        namespace: str,
+        node_args: list[str] = None,
+        remaps : dict[str, str] = None,
+    ):
+        super().__init__(package, executable, name, namespace, node_args, remaps)
+        self._composer = composer
+
+    @property
+    def composer(self) -> "Composer":
+        return self._composer
+
     @property
     def plugin(self) -> str:
         return self._exec
@@ -124,7 +141,7 @@ class Composer(Node):
             component_args = BetterLaunch.instance().load_params(component_args)
 
         if component_args:
-            # TODO must be Parameters
+            # TODO must probably be Parameters? See extra_arguments below
             req.parameters.append(component_args)
 
         remaps = {}
@@ -149,7 +166,9 @@ class Composer(Node):
             if res.full_node_name:
                 name = res.full_node_name
 
-            comp = Component(pkg, plugin, name, self.namespace, component_args, remaps)
+            comp = Component(
+                self, pkg, plugin, name, self.namespace, component_args, remaps
+            )
             self.loaded_components.append(comp)
             self.logger.info(f"Loaded {pkg}/{plugin} as {name}")
             return comp

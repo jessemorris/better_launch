@@ -27,11 +27,11 @@ class BetterUI(App):
     TITLE = "BetterLaunch"
 
     BINDINGS = [
+        Binding("ctrl+q", "quit", "Quit"),
+        Binding("space", "toggle_mute", "Mute"),
         Binding("f1", "toggle_sidebar", "Sidebar"),
         Binding("f2", "toggle_log_names", "Names"),
         Binding("f3", "toggle_log_icons", "Icons"),
-        Binding("space", "toggle_mute", "Mute"),
-        Binding("ctrl+q", "quit", "Quit"),
     ]
 
     DEFAULT_CSS = """
@@ -157,8 +157,8 @@ class BetterUI(App):
         self.call_later(
             lambda: self.sidebar.extend(
                 [
-                    ListItem(NodeLabel(n, self._get_next_node_key()))
-                    for n in bl.all_nodes()
+                    ListItem(NodeLabel(n, self._get_node_key(idx)))
+                    for idx, n in enumerate(bl.all_nodes())
                 ]
             )
         )
@@ -216,6 +216,10 @@ class BetterUI(App):
                     on_lifecycle_choice,
                 )
 
+            elif action == "components":
+                # TODO 
+                self.notify("components not implemented yet", timeout=2.0)
+
             elif action == "kill":
                 self.push_screen(
                     ChoiceDialog(["yes", "cancel"], f"Kill {node.name}?"),
@@ -224,6 +228,8 @@ class BetterUI(App):
 
         if isinstance(node, LifecycleNode):
             choices = ["info", "lifecycle", "kill"]
+        elif isinstance(node, Composer):
+            choices = ["info", "components", "kill"]
         else:
             choices = ["info", "kill"]
 
@@ -241,14 +247,13 @@ class BetterUI(App):
 
         self.logview.index = None
 
-    def _get_next_node_key(self):
-        num_items = len(self.sidebar.children)
-        if num_items < 10:
+    def _get_node_key(self, idx: int):
+        if idx < 10:
             # Node number starting at 0
-            return str(num_items)
-        if num_items < 36:
+            return str(idx)
+        if idx < 36:
             # Next lowercase character
-            return chr(97 + num_items - 10)
+            return chr(97 + idx - 10)
 
         return None
 
@@ -295,17 +300,13 @@ class BetterUI(App):
         else:
             self.mute = True
 
-    def action_search_node(self):
-        # TODO open search dialog
-        pass
-
     def action_close_node_menu(self):
         self.node_menu.display = False
 
     def action_quit(self):
         def on_quit_choice(reply: str):
             if reply == "yes":
-                self.exit("User quit UI")
+                self.exit("terminated by user")
 
         self.push_screen(
             ChoiceDialog(["yes", "no"], "Quit launcher and terminate all nodes?"),

@@ -170,5 +170,5 @@ class LifecycleNode(Node):
                 )
                 return False
 
-        # TODO we may have not received the transition update yet
+        # TODO we may not have received the transition update yet
         return True

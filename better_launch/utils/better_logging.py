@@ -1,8 +1,9 @@
 from typing import Any, Callable
 import re
-import random
 import logging
 from datetime import datetime
+
+from .colors import get_contrast_color
 
 
 log_default_colormap = {
@@ -70,7 +71,7 @@ class RosLogFormatter(logging.Formatter):
         self.converter = datetime.fromtimestamp
         self.roslog_pattern = re.compile(roslog_pattern)
         self.colormap = colormap if colormap is not None else dict(log_default_colormap)
-        self.mycolor = random.randint(1, 255)
+        self.mycolor = get_contrast_color()
         self.disable_colors = disable_colors
 
     def format(self, record):
@@ -83,14 +84,15 @@ class RosLogFormatter(logging.Formatter):
             record.msg = match.group(3)
 
         if self.disable_colors:
-            record.sourcecolor_int = 1
+            record.rgb = (255, 255, 255)
             record.levelcolor = ""
             record.sourcecolor = ""
             record.colorreset = ""
         else:
-            record.sourcecolor_int = self.mycolor
+            r, g, b = self.mycolor
+            record.rgb = self.mycolor
             record.levelcolor = self.colormap.get(record.levelno, "")
-            record.sourcecolor = f"\x1b[38;5;{self.mycolor}m"
+            record.sourcecolor = f"\x1b[38;2;{r};{g};{b}m"
             record.colorreset = "\x1b[0m"
 
         return super().format(record)
