@@ -1,23 +1,28 @@
-from typing import Any, Callable, Mapping
+from typing import Any, Callable, Mapping, Literal
 import logging
+from rclpy import Parameter
 from composition_interfaces.srv import LoadNode
 
 from .node import Node
 
 
 class Composer(Node):
+    ComposerMode = Literal["normal", "multithreading", "isolated"]
+
     def __init__(
         self,
         launcher,
         name: str,
         language: str,
-        node_args: dict[str, Any] = None,
+        composer_mode: ComposerMode = "normal",
+        component_remaps: dict[str, str] = None,
         *,
-        cmd_args: list[str] = None,
         log_level: int = logging.INFO,
-        output_config: str | dict[str, set[str]] = "screen",
+        output_config: (
+            Node.LogSink | dict[Node.LogSource, set[Node.LogSink]]
+        ) = "screen",
         reparse_logs: bool = True,
-        remap: dict[str, str] = None,
+        composer_remaps: dict[str, str] = None,
         env: dict[str, str] = None,
         on_exit: Callable = None,
         max_respawns: int = 0,
@@ -25,31 +30,30 @@ class Composer(Node):
         use_shell: bool = False,
         emulate_tty: bool = False,
     ):
-        # NOTE: does not support referencing an already existing composer. If you want to reuse
+        # NOTE: we don't support referencing an already existing composer. If you want to reuse
         # the container, just keep a reference to it.
-        executable = launcher.find(f"rcl{self.language}_components", "component_container")
 
-        # Remaps are not useful for a composable node, but we can forward them to the components
-        node_remaps = {}
-        component_remaps = {}
+        if composer_mode == "normal":
+            container = "component_container"
+        elif composer_mode == "multithreading":
+            container = "component_container_mt"
+        elif composer_mode == "isolated":
+            container = "component_container_isolated"
+        else:
+            raise ValueError(f"Unknown container mode '{composer_mode}")
 
-        if remap:
-            for key, val in remap:
-                if key.startswith("_"):
-                    node_remaps[key] = val
-                else:
-                    component_remaps[key] = val
+        executable = launcher.find(f"rcl{language}_components", container)
 
         super().__init__(
             launcher,
             executable,
             name,
-            node_args,
-            cmd_args=cmd_args,
+            node_args=None,
+            cmd_args=None,
             log_level=log_level,
             output_config=output_config,
             reparse_logs=reparse_logs,
-            remap=node_remaps,
+            remap=composer_remaps,
             env=env,
             on_exit=on_exit,
             max_respawns=max_respawns,
@@ -60,10 +64,11 @@ class Composer(Node):
         )
 
         self.language = language
-        self.component_remaps = component_remaps
+        # Remaps are not useful for a composable node, but we can forward them to the components
+        self.component_remaps = component_remaps or {}
         self.loaded_components = []
-        self._load_node_client = self.launcher.ros_adapter.create_client(
-            LoadNode, f"{self.name}/_container/load_node"
+        self._load_node_client = self.launcher.service_client(
+            f"{self.name}/_container/load_node", LoadNode
         )
         if not self._load_node_client.wait_for_service(timeout_sec=5.0):
             raise RuntimeError("Failed to connect to composer load service")
@@ -90,7 +95,7 @@ class Composer(Node):
 
         if isinstance(component_args, str):
             component_args = self.launcher.load_params(component_args)
-        
+
         if component_args:
             req.parameters.append(component_args)
 
@@ -99,12 +104,15 @@ class Composer(Node):
             remaps.update(self.component_remaps)
         if remap:
             remaps.update(remap)
-        req.remap_rules = [f"{src}:={dst}" for src,dst in remaps.items()]
+        req.remap_rules = [f"{src}:={dst}" for src, dst in remaps.items()]
 
         composer_args = {}
         composer_args.update(extra_composer_args)
         composer_args["use_intra_process_comms"] = use_intra_process_comms
-        req.extra_arguments = [composer_args]
+        req.extra_arguments = [
+            Parameter(name=k, value=v).to_parameter_msg() 
+            for k,v in composer_args.items()
+        ]
 
         # Call the load_node service
         self.logger.info(f"Loading composable node {pkg}/{plugin}...")
