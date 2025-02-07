@@ -84,12 +84,13 @@ class NodeInfoScreen(ModalScreen):
         info_text = f"""\
 [bold]{node.name} ({node.__class__.__name__})[/bold]
 Status:    {'[green]alive[/green]' if node.is_running else '[red]dead[/red]'}
+Package:   {node.package}
 Namespace: {node.namespace}
 {node_type_info}\
 
 [bold]Process:[/bold]
   PID:     {node.pid}
-  Command: {node.cmd}
+  Command: {node.executable}
   Args:    {node.node_args}
   Env:     {node.env}
 

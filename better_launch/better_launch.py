@@ -26,7 +26,7 @@ except ImportError:
 
     __uuid_generator = lambda: uuid.uuid4().hex
 
-from elements import Group, Node, Composer, LifecycleNode, LifecycleStage
+from elements import Group, Node, Composer, Component, LifecycleNode, LifecycleStage
 from utils.better_logging import log_default_colormap, RosLogFormatter
 from utils.substitutions import default_substitution_handlers, substitute_tokens
 from utils.introspection import find_calling_frame
@@ -277,6 +277,12 @@ class _BetterLaunchMeta(type):
         cls._singleton_future.set_result(obj)
         return obj
 
+    def instance(cls) -> "BetterLaunch":
+        try:
+            return cls._singleton_future.result(0.0)
+        except TimeoutError:
+            return None
+
     def wait_for_instance(cls, timeout: float = None) -> "BetterLaunch":
         return cls._singleton_future.result(timeout)
 
@@ -424,7 +430,6 @@ Takeoff in 3... 2... 1...
         for n in self.all_nodes():
             if isinstance(n, Composer):
                 components[n] = n.loaded_components
-        
         return components
 
     @staticmethod
@@ -638,9 +643,11 @@ Takeoff in 3... 2... 1...
         pkg: str,
         exec: str,
         name: str = None,
-        node_args: str | dict[str, Any] = None,
         *,
+        remap: dict[str, str] = None,
+        node_args: str | dict[str, Any] = None,
         cmd_args: list[str] = None,
+        env: dict[str, str] = None,
         log_level: int = logging.INFO,
         output_config: (
             Node.LogSink | dict[Node.LogSource, set[Node.LogSink]]
@@ -648,14 +655,11 @@ Takeoff in 3... 2... 1...
         reparse_logs: bool = True,
         anonymous: bool = False,
         hidden: bool = False,
-        remap: dict[str, str] = None,
-        env: dict[str, str] = None,
         on_exit: Callable = None,
         max_respawns: int = 0,
         respawn_delay: float = 0.0,
         use_shell: bool = False,
         emulate_tty: bool = False,
-        stderr_to_stdout: bool = False,
         start_immediately: bool = True,
         **kwargs,
     ):
@@ -674,29 +678,25 @@ Takeoff in 3... 2... 1...
         if remap:
             remaps.update(remap)
 
-        # Why do I hear mad hatter music???
-        # launch_ros/actions/node.py:497
-        ns = g.assemble_namespace()
-        remaps["__ns"] = ns
+        namespace = g.assemble_namespace()
 
-        exec_file = self.find(pkg, exec)
         node = Node(
-            self,
-            exec_file,
+            pkg,
+            exec,
             name,
-            node_args,
+            namespace,
+            remaps=remaps,
+            node_args=node_args,
             cmd_args=cmd_args,
+            env=env,
             log_level=log_level,
             output_config=output_config,
             reparse_logs=reparse_logs,
-            remap=remaps,
-            env=env,
             on_exit=on_exit,
             max_respawns=max_respawns,
             respawn_delay=respawn_delay,
             use_shell=use_shell,
             emulate_tty=emulate_tty,
-            stderr_to_stdout=stderr_to_stdout,
             start_immediately=start_immediately,
             **kwargs,
         )
@@ -710,9 +710,11 @@ Takeoff in 3... 2... 1...
         exec: str,
         name: str = None,
         target_state: LifecycleStage = LifecycleStage.PRISTINE,
-        node_args: str | dict[str, Any] = None,
         *,
+        remap: dict[str, str] = None,
+        node_args: str | dict[str, Any] = None,
         cmd_args: list[str] = None,
+        env: dict[str, str] = None,
         log_level: int = logging.INFO,
         output_config: (
             Node.LogSink | dict[Node.LogSource, set[Node.LogSink]]
@@ -720,8 +722,6 @@ Takeoff in 3... 2... 1...
         reparse_logs: bool = True,
         anonymous: bool = False,
         hidden: bool = False,
-        remap: dict[str, str] = None,
-        env: dict[str, str] = None,
         on_exit: Callable = None,
         max_respawns: int = 0,
         respawn_delay: float = 0.0,
@@ -745,24 +745,21 @@ Takeoff in 3... 2... 1...
         if remap:
             remaps.update(remap)
 
-        # Why do I hear mad hatter music???
-        # launch_ros/actions/node.py:497
-        ns = g.assemble_namespace()
-        remaps["__ns"] = ns
+        namespace = g.assemble_namespace()
 
-        exec_file = self.find(pkg, exec)
         node = LifecycleNode(
-            self,
-            exec_file,
+            pkg,
+            exec,
             name,
-            node_args,
+            namespace,
             target_state,
+            remaps=remaps,
+            node_args=node_args,
             cmd_args=cmd_args,
+            env=env,
             log_level=log_level,
             output_config=output_config,
             reparse_logs=reparse_logs,
-            remap=remaps,
-            env=env,
             on_exit=on_exit,
             max_respawns=max_respawns,
             respawn_delay=respawn_delay,
@@ -780,8 +777,12 @@ Takeoff in 3... 2... 1...
         name: str,
         language: str = "cpp",
         composer_mode: Composer.ComposerMode = "normal",
-        component_remaps: dict[str, str] = None,
         *,
+        component_remaps: dict[str, str] = None,
+        composer_remaps: dict[str, str] = None,
+        node_args: str | dict[str, Any] = None,
+        cmd_args: list[str] = None,
+        env: dict[str, str] = None,
         log_level: int = logging.INFO,
         output_config: (
             Node.LogSink | dict[Node.LogSource, set[Node.LogSink]]
@@ -789,8 +790,6 @@ Takeoff in 3... 2... 1...
         reparse_logs: bool = True,
         anonymous: bool = False,
         hidden: bool = False,
-        composer_remaps: dict[str, str] = None,
-        env: dict[str, str] = None,
         on_exit: Callable = None,
         max_respawns: int = 0,
         respawn_delay: float = 0.0,
@@ -807,29 +806,27 @@ Takeoff in 3... 2... 1...
         if hidden and not name.startswith("_"):
             name = "_" + name
 
-        # Remaps apply to the
-        # Assemble additional node remaps from our group branch
+        # NOTE: Remaps apply to the components, not the composer
         g = self.group_tip
         remaps = g.assemble_remaps()
-        if composer_remaps:
-            remaps.update(composer_remaps)
+        if component_remaps:
+            remaps.update(component_remaps)
 
-        # Why do I hear mad hatter music???
-        # launch_ros/actions/node.py:497
-        ns = g.assemble_namespace()
-        remaps["__ns"] = ns
+        namespace = g.assemble_namespace()
 
         comp = Composer(
-            self,
             name,
+            namespace,
             language,
-            composer_mode=composer_mode,
-            component_remaps=component_remaps,
+            composer_mode,
+            component_remaps=remaps,
+            composer_remaps=composer_remaps,
+            node_args=node_args,
+            cmd_args=cmd_args,
+            env=env,
             log_level=log_level,
             output_config=output_config,
             reparse_logs=reparse_logs,
-            composer_remaps=remaps,
-            env=env,
             on_exit=on_exit,
             max_respawns=max_respawns,
             respawn_delay=respawn_delay,
@@ -850,23 +847,21 @@ Takeoff in 3... 2... 1...
         pkg: str,
         plugin: str,
         name: str,
-        component_args: str | dict[str, Any] = None,
         *,
         remap: dict[str, str] = None,
-        apply_composer_remaps: bool = True,
+        component_args: str | dict[str, Any] = None,
         use_intra_process_comms: bool = True,
         **extra_composer_args: dict,
-    ):
+    ) -> Component:
         if self._composition_node is None:
             raise RuntimeError("Cannot add component outside a compose() node")
 
-        self._composition_node.add_component(
+        return self._composition_node.add_component(
             pkg,
             plugin,
             name,
-            component_args,
-            remap=remap,
-            apply_composer_remaps=apply_composer_remaps,
+            remaps=remap,
+            component_args=component_args,
             use_intra_process_comms=use_intra_process_comms,
             **extra_composer_args,
         )

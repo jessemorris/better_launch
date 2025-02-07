@@ -32,6 +32,7 @@ class BetterUI(App):
         Binding("f2", "toggle_log_names", "Names"),
         Binding("f3", "toggle_log_icons", "Icons"),
         Binding("f9", "toggle_mute", "Mute/Unmute"),
+        Binding("ctrl+q", "quit", "Quit"),
     ]
 
     DEFAULT_CSS = """
@@ -289,3 +290,13 @@ class BetterUI(App):
 
     def action_close_node_menu(self):
         self.node_menu.display = False
+
+    def action_quit(self):
+        def on_quit_choice(reply: str):
+            if reply == "yes":
+                self.exit()
+
+        self.push_screen(
+            ChoiceDialog(["yes", "no"], "Quit launcher and terminate all nodes?"),
+            on_quit_choice,
+        )
