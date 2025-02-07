@@ -1,5 +1,6 @@
 from textual.binding import Binding
 from textual.widgets import ListView, ListItem, Label, Static
+from textual.containers import VerticalGroup
 from textual.screen import ModalScreen
 
 
@@ -10,12 +11,26 @@ class ChoiceDialog(ModalScreen):
     ChoiceDialog {
         background: rgba(0, 0, 0, 0.3);
         align: center middle;
+        width: auto;
+        height: auto;
 
-        ListView {
-            max_width: 30;
-            width: auto;
+        VerticalGroup {
+            margin: 1;
+            width: 100%;
             height: auto;
-            padding: 1 2;
+            max-width: 40;
+            content-align: center middle;
+
+            #message {
+                background: $panel;
+                padding: 1;
+            }
+
+            #choices {
+                width: 100%;
+                height: auto;
+                padding: 1 2    ;
+            }
         }
     }
     """
@@ -41,11 +56,18 @@ class ChoiceDialog(ModalScreen):
         self.title = title
 
     def compose(self):
-        if self.message:
-            yield Label(self.message)
+        if self.title:
+            yield Label(self.title)
 
-        items = [ChoiceDialog.ChoiceItem(choice) for choice in self.choices]
-        yield ListView(*items)
+        with VerticalGroup():
+            if self.message:
+                yield Static(self.message, id="message")
+
+            items = [
+                ChoiceDialog.ChoiceItem(choice, classes="choice")
+                for choice in self.choices
+            ]
+            yield ListView(*items, id="choices")
 
     def on_list_view_selected(self, event: ListView.Selected):
         self.dismiss(event.item.action)

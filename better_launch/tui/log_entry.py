@@ -3,10 +3,13 @@ import logging
 from textual.widgets import Static
 from textual.containers import HorizontalGroup
 from textual.color import Color
-from rich.color import Color as RichColor
+
+from utils.colors import get_contrast_color
 
 
 class LogEntry(HorizontalGroup):
+    _source_colormap = {}
+
     # https://coolors.co/d621ff-ef476f-ffd166-2a6eff-858585
     colormap = {
         "DEBUG": Color(133, 133, 133).css,
@@ -17,11 +20,11 @@ class LogEntry(HorizontalGroup):
     }
 
     iconmap = {
-        "DEBUG": "⚑",  # "›»§🔍",
-        "INFO": "✓",  # "●@#i🏷️",
-        "WARNING": "▲",  # "🚧",
-        "ERROR": "⨯",  # "✗!🛑",
-        "CRITICAL": "🔥",  # "🔥⚡",
+        "DEBUG": "⚑",  # "›»§🔍"
+        "INFO": "✓",  # "●@#i🏷️"
+        "WARNING": "▲",  # "🚧"
+        "ERROR": "⨯",  # "✗!🛑"
+        "CRITICAL": " 🔥",  # "🔥⚡" (initial space gets swallowed)
     }
 
     def __init__(
@@ -31,12 +34,17 @@ class LogEntry(HorizontalGroup):
         super().__init__()
         self.record = record
 
+    def get_color_for_source(self, source: str) -> Color:
+        if source not in LogEntry._source_colormap:
+            LogEntry._source_colormap[source] = Color(*get_contrast_color())
+        return LogEntry._source_colormap[source]
+
     def compose(self):
         r = self.record
 
         source = Static(f"{r.name}:", id="source")
-        r_color = getattr(r, "sourcecolor_int", 1)
-        source.styles.color = Color.from_rich_color(RichColor.from_ansi(r_color))
+        # TODO could also use r.rgb, but its existence depends on where the log comes from
+        source.styles.color = self.get_color_for_source(r.name)
         yield source
 
         icon = Static(LogEntry.iconmap.get(r.levelname, "INFO"), id="icon")
