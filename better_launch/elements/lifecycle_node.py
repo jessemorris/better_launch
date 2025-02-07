@@ -48,37 +48,41 @@ _transition_map = {
 class LifecycleNode(Node):
     def __init__(
         self,
-        launcher,
+        package: str,
         executable: str,
         name: str,
+        namespace: str,
         target_stage: int = LifecycleStage.PRISTINE,
-        node_args: dict[str, Any] = None,
         *,
+        remaps: dict[str, str] = None,
+        node_args: dict[str, Any] = None,
         cmd_args: list[str] = None,
+        env: dict[str, str] = None,
         log_level: int = logging.INFO,
         output_config: (
             Node.LogSink | dict[Node.LogSource, set[Node.LogSink]]
         ) = "screen",
         reparse_logs: bool = True,
-        remap: dict[str, str] = None,
-        env: dict[str, str] = None,
         on_exit: Callable = None,
         max_respawns: int = 0,
         respawn_delay: float = 0.0,
         use_shell: bool = False,
         emulate_tty: bool = False,
     ):
+        from better_launch import BetterLaunch
+
         super().__init__(
-            launcher,
+            package,
             executable,
             name,
-            node_args,
+            namespace,
+            node_args=node_args,
+            remaps=remaps,
             cmd_args=cmd_args,
+            env=env,
             log_level=log_level,
             output_config=output_config,
             reparse_logs=reparse_logs,
-            remap=remap,
-            env=env,
             on_exit=on_exit,
             max_respawns=max_respawns,
             respawn_delay=respawn_delay,
@@ -90,6 +94,7 @@ class LifecycleNode(Node):
         self.current_stage = LifecycleStage.PRISTINE
         self.current_state_id = State.PRIMARY_STATE_UNCONFIGURED
 
+        launcher = BetterLaunch.instance()
         self._state_sub = launcher.ros_adapter.ros_node.create_subscription(
             TransitionEvent,
             f"{self.fullname}/transition_event",

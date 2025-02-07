@@ -15,69 +15,51 @@ from concurrent.futures import Future
 from pprint import pformat
 from textwrap import indent
 
+from .abstract_node import AbstractNode
 from ros import logging as roslog
 from utils.better_logging import RosLogFormatter
 
 
-_node_counter = 0
-
-
-class Node:
+class Node(AbstractNode):
     # See ros/logging.py for details
     LogSource = Literal["stdout", "stderr", "both"]
     LogSink = Literal["screen", "log", "both", "own_log", "full"]
 
     def __init__(
         self,
-        launcher: "BetterLaunch",
+        pkg: str,
         executable: str,
         name: str,
-        node_args: str | dict[str, Any] = None,
+        namespace: str,
         *,
+        remaps: dict[str, str] = None,
+        node_args: str | dict[str, Any] = None,
         cmd_args: list[str] = None,
+        env: dict[str, str] = None,
+        isolate_env: bool = False,
         log_level: int = logging.INFO,
         output_config: LogSink | dict[LogSource, set[LogSink]] = "screen",
         reparse_logs: bool = True,
-        remap: dict[str, str] = None,
-        env: dict[str, str] = None,
-        isolate_env: bool = False,
         on_exit: Callable = None,
         max_respawns: int = 0,
         respawn_delay: float = 0.0,
         use_shell: bool = False,
         emulate_tty: bool = False,
-        stderr_to_stdout: bool = False,
         start_immediately: bool = True,
     ):
-        global _node_counter
-        self.node_id = _node_counter
-        _node_counter += 1
+        super().__init__(pkg, executable, name, namespace, node_args, remaps)
 
-        self.launcher = launcher
-
-        if not name:
-            raise ValueError("Name cannot be empty")
-
-        if not executable:
-            raise ValueError("No executable provided")
-
-        self.name = name
-        self.cmd = executable
         self.env = env or {}
         self.isolate_env = isolate_env
-        self.node_args = node_args or {}
         self.cmd_args = ["--log-level", logging.getLevelName(log_level)]
         if cmd_args:
             self.cmd_args.extend(cmd_args)
-        self.remap = remap or {}
-        # launch_ros/actions/node.py:495
-        self.remap["__node"] = name
 
         self.logger = roslog.get_logger(self.fullname)
         self.output_config = output_config or {}
         self.reparse_logs = reparse_logs
 
-        self._process = None
+        self._process: subprocess.Popen = None
         self.completed_future = None
         self.shutdown_future = None
         self.on_exit_callback = on_exit
@@ -89,7 +71,6 @@ class Node:
         self.respawn_delay = respawn_delay
         self.use_shell = use_shell
         self.emulate_tty = emulate_tty
-        self.stderr_to_stdout = stderr_to_stdout
 
         self._load_node_client = None
 
@@ -97,26 +78,15 @@ class Node:
             self.start()
 
     @property
-    def namespace(self):
-        return self.remap.get("__ns", "/")
-
-    @property
-    def fullname(self):
-        return self.namespace + "/" + self.name
-
-    @property
     def is_running(self):
         return (
             self._process is not None
+            and self._process.poll() is None
             and self.shutdown_future is not None
             and not self.shutdown_future.done()
             and self.completed_future is not None
             and not self.completed_future.done()
         )
-
-    @property
-    def is_shutdown(self):
-        return self.launcher.is_shutdown
 
     @property
     def pid(self):
@@ -125,7 +95,10 @@ class Node:
         return self._process.pid
 
     def start(self):
-        if self.is_shutdown:
+        from better_launch import BetterLaunch
+
+        launcher = BetterLaunch.instance()
+        if launcher.is_shutdown:
             self.logger.warning(
                 f"Node {self} will not be started as the launcher has already shut down"
             )
@@ -145,7 +118,8 @@ class Node:
                 f"{self.name}-{self.node_id}", self.output_config
             )
 
-            final_cmd = [self.cmd] + self.cmd_args + ["--ros-args"]
+            cmd = launcher.find(self.package, self.executable)
+            final_cmd = [cmd] + self.cmd_args + ["--ros-args"]
 
             # Attach additional node args
             for key, value in self.node_args.items():
@@ -153,7 +127,7 @@ class Node:
 
             # Remappings become part of the command's ros-args
             # launch_ros/actions/node.py:206
-            for src, dst in self.remap.items():
+            for src, dst in self.remaps.items():
                 # launch_ros/actions/node.py:481
                 final_cmd.extend(["-r", f"{src}:={dst}"])
 
@@ -164,7 +138,7 @@ class Node:
                 final_env = self.env
             else:
                 final_env = dict(os.environ) | self.env
-
+            
             if self.reparse_logs:
                 final_env["RCUTILS_CONSOLE_OUTPUT_FORMAT"] = (
                     "%%{severity}%%{time}%%{message}"
@@ -229,63 +203,18 @@ class Node:
                 if not events:
                     break
 
-                for key, _ in events:
-                    logger, buffer = key.data
-                    if gather:
-                        try:
-                            buffer.write(key.fileobj.read())
-                        except IOError:
-                            # No data available despite the selector notifying us
-                            logger.error(
-                                f"Failed to read process pipe, this should not happen",
-                            )
-                            break
-
-                        buffer.seek(0)
-                        last_line = None
-                        lines = []
-
-                        # Exhaust the buffer, then log whatever we collected as one message
-                        for line in buffer:
-                            if line.endswith(os.linesep):
-                                lines.append(line.strip(os.linesep))
-                            else:
-                                last_line = line
-                                break
-
-                        buffer.seek(0)
-                        buffer.truncate(0)
-                        if last_line is not None:
-                            buffer.write(last_line)
-
-                        bundle = "\n".join(lines)
-                        if bundle:
-                            logger.info(bundle)
-                    else:
-                        try:
-                            buffer.write(key.fileobj.read())
-                        except IOError:
-                            # No data available despite the selector notifying us
-                            logger.error(
-                                f"Failed to read process pipe, this should not happen",
-                            )
-                            break
-
-                        buffer.seek(0)
-                        last_line = None
-
-                        # Log every line immediately
-                        for line in buffer:
-                            if line.endswith(os.linesep):
-                                logger.info(line)
-                            else:
-                                last_line = line
-                                break
-
-                        buffer.seek(0)
-                        buffer.truncate(0)
-                        if last_line is not None:
-                            buffer.write(last_line)
+                try:
+                    for key, _ in events:
+                        logger, buffer = key.data
+                        if gather:
+                            self._collect_output_bundled(key.fileobj, buffer, logger)
+                        else:
+                            self._collect_output_linewise(key.fileobj, buffer, logger)
+                except IOError:
+                    # No data available despite the selector notifying us
+                    logger.error(
+                        f"Failed to read process pipe, this should not happen",
+                    )
 
             returncode = process.wait()
 
@@ -293,15 +222,17 @@ class Node:
                 self.logger.info(f"Process has finished cleanly [pid {process.pid}]")
             else:
                 self.logger.error(
-                    f"Process has died [pid {process.pid}, exit code {returncode}, cmd '{self.cmd}']"
+                    f"Process has died [pid {process.pid}, exit code {returncode}, cmd '{self.package}/{self.executable}']"
                 )
         finally:
             if self.on_exit_callback:
                 self.on_exit_callback()
 
             # Respawn the process if necessary
+            from better_launch import BetterLaunch
+
             if (
-                not self.is_shutdown
+                not BetterLaunch.instance().is_shutdown
                 and self.shutdown_future is not None
                 and not self.shutdown_future.done()
                 and (self.max_respawns < 0 or self.respawn_retries < self.max_respawns)
@@ -314,8 +245,50 @@ class Node:
                     self.start()
                     return
 
+            process.wait()
             self._on_shutdown()
             self._cleanup()
+
+    def _collect_output_bundled(self, source: io.IOBase, buffer: io.StringIO, logger: logging.Logger):
+        buffer.write(source.read())
+        buffer.seek(0)
+        last_line = None
+        lines = []
+
+        # Exhaust the buffer, then log whatever we collected as one message
+        for line in buffer:
+            if line.endswith(os.linesep):
+                lines.append(line.strip(os.linesep))
+            else:
+                last_line = line
+                break
+
+        buffer.seek(0)
+        buffer.truncate(0)
+        if last_line is not None:
+            buffer.write(last_line)
+
+        bundle = "\n".join(lines)
+        if bundle:
+            logger.info(bundle)
+
+    def _collect_output_linewise(self, source: io.IOBase, buffer: io.StringIO, logger: logging.Logger):
+        buffer.write(source.read())
+        buffer.seek(0)
+        last_line = None
+
+        # Log every line immediately
+        for line in buffer:
+            if line.endswith(os.linesep):
+                logger.info(line)
+            else:
+                last_line = line
+                break
+
+        buffer.seek(0)
+        buffer.truncate(0)
+        if last_line is not None:
+            buffer.write(last_line)
 
     def shutdown(self, reason: str, signum: int = signal.SIGTERM):
         signame = signal.Signals(signum).name
@@ -406,4 +379,4 @@ class Node:
         self.my_task = None
 
     def __repr__(self):
-        return f"{self.name} [node {self.node_id}, cmd {self.cmd}, pid {self.pid}, running {self.is_running}]"
+        return f"{self.name} [node {self.node_id}, cmd {self.package}/{self.executable}, pid {self.pid}, running {self.is_running}]"
