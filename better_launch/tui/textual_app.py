@@ -19,7 +19,7 @@ from utils.better_logging import LogRecordForwarder
 
 from elements import Node, LifecycleNode, Composer, LifecycleStage
 from .log_entry import LogEntry
-from .sidebar import NodeLabel, NodeInfoScreen
+from .node_menu import NodeLabel, NodeInfoScreen
 from .choice_dialog import ChoiceDialog
 
 

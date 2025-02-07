@@ -56,26 +56,30 @@ class NodeInfoScreen(ModalScreen):
         if isinstance(node, LifecycleNode):
             node_type_info = f"Stage:     {node.current_stage.name.capitalize()}\n"
         elif isinstance(node, Composer):
-            components = [f"  - {c}\n" for c in node.loaded_components]
+            components = "\n".join([f"  - {c}" for c in node.loaded_components])
             node_type_info = f"\n[bold]Components:[/bold]\n{components}\n"
 
-        # Topics the node is publishing
-        pubs = shared_node.get_publisher_names_and_types_by_node(
-            node.name, node.namespace
-        )
-        pubs.sort()
-        pubs_text = ""
-        for topic, types in pubs:
-            pubs_text += f"\n  {topic} [{', '.join(types)}]"
+        if node.is_running:
+            # Topics the node is publishing
+            pubs = shared_node.get_publisher_names_and_types_by_node(
+                node.name, node.namespace
+            )
+            pubs.sort()
+            pubs_text = ""
+            for topic, types in pubs:
+                pubs_text += f"\n  {topic} [{', '.join(types)}]"
 
-        # Topics the node is subscribed to
-        subs = shared_node.get_subscriber_names_and_types_by_node(
-            node.name, node.namespace
-        )
-        subs.sort()
-        subs_text = ""
-        for topic, types in subs:
-            subs_text += f"\n  {topic} [{', '.join(types)}]"
+            # Topics the node is subscribed to
+            subs = shared_node.get_subscriber_names_and_types_by_node(
+                node.name, node.namespace
+            )
+            subs.sort()
+            subs_text = ""
+            for topic, types in subs:
+                subs_text += f"\n  {topic} [{', '.join(types)}]"
+        else:
+            pubs_text = ""
+            subs_text = ""
 
         info_text = f"""\
 [bold]{node.name} ({node.__class__.__name__})[/bold]
