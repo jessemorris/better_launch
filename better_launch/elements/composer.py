@@ -121,7 +121,7 @@ class Composer(Node):
         if res.success:
             if res.full_node_name:
                 name = res.full_node_name
-            self.loaded_components.append(name)
+            self.loaded_components.append(f"{name} ({plugin})")
             self.logger.info(f"Loaded {pkg}/{plugin} as {name}")
         else:
             self.logger.error(f"Loading {pkg}/{plugin} failed: {res.error_message}")
