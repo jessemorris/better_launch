@@ -419,6 +419,14 @@ Takeoff in 3... 2... 1...
 
         return nodes
 
+    def all_components(self) -> dict[Node, list[str]]:
+        components = {}
+        for n in self.all_nodes():
+            if isinstance(n, Composer):
+                components[n] = n.loaded_components
+        
+        return components
+
     @staticmethod
     def ros_version():
         """

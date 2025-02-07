@@ -43,5 +43,6 @@ def test(enable_x: bool):
         )
 
     with bl.compose("composed"):
+        # TODO should implement a Component class so it can be used to manipulate components
         bl.component("composition", "composition::Talker", "comp_talker")
         bl.component("composition", "composition::Listener", "comp_listener")
