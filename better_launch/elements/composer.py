@@ -37,8 +37,11 @@ class Component(AbstractNode):
 
     @property
     def is_running(self) -> bool:
-        # TODO
-        raise NotImplementedError
+        from better_launch import BetterLaunch
+
+        bl = BetterLaunch.instance()
+        living_nodes = bl.shared_node.get_fully_qualified_node_names()
+        return self.fullname in living_nodes
 
     def shutdown(self) -> None:
         self.composer.unload_component(self)
@@ -153,8 +156,10 @@ class Composer(Node):
             component_args = BetterLaunch.instance().load_params(component_args)
 
         if component_args:
-            # TODO must probably be Parameters? See extra_arguments below
-            req.parameters.append(component_args)
+            req.parameters.extend([
+                Parameter(name=k, value=v).to_parameter_msg()
+                for k, v in component_args.items()
+            ])
 
         remaps = {}
         remaps.update(self.component_remaps)

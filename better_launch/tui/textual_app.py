@@ -245,6 +245,7 @@ class BetterUI(App):
 
             elif action == "components":
                 # TODO should provide info on each component like subscribers and publishers
+                # TODO components can also be unloaded via their shutdown
                 self.notify("components not implemented yet", timeout=2.0)
 
             elif action == "kill":
