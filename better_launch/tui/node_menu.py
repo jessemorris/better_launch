@@ -24,10 +24,6 @@ class NodeLabel(HorizontalGroup):
             height: 1;
             width: 100%;
         }
-
-        &.-highlight {
-            text-style: italic;
-        }
     }
     """
 
