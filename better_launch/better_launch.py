@@ -318,7 +318,7 @@ class BetterLaunch(metaclass=_BetterLaunchMeta):
             root_namespace = "/"
         root_namespace = "/" + root_namespace.strip("/")
 
-        self._group_root = Group(self, None, root_namespace)
+        self._group_root = Group(None, root_namespace)
         self._group_stack = deque()
         self._group_stack.append(self._group_root)
 
@@ -433,7 +433,7 @@ Takeoff in 3... 2... 1...
         components = {}
         for n in self.all_nodes():
             if isinstance(n, Composer):
-                components[n] = n.loaded_components
+                components[n] = n._loaded_components
         return components
 
     @staticmethod
@@ -634,7 +634,7 @@ Takeoff in 3... 2... 1...
         if self._composition_node:
             raise RuntimeError("Cannot add groups inside a composition node")
 
-        group = Group(self, self.group_tip, ns)
+        group = Group(self.group_tip, ns)
         self.group_tip.add_group(group)
         self._group_stack.append(group)
         try:

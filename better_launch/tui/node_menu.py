@@ -97,9 +97,9 @@ class NodeInfoScreen(ModalScreen):
         # Additional information about the node subclass
         node_type_info = ""
         if isinstance(node, LifecycleNode):
-            node_type_info = f"Stage:     {node.current_stage.name.capitalize()}\n"
+            node_type_info = f"Stage:     {node._current_stage.name.capitalize()}\n"
         elif isinstance(node, Composer):
-            components = "\n".join([f"  - {c}" for c in node.loaded_components])
+            components = "\n".join([f"  - {c}" for c in node._loaded_components])
             node_type_info = f"\n[bold]Components:[/bold]\n{components}\n"
 
         if node.is_running:

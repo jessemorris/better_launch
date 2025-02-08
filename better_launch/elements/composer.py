@@ -32,6 +32,10 @@ class Component(AbstractNode):
         return self._composer
 
     @property
+    def is_loaded(self) -> bool:
+        return self._composer and self in self._composer._loaded_components
+
+    @property
     def plugin(self) -> str:
         return self._exec
 
@@ -39,6 +43,7 @@ class Component(AbstractNode):
     def is_running(self) -> bool:
         from better_launch import BetterLaunch
 
+        # Being loaded doesn't mean we're still running, check if the node is registered in ROS
         bl = BetterLaunch.instance()
         living_nodes = bl.shared_node.get_fully_qualified_node_names()
         return self.fullname in living_nodes
@@ -46,7 +51,7 @@ class Component(AbstractNode):
     def shutdown(self) -> None:
         self.composer.unload_component(self)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return __class__.__name__ + " " + self.fullname
 
 
@@ -76,10 +81,6 @@ class Composer(Node):
         use_shell: bool = False,
         emulate_tty: bool = False,
     ):
-        from better_launch import BetterLaunch
-
-        launcher = BetterLaunch.wait_for_instance(0.0)
-
         # NOTE: we don't support referencing an already existing composer. If you want to reuse
         # the container, just keep a reference to it.
 
@@ -114,11 +115,14 @@ class Composer(Node):
             start_immediately=True,
         )
 
-        self.language = language
+        self._language = language
         # Remaps are not useful for a composable node, but we can forward them to the components
-        self.component_remaps = component_remaps or {}
-        self.loaded_components = []
+        self._component_remaps = component_remaps or {}
+        self._loaded_components = []
         
+        from better_launch import BetterLaunch
+
+        launcher = BetterLaunch.wait_for_instance(0.0)
         self._load_node_client = launcher.service_client(
             f"{self.name}/_container/load_node", LoadNode
         )
@@ -130,6 +134,10 @@ class Composer(Node):
         )
         if not self._unload_node_client.wait_for_service(timeout_sec=5.0):
             raise RuntimeError("Failed to connect to composer unload service")
+
+    @property
+    def language(self) -> str:
+        return self._language
 
     def add_component(
         self,
@@ -162,7 +170,7 @@ class Composer(Node):
             ])
 
         remaps = {}
-        remaps.update(self.component_remaps)
+        remaps.update(self._component_remaps)
         if remaps:
             remaps.update(remaps)
         req.remap_rules = [f"{src}:={dst}" for src, dst in remaps.items()]
@@ -193,7 +201,7 @@ class Composer(Node):
                 component_args,
                 remaps,
             )
-            self.loaded_components.append(comp)
+            self._loaded_components.append(comp)
             self.logger.info(f"Loaded component {pkg}/{plugin} as {name}")
             return comp
         else:
@@ -204,13 +212,13 @@ class Composer(Node):
         if isinstance(component, Component):
             cid = component.component_id
         else:
-            for c in self.loaded_components:
+            for c in self._loaded_components:
                 if c.component_id == component:
                     cid = c.component_idFalse
                     component = c
                     break
 
-        if component not in self.loaded_components:
+        if component not in self._loaded_components:
             self.logger.warning(f"Unloading component not belonging to this composer")
 
         req = UnloadNode()
@@ -221,7 +229,7 @@ class Composer(Node):
 
         if res.success:
             try:
-                self.loaded_components.remove(component)
+                self._loaded_components.remove(component)
             except ValueError:
                 pass
 

@@ -59,26 +59,24 @@ class Node(AbstractNode):
         self.output_config = output_config or {}
         self.reparse_logs = reparse_logs
 
-        self._process: subprocess.Popen = None
         self.completed_future = None
         self.shutdown_future = None
-        self.on_exit_callback = on_exit
-        self.sigterm_timer = None
-        self.sigkill_timer = None
+        self._process: subprocess.Popen = None
+        self._on_exit_callback = on_exit
+        self._sigterm_timer = None
+        self._sigkill_timer = None
 
-        self.respawn_retries = 0
+        self._respawn_retries = 0
         self.max_respawns = max_respawns
         self.respawn_delay = respawn_delay
         self.use_shell = use_shell
         self.emulate_tty = emulate_tty
 
-        self._load_node_client = None
-
         if start_immediately:
             self.start()
 
     @property
-    def is_running(self):
+    def is_running(self) -> bool:
         return (
             self._process is not None
             and self._process.poll() is None
@@ -89,12 +87,12 @@ class Node(AbstractNode):
         )
 
     @property
-    def pid(self):
+    def pid(self) -> int:
         if not self.is_running:
             return -1
         return self._process.pid
 
-    def start(self):
+    def start(self) -> None:
         from better_launch import BetterLaunch
 
         launcher = BetterLaunch.instance()
@@ -138,7 +136,7 @@ class Node(AbstractNode):
                 final_env = self.env
             else:
                 final_env = dict(os.environ) | self.env
-            
+
             if self.reparse_logs:
                 final_env["RCUTILS_CONSOLE_OUTPUT_FORMAT"] = (
                     "%%{severity}%%{time}%%{message}"
@@ -184,7 +182,7 @@ class Node(AbstractNode):
         logout: logging.Logger,
         logerr: logging.Logger,
         gather: bool = True,
-    ):
+    ) -> None:
         outbuf = io.StringIO()
         errbuf = io.StringIO()
 
@@ -225,8 +223,8 @@ class Node(AbstractNode):
                     f"Process has died [pid {process.pid}, exit code {returncode}, cmd '{self.package}/{self.executable}']"
                 )
         finally:
-            if self.on_exit_callback:
-                self.on_exit_callback()
+            if self._on_exit_callback:
+                self._on_exit_callback()
 
             # Respawn the process if necessary
             from better_launch import BetterLaunch
@@ -235,9 +233,9 @@ class Node(AbstractNode):
                 not BetterLaunch.instance().is_shutdown
                 and self.shutdown_future is not None
                 and not self.shutdown_future.done()
-                and (self.max_respawns < 0 or self.respawn_retries < self.max_respawns)
+                and (self.max_respawns < 0 or self._respawn_retries < self.max_respawns)
             ):
-                self.respawn_retries += 1
+                self._respawn_retries += 1
                 if self.respawn_delay > 0.0:
                     time.sleep(self.respawn_delay)
 
@@ -249,7 +247,9 @@ class Node(AbstractNode):
             self._on_shutdown()
             self._cleanup()
 
-    def _collect_output_bundled(self, source: io.IOBase, buffer: io.StringIO, logger: logging.Logger):
+    def _collect_output_bundled(
+        self, source: io.IOBase, buffer: io.StringIO, logger: logging.Logger
+    ) -> None:
         buffer.write(source.read())
         buffer.seek(0)
         last_line = None
@@ -272,7 +272,9 @@ class Node(AbstractNode):
         if bundle:
             logger.info(bundle)
 
-    def _collect_output_linewise(self, source: io.IOBase, buffer: io.StringIO, logger: logging.Logger):
+    def _collect_output_linewise(
+        self, source: io.IOBase, buffer: io.StringIO, logger: logging.Logger
+    ) -> None:
         buffer.write(source.read())
         buffer.seek(0)
         last_line = None
@@ -290,14 +292,14 @@ class Node(AbstractNode):
         if last_line is not None:
             buffer.write(last_line)
 
-    def shutdown(self, reason: str, signum: int = signal.SIGTERM):
+    def shutdown(self, reason: str, signum: int = signal.SIGTERM) -> None:
         signame = signal.Signals(signum).name
         self.logger.warning(
             f"{self.name} received shutdown request: {reason} ({signame})"
         )
         self._on_signal(signum)
 
-    def _on_signal(self, signum):
+    def _on_signal(self, signum) -> None:
         signame = signal.Signals(signum).name
 
         if not self.is_running:
@@ -329,7 +331,7 @@ class Node(AbstractNode):
                 f"'{signame}' not sent to '{self.name}' because it has closed already"
             )
 
-    def _on_shutdown(self):
+    def _on_shutdown(self) -> None:
         if self.shutdown_future is None or self.shutdown_future.done():
             # Execution not started or already done, nothing to do.
             return
@@ -362,12 +364,12 @@ class Node(AbstractNode):
 
         threading.Thread(target=escalate, daemon=True).start()
 
-    def _cleanup(self):
+    def _cleanup(self) -> None:
         # Cancel any pending timers we started.
-        if self.sigterm_timer is not None:
-            self.sigterm_timer.cancel()
-        if self.sigkill_timer is not None:
-            self.sigkill_timer.cancel()
+        if self._sigterm_timer is not None:
+            self._sigterm_timer.cancel()
+        if self._sigkill_timer is not None:
+            self._sigkill_timer.cancel()
 
         # Signal that we're done to the launch system.
         if self.completed_future is not None:
@@ -378,5 +380,5 @@ class Node(AbstractNode):
 
         self.my_task = None
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"{self.name} [node {self.node_id}, cmd {self.package}/{self.executable}, pid {self.pid}, running {self.is_running}]"
