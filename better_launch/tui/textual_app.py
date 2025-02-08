@@ -159,7 +159,7 @@ class BetterUI(App):
         self.launch_func()
 
         bl = BetterLaunch.wait_for_instance()
-        self.sub_title = os.path.basename(bl._launchfile)
+        self.sub_title = os.path.basename(bl.launchfile)
         self.call_later(self.add_nodes_to_sidebar)
         bl.spin()
         self.exit("BetterLaunch terminated")
