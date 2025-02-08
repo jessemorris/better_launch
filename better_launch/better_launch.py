@@ -266,10 +266,10 @@ class _BetterLaunchMeta(type):
 
     # Allows reusing an already existing BetterLaunch instance.
     # Important for launch file includes.
-    # TODO should calling again with different args have any effect on the existing instance?
     def __call__(cls, *args, **kwargs):
         existing_instance = globals().get(_bl_singleton_instance, None)
         if existing_instance is not None:
+            # TODO raise or warn
             return existing_instance
 
         obj = cls.__new__(cls, *args, **kwargs)

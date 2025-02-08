@@ -244,7 +244,7 @@ class BetterUI(App):
                 )
 
             elif action == "components":
-                # TODO 
+                # TODO should provide info on each component like subscribers and publishers
                 self.notify("components not implemented yet", timeout=2.0)
 
             elif action == "kill":
