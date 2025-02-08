@@ -91,8 +91,8 @@ class LifecycleNode(Node):
             start_immediately=True,
         )
 
-        self.current_stage = LifecycleStage.PRISTINE
-        self.current_state_id = State.PRIMARY_STATE_UNCONFIGURED
+        self._current_stage = LifecycleStage.PRISTINE
+        self._current_state_id = State.PRIMARY_STATE_UNCONFIGURED
 
         launcher = BetterLaunch.instance()
         self._state_sub = launcher.ros_adapter.ros_node.create_subscription(
@@ -111,16 +111,24 @@ class LifecycleNode(Node):
         if target_stage > LifecycleStage.PRISTINE:
             self.transition(target_stage)
 
-    def _on_transition_event(self, evt: TransitionEvent):
-        self.current_state_id = evt.goal_state.id
+    @property
+    def stage(self) -> LifecycleStage:
+        return self._current_stage
+
+    @property
+    def state_id(self) -> int:
+        return self._current_state_id
+
+    def _on_transition_event(self, evt: TransitionEvent) -> None:
+        self._current_state_id = evt.goal_state.id
         for key, val in _stage_to_state_map.items():
             if val == evt.goal_state.id:
-                self.current_stage = key
+                self._current_stage = key
                 break
         else:
-            self.current_stage = -1
+            self._current_stage = -1
 
-    def _find_transition_path(start_state, goal_state):
+    def _find_transition_path(start_state: int, goal_state: int) -> list[int]:
         # Queue for BFS: (current_state, path_to_state)
         queue = deque([(start_state, [])])
         visited = set()
@@ -155,12 +163,12 @@ class LifecycleNode(Node):
         # Figure out if and how we can get from our current state to the target state
         target_state_id = _stage_to_state_map[target_stage]
         transition_path = self._find_transition_path(
-            self.current_state_id, target_state_id
+            self._current_state_id, target_state_id
         )
 
         if not transition_path:
             raise ValueError(
-                f"Could not find a valid transition sequence for {self.current_stage}->{target_stage}"
+                f"Could not find a valid transition sequence for {self._current_stage}->{target_stage}"
             )
 
         for transition in transition_path:
