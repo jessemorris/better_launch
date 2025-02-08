@@ -1,7 +1,7 @@
 from typing import Any, Callable, Mapping, Literal
 import logging
 from rclpy import Parameter
-from composition_interfaces.srv import LoadNode
+from composition_interfaces.srv import LoadNode, UnloadNode
 
 from .abstract_node import AbstractNode
 from .node import Node
@@ -11,15 +11,21 @@ class Component(AbstractNode):
     def __init__(
         self,
         composer: "Composer",
+        component_id: int,
         package: str,
         executable: str,
         name: str,
         namespace: str,
         node_args: list[str] = None,
-        remaps : dict[str, str] = None,
+        remaps: dict[str, str] = None,
     ):
         super().__init__(package, executable, name, namespace, node_args, remaps)
+        self._component_id = component_id
         self._composer = composer
+
+    @property
+    def component_id(self) -> int:
+        return self._component_id
 
     @property
     def composer(self) -> "Composer":
@@ -35,8 +41,7 @@ class Component(AbstractNode):
         raise NotImplementedError
 
     def shutdown(self) -> None:
-        # TODO
-        raise NotImplementedError
+        self.composer.unload_component(self)
 
     def __repr__(self):
         return __class__.__name__ + " " + self.fullname
@@ -110,11 +115,18 @@ class Composer(Node):
         # Remaps are not useful for a composable node, but we can forward them to the components
         self.component_remaps = component_remaps or {}
         self.loaded_components = []
+        
         self._load_node_client = launcher.service_client(
             f"{self.name}/_container/load_node", LoadNode
         )
         if not self._load_node_client.wait_for_service(timeout_sec=5.0):
             raise RuntimeError("Failed to connect to composer load service")
+
+        self._unload_node_client = launcher.service_client(
+            f"{self.name}/_container/unload_node", UnloadNode
+        )
+        if not self._unload_node_client.wait_for_service(timeout_sec=5.0):
+            raise RuntimeError("Failed to connect to composer unload service")
 
     def add_component(
         self,
@@ -159,7 +171,7 @@ class Composer(Node):
         ]
 
         # Call the load_node service
-        self.logger.info(f"Loading composable node {pkg}/{plugin}...")
+        #self.logger.info(f"Loading composable node {pkg}/{plugin}...")
         res = self._load_node_client.call(req)
 
         if res.success:
@@ -167,11 +179,49 @@ class Composer(Node):
                 name = res.full_node_name
 
             comp = Component(
-                self, pkg, plugin, name, self.namespace, component_args, remaps
+                self,
+                res.unique_id,
+                pkg,
+                plugin,
+                name,
+                self.namespace,
+                component_args,
+                remaps,
             )
             self.loaded_components.append(comp)
-            self.logger.info(f"Loaded {pkg}/{plugin} as {name}")
+            self.logger.info(f"Loaded component {pkg}/{plugin} as {name}")
             return comp
         else:
-            self.logger.error(f"Loading {pkg}/{plugin} failed: {res.error_message}")
+            self.logger.error(f"Loading component {pkg}/{plugin} failed: {res.error_message}")
             raise RuntimeError(res.error_message)
+
+    def unload_component(self, component: Component | int) -> bool:
+        if isinstance(component, Component):
+            cid = component.component_id
+        else:
+            for c in self.loaded_components:
+                if c.component_id == component:
+                    cid = c.component_idFalse
+                    component = c
+                    break
+
+        if component not in self.loaded_components:
+            self.logger.warning(f"Unloading component not belonging to this composer")
+
+        req = UnloadNode()
+        req.unique_id = cid
+
+        #self.logger.info(f"Unloading composable node {component} ({cid})...")
+        res = self._unload_node_client.call(req)
+
+        if res.success:
+            try:
+                self.loaded_components.remove(component)
+            except ValueError:
+                pass
+
+            self.logger.info(f"Unloaded component {component} ({cid})")
+            return True
+        
+        self.logger.error(f"Unloading component {component} ({cid}) failed: {res.error_message}")
+        return False
