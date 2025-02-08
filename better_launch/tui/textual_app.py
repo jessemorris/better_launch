@@ -41,6 +41,10 @@ class BetterUI(App):
             max_width: 40%;
             height: 1fr;
             background: $panel;
+
+            .-highlight {
+                text-style: italic bold;
+            }
         }
         #logview {
             width: 1fr;
@@ -90,9 +94,9 @@ class BetterUI(App):
         super().__init__()
         self.exit_reason = ""
 
-        self.nodes = {}
         self.backlog = []
         self.max_log_length = max_log_length
+        self.node_keymap = {}
 
         self.mute = False
         self.show_log_sources = True
@@ -107,6 +111,7 @@ class BetterUI(App):
         self.sidebar = ListView(id="sidebar")
         # TODO OptionList is more performant
         self.logview = ListView(id="logview")
+        self.logview.can_focus = False
 
         with Horizontal():
             yield self.sidebar
@@ -154,16 +159,39 @@ class BetterUI(App):
         self.launch_func()
 
         bl = BetterLaunch.wait_for_instance()
-        self.call_later(
-            lambda: self.sidebar.extend(
-                [
-                    ListItem(NodeLabel(n, self._get_node_key(idx)))
-                    for idx, n in enumerate(bl.all_nodes())
-                ]
-            )
-        )
+        self.sub_title = os.path.basename(bl._launchfile)
+        self.call_later(self.add_nodes_to_sidebar)
         bl.spin()
         self.exit("BetterLaunch terminated")
+
+    def add_nodes_to_sidebar(self):
+        bl = BetterLaunch.wait_for_instance()
+        for idx, n in enumerate(bl.all_nodes()):
+            key = self._get_node_key(idx)
+            item = ListItem(NodeLabel(n, key))
+            if key:
+                self.node_keymap[key] = idx
+            self.sidebar.append(item)
+
+    def _get_node_key(self, idx: int):
+        if idx < 10:
+            # Node number starting at 1
+            return str(idx + 1)
+        if idx == 10:
+            # Easier for the user
+            return 0
+        if idx < 36:
+            # Next lowercase character
+            return chr(97 + idx - 10)
+
+        return None
+
+    def on_key(self, event):
+        idx = self.node_keymap.get(event.key)
+        if idx is not None:
+            # Select the node and open its menu (see open_menu_for_node)
+            self.sidebar.index = idx
+            self.sidebar.action_select_cursor()
 
     def on_log_record(self, record: logging.LogRecord):
         # This will be called by our logging handler
@@ -184,7 +212,6 @@ class BetterUI(App):
         if num_entries > self.max_log_length:
             self.logview.remove_items(range(0, num_entries - self.max_log_length + 1))
 
-        # TODO find a way to prevent scrolling when the user has intentionally highlighted an item
         if not self.logview.is_vertical_scrollbar_grabbed:
             self.logview.scroll_end()
 
@@ -233,7 +260,8 @@ class BetterUI(App):
         else:
             choices = ["info", "kill"]
 
-        self.push_screen(ChoiceDialog(choices, node.name), on_node_menu_choice)
+        title = f"{node.name} ({node.__class__.__name__})"
+        self.push_screen(ChoiceDialog(choices, title), on_node_menu_choice)
 
     def copy_log_entry(self, entry: LogEntry):
         if pyperclip.is_available():
@@ -246,16 +274,6 @@ class BetterUI(App):
             )
 
         self.logview.index = None
-
-    def _get_node_key(self, idx: int):
-        if idx < 10:
-            # Node number starting at 0
-            return str(idx)
-        if idx < 36:
-            # Next lowercase character
-            return chr(97 + idx - 10)
-
-        return None
 
     def action_toggle_sidebar(self):
         self.sidebar.display = not self.sidebar.display
