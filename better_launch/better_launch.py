@@ -11,6 +11,13 @@ from collections import deque
 import logging
 import yaml
 
+from rclpy import (
+    Node as RosNode,
+    Service as RosServiceProvider,
+    ServiceClient as RosServiceClient,
+    Publisher as RosPublisher,
+    Subscriber as RosSubscriber,
+)
 from rclpy.qos import QoSProfile, qos_profile_services_default
 from ament_index_python.packages import get_package_prefix
 
@@ -291,7 +298,7 @@ class _BetterLaunchMeta(type):
 
 class BetterLaunch(metaclass=_BetterLaunchMeta):
     _launchfile: str = None
-    _launch_args: dict = {}
+    _launch_args: dict[str, Any] = {}
 
     def __init__(
         self,
@@ -335,7 +342,7 @@ class BetterLaunch(metaclass=_BetterLaunchMeta):
 
         self.hello()
 
-    def hello(self):
+    def hello(self) -> None:
         # Ascii art based on: https://asciiart.cc/view/10677
         msg = f"""
 \x1b[1;20mBetter Launch is starting!\x1b[0m
@@ -369,7 +376,7 @@ Takeoff in 3... 2... 1...
         print(msg)
         self.logger.critical(f"Log files at {roslog.launch_config.log_dir}")
 
-    def execute_pending_ros_actions(self, join: bool = True):
+    def execute_pending_ros_actions(self, join: bool = True) -> None:
         if self._ros2_actions:
             # Apply our config to the ROS2 launch logging config
             import launch
@@ -401,10 +408,10 @@ Takeoff in 3... 2... 1...
         else:
             self.logger.info("No ROS2 actions pending")
 
-    def spin(self):
+    def spin(self) -> None:
         self.ros_adapter._thread.join()
 
-    def get_unique_name(self, name: str = ""):
+    def get_unique_name(self, name: str = "") -> str:
         return name + "_" + __uuid_generator()
 
     def all_groups(self) -> list[Group]:
@@ -437,22 +444,22 @@ Takeoff in 3... 2... 1...
         return components
 
     @staticmethod
-    def ros_version():
+    def ros_version() -> str:
         """
         Returns the name of the currently sourced ros version (e.g. $ROS_VERSION)
         """
         return os.environ["ROS_DISTRO"]
 
     @property
-    def launchfile(self):
+    def launchfile(self) -> str:
         return BetterLaunch._launchfile
 
     @property
-    def launch_args(self):
+    def launch_args(self) -> dict[str, Any]:
         return BetterLaunch._launch_args
 
     @property
-    def shared_node(self):
+    def shared_node(self) -> RosNode:
         return self.ros_adapter.ros_node
 
     @property
@@ -463,7 +470,7 @@ Takeoff in 3... 2... 1...
     def group_tip(self) -> Group:
         return self._group_stack[-1]
 
-    def _on_sigint(self, sig, frame):
+    def _on_sigint(self, sig, frame) -> None:
         if not self._sigint_received:
             self.logger.warning(f"Received (SIGINT), forwarding to child processes...")
             self.shutdown("user interrupt", signal.SIGINT)
@@ -472,7 +479,7 @@ Takeoff in 3... 2... 1...
             self.logger.warning(f"Received (SIGINT) again, escalating to sigterm")
             self._on_sigterm(sig, frame)
 
-    def _on_sigterm(self, sig, frame):
+    def _on_sigterm(self, sig, frame) -> None:
         self.logger.error(f"Using (SIGTERM) can result in orphaned processes!")
 
         # Final chance for the processes to shut down, but we will no longer wait
@@ -482,13 +489,13 @@ Takeoff in 3... 2... 1...
             self._shutdown_future.cancel()
 
     @property
-    def is_shutdown(self):
+    def is_shutdown(self) -> bool:
         return self._shutdown_future.done()
 
-    def add_shutdown_callback(self, callback: Callable):
+    def add_shutdown_callback(self, callback: Callable) -> None:
         self._shutdown_callbacks.append(callback)
 
-    def shutdown(self, reason: str, signum: int = signal.SIGTERM):
+    def shutdown(self, reason: str, signum: int = signal.SIGTERM) -> None:
         self.ros_adapter.shutdown()
 
         # Tell all nodes to shut down
@@ -514,7 +521,7 @@ Takeoff in 3... 2... 1...
             except Exception as e:
                 self.logger.warning(f"Shutdown callback failed: {e}")
 
-    def find(self, package: str, file_name: str = None, file_dir: str = None):
+    def find(self, package: str, file_name: str = None, file_dir: str = None) -> str:
         package_dir = get_package_prefix(package) if package else None
 
         if file_name is None:
@@ -538,7 +545,9 @@ Takeoff in 3... 2... 1...
     def resolve_string(self, s: str) -> str:
         return substitute_tokens(s, default_substitution_handlers(self, "full"))
 
-    def load_params(self, path: str, node_or_namespace: str | Node = None):
+    def load_params(
+        self, path: str, node_or_namespace: str | Node = None
+    ) -> dict[str, Any]:
         path = self.resolve_string(path)
 
         with open(path) as f:
@@ -577,7 +586,7 @@ Takeoff in 3... 2... 1...
         service_type: type,
         callback: Callable,
         qos_profile: QoSProfile = None,
-    ):
+    ) -> RosServiceProvider:
         if not qos_profile:
             qos_profile = qos_profile_services_default
 
@@ -594,7 +603,7 @@ Takeoff in 3... 2... 1...
         service_type: type,
         timeout: float = 0.0,
         qos_profile: QoSProfile = None,
-    ):
+    ) -> RosServiceClient:
         if not qos_profile:
             qos_profile = qos_profile_services_default
 
@@ -608,7 +617,7 @@ Takeoff in 3... 2... 1...
 
     def publisher(
         self, topic: str, message_type: type, qos_profile: QoSProfile | int = 10
-    ):
+    ) -> RosPublisher:
         return self.shared_node.create_publisher(
             message_type,
             topic,
@@ -621,7 +630,7 @@ Takeoff in 3... 2... 1...
         message_type: type,
         callback: Callable,
         qos_profile: QoSProfile | int = 10,
-    ):
+    ) -> RosSubscriber:
         return self.shared_node.create_subscriber(
             message_type,
             topic,
@@ -666,7 +675,7 @@ Takeoff in 3... 2... 1...
         emulate_tty: bool = False,
         start_immediately: bool = True,
         **kwargs,
-    ):
+    ) -> Node:
         if self._composition_node:
             raise RuntimeError("Cannot add nodes inside a composition node")
 
@@ -732,7 +741,7 @@ Takeoff in 3... 2... 1...
         use_shell: bool = False,
         emulate_tty: bool = False,
         **kwargs,
-    ):
+    ) -> LifecycleNode:
         # TODO a lot of this is redundant with node() -> common function?
         if self._composition_node:
             raise RuntimeError("Cannot add nodes inside a composition node")
@@ -800,7 +809,7 @@ Takeoff in 3... 2... 1...
         use_shell: bool = False,
         emulate_tty: bool = False,
         **kwargs,
-    ):
+    ) -> Composer:
         if self._composition_node is not None:
             raise RuntimeError("Cannot nest composition nodes")
 
@@ -870,7 +879,7 @@ Takeoff in 3... 2... 1...
             **extra_composer_args,
         )
 
-    def include(self, pkg: str, launch_file: str, pass_all_args: bool = True, **kwargs):
+    def include(self, pkg: str, launch_file: str, pass_all_args: bool = True, **kwargs) -> None:
         if pass_all_args:
             local_args = self.launch_args
         else:
@@ -890,6 +899,7 @@ Takeoff in 3... 2... 1...
                         global_args = dict(globals())
                         global_args["_better_launcher_instance"] = self
                         exec(code, global_args, local_args)
+                        # TODO we could capture everything the included launch file did and return it
                         return
                     except Exception as e:
                         self.logger.error(
@@ -901,7 +911,7 @@ Takeoff in 3... 2... 1...
         # Was not a better_launch launch file, assume it's a ROS2 launch file (py, xml, yaml)
         self._make_ros2_include(file_path, **local_args)
 
-    def _make_ros2_include(self, file_path, **kwargs):
+    def _make_ros2_include(self, file_path, **kwargs) -> None:
         # Delegate to ros2 launch service
         from launch.actions import IncludeLaunchDescription
         from launch.launch_description_sources import (
@@ -915,5 +925,5 @@ Takeoff in 3... 2... 1...
         )
         self.ros2_action(ros2_include)
 
-    def ros2_action(self, ros2_action):
+    def ros2_action(self, ros2_action) -> None:
         self._ros2_actions.append(ros2_action)
