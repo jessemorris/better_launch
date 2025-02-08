@@ -1,25 +1,65 @@
+import asyncio
+from textual import work
 from textual.binding import Binding
 from textual.widgets import Label, Static, Button
-from textual.containers import VerticalScroll
+from textual.containers import VerticalScroll, HorizontalGroup
 from textual.screen import ModalScreen
 
 from better_launch import BetterLaunch
 from elements import Node, LifecycleNode, Composer
 
 
-class NodeLabel(Label):
-    def __init__(self, node: Node, keybind: str):
+class NodeLabel(HorizontalGroup):
+    DEFAULT_CSS = """
+    NodeLabel {
+        width: 100%;
+        padding: 0 1;
+
+        #keybind {
+            color: orange;
+            width: 3;
+        }
+
+        #node {
+            height: 1;
+            width: 100%;
+        }
+
+        &.-highlight {
+            text-style: italic;
+        }
+    }
+    """
+
+    def __init__(self, node: Node, keybind: str, **kwargs):
+        super().__init__(**kwargs)
         self.node = node
         self.keybind = keybind
 
+    def compose(self):
+        yield Static(f"[u]{self.keybind}[/u] ", id="keybind")
+
         suffix = ""
-        if isinstance(node, LifecycleNode):
+        if isinstance(self.node, LifecycleNode):
             suffix = " (L)"
-        elif isinstance(node, Composer):
+        elif isinstance(self.node, Composer):
             suffix = " (C)"
 
-        super().__init__(f"[u]{keybind}[/u] {node.name}{suffix}")
-        # TODO watch node status
+        yield Label(f"{self.node.name}{suffix}", id="node")
+
+    def on_mount(self):
+        self.update_node_state()
+
+    @work
+    async def update_node_state(self):
+        while True:
+            label = self.query_one("#node")
+            if self.node.is_running:
+                self.styles.background = "green"
+            else:
+                self.styles.background = "red"
+
+            await asyncio.sleep(0.5)            
 
 
 class NodeInfoScreen(ModalScreen):
