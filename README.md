@@ -2,12 +2,6 @@
 Let's face it: ROS2 has been a severe downgrade in terms of usability compared to ROS1. While there are many considerable improvements, the current launch system is borderline unusable. I've listed my personal gripes below, but if you're here you likely feel the same. This is why I wrote ***better_launch***.
 
 
-# Why not improve the existing ROS2 launch?
-Because I think it is beyond redemption and no amount of refactoring and REPs (ROS enhancement proposal) will turn the sails. Rather than fixing an inherently broken solution I decided to make a RAP - a ROS abandonment proposal :)
-
-Essentially, *better_launch* is what I wish ROS2 launch would be: comfortable to use, simple to understand, easy to remember. This is why *better_launch* is **not** yet another abstraction layer over ROS2 launch; it is a **full** replacement with no imports or dependencies on the existing launch system.
-
-
 # So what does it look like?
 Like this! 
 
@@ -43,7 +37,13 @@ And because I apparently have too much free time, there is also a terminal UI re
 **TODO link to documentation**
 
 
-# What are the differences?
+# Why not improve the existing ROS2 launch?
+Because I think it is beyond redemption and no amount of refactoring and REPs (ROS enhancement proposal) will turn the sails. Rather than fixing an inherently broken solution I decided to make a RAP - a ROS abandonment proposal :)
+
+Essentially, *better_launch* is what I wish ROS2 launch would be: comfortable to use, simple to understand, easy to remember. This is why *better_launch* is **not** yet another abstraction layer over ROS2 launch; it is a **full** replacement with no imports or dependencies on the existing launch system.
+
+
+# Okay, what are the differences?
 Because *better_launch* does not use the ROS2 launch system, some aspects work different from what you may be used to. 
 
 
