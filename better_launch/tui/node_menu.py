@@ -134,9 +134,19 @@ class NodeInfoScreen(ModalScreen):
             subs_text = ""
             for topic, types in subs:
                 subs_text += f"\n  {topic} [{', '.join(types)}]"
+
+            # Provided services
+            services = shared_node.get_service_names_and_types_by_node(
+                node.name, node.namespace
+            )
+            services.sort()
+            services_text = ""
+            for srv, types in services:
+                services_text += f"\n  {srv} [{', '.join(types)}]"
         else:
             pubs_text = ""
             subs_text = ""
+            services_text = ""
 
         info_text = f"""\
 [bold]{node.name} ({node.__class__.__name__})[/bold]
@@ -155,6 +165,8 @@ Namespace: {node.namespace}
 [bold]Publishers:[/bold] {pubs_text}
 
 [bold]Subscriptions:[/bold] {subs_text}
+
+[bold]Services:[/bold] {services_text}
 """
 
         yield(VerticalScroll(Static(info_text), id="info"))

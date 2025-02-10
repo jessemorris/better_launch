@@ -16,7 +16,7 @@ from better_launch import BetterLaunch
 import ros.logging as roslog
 from utils.better_logging import LogRecordForwarder
 
-from elements import Node, Composer, LifecycleStage
+from elements import Node, Composer, Component, LifecycleStage
 from .log_entry import LogEntry
 from .node_menu import NodeLabel, NodeInfoScreen
 from .choice_dialog import ChoiceDialog
@@ -225,7 +225,8 @@ class BetterUI(App):
         node = label.node
 
         def on_lifecycle_choice(choice: str):
-            node.lifecycle.transition(LifecycleStage[choice.upper()])
+            if choice:
+                node.lifecycle.transition(LifecycleStage[choice.upper()])
 
         def on_kill_choice(choice: str):
             if choice == "yes":
@@ -236,32 +237,28 @@ class BetterUI(App):
                 self.push_screen(NodeInfoScreen(node))
 
             elif action == "lifecycle":
-                valid_stages = list(LifecycleStage)
-                valid_stages.remove(node.current_stage)
+                valid_stages = list([s.name for s in LifecycleStage])
+                valid_stages.remove(node.lifecycle.current_stage.name)
                 self.push_screen(
                     ChoiceDialog(valid_stages, f"Transition {node.name} to"),
                     on_lifecycle_choice,
                 )
 
-            elif action == "components":
-                # TODO should provide info on each component like subscribers and publishers
-                # TODO components can also be unloaded via their shutdown
-                self.notify("components not implemented yet", timeout=2.0)
-
-            elif action == "kill":
+            elif action in ["kill", "unload"]:
                 self.push_screen(
-                    ChoiceDialog(["yes", "cancel"], f"Kill {node.name}?"),
+                    ChoiceDialog(["yes", "cancel"], f"{action.capitalize()} {node.name}?"),
                     on_kill_choice,
                 )
 
         if node.is_lifecycle_node:
             choices = ["info", "lifecycle", "kill"]
-        elif isinstance(node, Composer):
-            choices = ["info", "components", "kill"]
+        elif isinstance(node, Component):
+            choices = ["info", "unload"]
         else:
             choices = ["info", "kill"]
 
-        title = f"{node.name} ({node.__class__.__name__})"
+        lifecycle = "LC " if node.is_lifecycle_node else ""
+        title = f"{node.name} ({lifecycle}{node.__class__.__name__})"
         self.push_screen(ChoiceDialog(choices, title), on_node_menu_choice)
 
     def copy_log_entry(self, entry: LogEntry):
