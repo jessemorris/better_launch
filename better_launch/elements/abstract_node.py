@@ -1,6 +1,9 @@
 from typing import Any
 from pathlib import Path
 
+import ros.logging as roslog
+from .lifecycle_manager import LifecycleManager, LifecycleStage
+
 
 _node_counter = 0
 
@@ -12,8 +15,8 @@ class AbstractNode:
         executable: str,
         name: str,
         namespace: str,
-        node_args: dict[str, Any] = None,
         remaps: dict[str, str] = None,
+        node_args: str | dict[str, Any] = None,
     ):
         if not name:
             raise ValueError("Name cannot be empty")
@@ -46,8 +49,12 @@ class AbstractNode:
         self._exec = executable
         self._name = name
         self._namespace = namespace
-        self._node_args = node_args or {}
         self._remaps = remaps
+        self._node_args = node_args or {}
+        self._is_lifecycle: bool = None
+        self._lifecycle_manager: LifecycleManager = None
+
+        self.logger = roslog.get_logger(self.fullname)
 
     @property
     def package(self) -> str:
@@ -67,10 +74,22 @@ class AbstractNode:
 
     @property
     def fullname(self) -> str:
-        return str(Path(self.namespace, self.name))
+        ns = self.namespace.strip("/")
+        if not ns:
+            return "/" + self.name
+        return "/" + ns + "/" + self.name
 
     @property
     def node_args(self) -> dict[str, Any]:
+        if isinstance(self._node_args, str):
+            from better_launch import BetterLaunch
+
+            bl = BetterLaunch.instance()
+            if not bl:
+                return self._node_args
+
+            self._node_args = bl.load_params(self._node_args, self)
+
         return self._node_args
 
     @property
@@ -81,8 +100,31 @@ class AbstractNode:
     def is_running(self) -> bool:
         raise NotImplementedError
 
-    def shutdown(self) -> None:
+    def start(self, lifecycle_target: LifecycleStage = LifecycleStage.ACTIVE) -> None:
+        self._do_start()
+
+        if self.is_lifecycle_node:
+            self._lifecycle_manager.transition(lifecycle_target)
+
+    def _do_start(self) -> None:
         raise NotImplementedError
+
+    def shutdown(self, reason: str) -> None:
+        raise NotImplementedError
+
+    @property
+    def is_lifecycle_node(self) -> bool:
+        if self._is_lifecycle is None:
+            self._is_lifecycle = LifecycleManager.is_lifecycle(self.fullname)
+
+            if self._is_lifecycle:
+                self._lifecycle_manager = LifecycleManager(self)
+
+        return self._is_lifecycle
+
+    @property
+    def lifecycle(self) -> LifecycleManager:
+        return self._lifecycle_manager
 
     def __repr__(self):
         return __class__.__name__ + " " + self.fullname

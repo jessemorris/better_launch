@@ -33,7 +33,7 @@ except ImportError:
 
     __uuid_generator = lambda: uuid.uuid4().hex
 
-from elements import Group, Node, Composer, Component, LifecycleNode
+from elements import Group, AbstractNode, Node, Composer, Component, LifecycleStage
 from utils.better_logging import log_default_colormap, RosLogFormatter
 from utils.substitutions import default_substitution_handlers, substitute_tokens
 from utils.introspection import find_calling_frame
@@ -196,7 +196,7 @@ def _launch_this_wrapper(
         # By default BetterLaunch has access to all arguments from its launch function
         bound_args = launch_func_sig.bind(*args, **kwargs)
         bound_args.apply_defaults()
-        BetterLaunch._launch_args = dict(bound_args.arguments)
+        BetterLaunch._launch_func_args = dict(bound_args.arguments)
 
         if ui:
             # from tui.pyterm_app import BetterUI
@@ -298,7 +298,7 @@ class _BetterLaunchMeta(type):
 
 class BetterLaunch(metaclass=_BetterLaunchMeta):
     _launchfile: str = None
-    _launch_args: dict[str, Any] = {}
+    _launch_func_args: dict[str, Any] = {}
 
     def __init__(
         self,
@@ -316,7 +316,7 @@ class BetterLaunch(metaclass=_BetterLaunchMeta):
         self.logger = roslog.get_logger(name)
 
         if launch_args is not None:
-            BetterLaunch._launch_args = launch_args
+            BetterLaunch._launch_func_args = launch_args
 
         # For those cases where we need to interact with ROS (e.g. service calls)
         self.ros_adapter = ROSAdapter()
@@ -427,12 +427,15 @@ Takeoff in 3... 2... 1...
 
         return groups
 
-    def all_nodes(self) -> list[Node]:
+    def all_nodes(self, include_components: bool = False) -> list[AbstractNode]:
         nodes = []
         groups = self.all_groups()
 
         for g in groups:
-            nodes.extend(g.nodes)
+            for n in g.nodes:
+                nodes.append(n)
+                if include_components and isinstance(n, Composer):
+                    nodes.extend(n.loaded_components)
 
         return nodes
 
@@ -456,7 +459,7 @@ Takeoff in 3... 2... 1...
 
     @property
     def launch_args(self) -> dict[str, Any]:
-        return BetterLaunch._launch_args
+        return BetterLaunch._launch_func_args
 
     @property
     def shared_node(self) -> RosNode:
@@ -569,6 +572,7 @@ Takeoff in 3... 2... 1...
                     idx += 1
                     key += "/" + parts[idx]
 
+                # TODO resolve as much as possible instead of throwing
                 if key not in params:
                     raise ValueError(f"Could not find parameter section for {ns}")
 
@@ -674,7 +678,7 @@ Takeoff in 3... 2... 1...
         respawn_delay: float = 0.0,
         use_shell: bool = False,
         emulate_tty: bool = False,
-        start_immediately: bool = True,
+        lifecycle_target: LifecycleStage = LifecycleStage.ACTIVE,
         **kwargs,
     ) -> Node:
         if self._composition_node:
@@ -712,80 +716,11 @@ Takeoff in 3... 2... 1...
             respawn_delay=respawn_delay,
             use_shell=use_shell,
             emulate_tty=emulate_tty,
-            start_immediately=start_immediately,
             **kwargs,
         )
 
         g.add_node(node)
-        return node
-
-    def lifecycle_node(
-        self,
-        package: str,
-        executable: str,
-        name: str = None,
-        target_state: LifecycleNode.LifecycleStage = LifecycleNode.LifecycleStage.ACTIVE,
-        *,
-        remap: dict[str, str] = None,
-        node_args: str | dict[str, Any] = None,
-        cmd_args: list[str] = None,
-        env: dict[str, str] = None,
-        isolate_env: bool = False,
-        log_level: int = logging.INFO,
-        output_config: (
-            Node.LogSink | dict[Node.LogSource, set[Node.LogSink]]
-        ) = "screen",
-        reparse_logs: bool = True,
-        anonymous: bool = False,
-        hidden: bool = False,
-        on_exit: Callable = None,
-        max_respawns: int = 0,
-        respawn_delay: float = 0.0,
-        use_shell: bool = False,
-        emulate_tty: bool = False,
-        **kwargs,
-    ) -> LifecycleNode:
-        # TODO a lot of this is redundant with node() -> common function?
-        if self._composition_node:
-            raise RuntimeError("Cannot add nodes inside a composition node")
-
-        if anonymous:
-            name = self.get_unique_name(name)
-
-        if hidden and not name.startswith("_"):
-            name = "_" + name
-
-        # Assemble additional node remaps from our group branch
-        g = self.group_tip
-        remaps = g.assemble_remaps()
-        if remap:
-            remaps.update(remap)
-
-        namespace = g.assemble_namespace()
-
-        node = LifecycleNode(
-            package,
-            executable,
-            name,
-            namespace,
-            target_state,
-            remaps=remaps,
-            node_args=node_args,
-            cmd_args=cmd_args,
-            env=env,
-            isolate_env=isolate_env,
-            log_level=log_level,
-            output_config=output_config,
-            reparse_logs=reparse_logs,
-            on_exit=on_exit,
-            max_respawns=max_respawns,
-            respawn_delay=respawn_delay,
-            use_shell=use_shell,
-            emulate_tty=emulate_tty,
-            **kwargs,
-        )
-
-        g.add_node(node)
+        node.start(lifecycle_target)
         return node
 
     @contextmanager
@@ -856,6 +791,7 @@ Takeoff in 3... 2... 1...
 
         try:
             g.add_node(comp)
+            comp.start()
             self._composition_node = comp
             yield comp
         finally:
@@ -867,26 +803,35 @@ Takeoff in 3... 2... 1...
         plugin: str,
         name: str,
         *,
-        remap: dict[str, str] = None,
+        remaps: dict[str, str] = None,
         component_args: str | dict[str, Any] = None,
         use_intra_process_comms: bool = True,
-        **extra_composer_args: dict,
+        lifecycle_target: LifecycleStage = LifecycleStage.ACTIVE,
+        **extra_composer_args: dict[str, Any],
     ) -> Component:
         if self._composition_node is None:
             raise RuntimeError("Cannot add component outside a compose() node")
 
-        return self._composition_node.add_component(
+        comp = Component(
+            self._composition_node,
             package,
             plugin,
             name,
-            remaps=remap,
-            component_args=component_args,
+            remaps=remaps,
+            node_args=component_args,
+        )
+        comp.start(
+            lifecycle_target,
             use_intra_process_comms=use_intra_process_comms,
             **extra_composer_args,
         )
 
-    def include(self, pkg: str, launch_file: str, pass_all_args: bool = True, **kwargs) -> None:
-        if pass_all_args:
+        return comp
+
+    def include(
+        self, pkg: str, launch_file: str, pass_launch_func_args: bool = True, **kwargs
+    ) -> None:
+        if pass_launch_func_args:
             local_args = self.launch_args
         else:
             local_args = {}

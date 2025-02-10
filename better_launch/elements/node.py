@@ -45,9 +45,8 @@ class Node(AbstractNode):
         respawn_delay: float = 0.0,
         use_shell: bool = False,
         emulate_tty: bool = False,
-        start_immediately: bool = True,
     ):
-        super().__init__(package, executable, name, namespace, node_args, remaps)
+        super().__init__(package, executable, name, namespace, remaps, node_args)
 
         self.env = env or {}
         self.isolate_env = isolate_env
@@ -55,7 +54,6 @@ class Node(AbstractNode):
         if cmd_args:
             self.cmd_args.extend(cmd_args)
 
-        self.logger = roslog.get_logger(self.fullname)
         self.output_config = output_config or {}
         self.reparse_logs = reparse_logs
 
@@ -72,8 +70,11 @@ class Node(AbstractNode):
         self.use_shell = use_shell
         self.emulate_tty = emulate_tty
 
-        if start_immediately:
-            self.start()
+    @property
+    def pid(self) -> int:
+        if not self.is_running:
+            return -1
+        return self._process.pid
 
     @property
     def is_running(self) -> bool:
@@ -86,13 +87,7 @@ class Node(AbstractNode):
             and not self.completed_future.done()
         )
 
-    @property
-    def pid(self) -> int:
-        if not self.is_running:
-            return -1
-        return self._process.pid
-
-    def start(self) -> None:
+    def _do_start(self) -> None:
         from better_launch import BetterLaunch
 
         launcher = BetterLaunch.instance()

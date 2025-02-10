@@ -6,7 +6,7 @@ from textual.containers import VerticalScroll, HorizontalGroup
 from textual.screen import ModalScreen
 
 from better_launch import BetterLaunch
-from elements import Node, LifecycleNode, Composer
+from elements import AbstractNode, Node, Composer, Component
 
 
 class NodeLabel(HorizontalGroup):
@@ -27,7 +27,7 @@ class NodeLabel(HorizontalGroup):
     }
     """
 
-    def __init__(self, node: Node, keybind: str, **kwargs):
+    def __init__(self, node: AbstractNode, keybind: str, **kwargs):
         super().__init__(**kwargs)
         self.node = node
         self.keybind = keybind
@@ -36,10 +36,15 @@ class NodeLabel(HorizontalGroup):
         yield Static(f"[u]{self.keybind}[/u] ", id="keybind")
 
         suffix = ""
-        if isinstance(self.node, LifecycleNode):
-            suffix = " (L)"
-        elif isinstance(self.node, Composer):
-            suffix = " (C)"
+        if self.node.is_lifecycle_node:
+            suffix += "L"
+        if isinstance(self.node, Composer):
+            suffix += "O"
+        if isinstance(self.node, Component):
+            suffix += "C"
+
+        if suffix:
+            suffix = " (" + suffix + ")"
 
         yield Label(f"{self.node.name}{suffix}", id="node")
 
@@ -83,7 +88,7 @@ class NodeInfoScreen(ModalScreen):
     }
     """
 
-    def __init__(self, node: Node, **kwargs):
+    def __init__(self, node: AbstractNode, **kwargs):
         self.node = node
         super().__init__(**kwargs)
 
@@ -95,12 +100,21 @@ class NodeInfoScreen(ModalScreen):
         shared_node = BetterLaunch.wait_for_instance().shared_node
 
         # Additional information about the node subclass
-        node_type_info = ""
-        if isinstance(node, LifecycleNode):
-            node_type_info = f"Stage:     {node._current_stage.name.capitalize()}\n"
-        elif isinstance(node, Composer):
+        if isinstance(node, Component):
+            process_id = f"{node.composer.pid} (Composer)"
+            env_info = node.composer.env
+        else:
+            process_id = node.pid
+            env_info = node.env
+
+        lifecycle_info = ""
+        if node.is_lifecycle_node:
+            lifecycle_info = f"Stage:     {node.lifecycle.current_stage.name.capitalize()}\n"
+
+        component_info = ""
+        if isinstance(node, Composer):
             components = "\n".join([f"  - {c}" for c in node._loaded_components])
-            node_type_info = f"\n[bold]Components:[/bold]\n{components}\n"
+            component_info = f"\n[bold]Components:[/bold]\n{components}\n"
 
         if node.is_running:
             # Topics the node is publishing
@@ -129,13 +143,14 @@ class NodeInfoScreen(ModalScreen):
 Status:    {'[green]alive[/green]' if node.is_running else '[red]dead[/red]'}
 Package:   {node.package}
 Namespace: {node.namespace}
-{node_type_info}\
+{lifecycle_info}\
+{component_info}\
 
 [bold]Process:[/bold]
-  PID:     {node.pid}
+  PID:     {process_id}
   Command: {node.executable}
   Args:    {node.node_args}
-  Env:     {node.env}
+  Env:     {env_info}
 
 [bold]Publishers:[/bold] {pubs_text}
 

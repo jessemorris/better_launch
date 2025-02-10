@@ -16,7 +16,7 @@ from better_launch import BetterLaunch
 import ros.logging as roslog
 from utils.better_logging import LogRecordForwarder
 
-from elements import Node, LifecycleNode, Composer
+from elements import Node, Composer, LifecycleStage
 from .log_entry import LogEntry
 from .node_menu import NodeLabel, NodeInfoScreen
 from .choice_dialog import ChoiceDialog
@@ -166,7 +166,7 @@ class BetterUI(App):
 
     def add_nodes_to_sidebar(self):
         bl = BetterLaunch.wait_for_instance()
-        for idx, n in enumerate(bl.all_nodes()):
+        for idx, n in enumerate(bl.all_nodes(include_components=True)):
             key = self._get_node_key(idx)
             item = ListItem(NodeLabel(n, key))
             if key:
@@ -225,7 +225,7 @@ class BetterUI(App):
         node = label.node
 
         def on_lifecycle_choice(choice: str):
-            cast(LifecycleNode, node).transition(LifecycleNode.LifecycleStage[choice.upper()])
+            node.lifecycle.transition(LifecycleStage[choice.upper()])
 
         def on_kill_choice(choice: str):
             if choice == "yes":
@@ -236,7 +236,7 @@ class BetterUI(App):
                 self.push_screen(NodeInfoScreen(node))
 
             elif action == "lifecycle":
-                valid_stages = list(LifecycleNode.LifecycleStage)
+                valid_stages = list(LifecycleStage)
                 valid_stages.remove(node.current_stage)
                 self.push_screen(
                     ChoiceDialog(valid_stages, f"Transition {node.name} to"),
@@ -254,7 +254,7 @@ class BetterUI(App):
                     on_kill_choice,
                 )
 
-        if isinstance(node, LifecycleNode):
+        if node.is_lifecycle_node:
             choices = ["info", "lifecycle", "kill"]
         elif isinstance(node, Composer):
             choices = ["info", "components", "kill"]
