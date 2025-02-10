@@ -49,7 +49,7 @@ class LifecycleNode(Node):
         executable: str,
         name: str,
         namespace: str,
-        target_stage: int = LifecycleStage.PRISTINE,
+        target_stage: int = LifecycleStage.ACTIVE,
         *,
         remaps: dict[str, str] = None,
         node_args: dict[str, Any] = None,
@@ -67,7 +67,12 @@ class LifecycleNode(Node):
         use_shell: bool = False,
         emulate_tty: bool = False,
     ):
-        from better_launch import BetterLaunch
+        # These must be set before start() is called
+        self._current_stage = LifecycleNode.LifecycleStage.PRISTINE
+        self._current_state_id = State.PRIMARY_STATE_UNCONFIGURED
+        self._state_sub = None
+        self._transition_client = None
+        self._target_stage = target_stage
 
         super().__init__(
             package,
@@ -90,8 +95,18 @@ class LifecycleNode(Node):
             start_immediately=True,
         )
 
-        self._current_stage = LifecycleNode.LifecycleStage.PRISTINE
-        self._current_state_id = State.PRIMARY_STATE_UNCONFIGURED
+    @property
+    def stage(self) -> LifecycleStage:
+        return self._current_stage
+
+    @property
+    def state_id(self) -> int:
+        return self._current_state_id
+
+    def start(self) -> None:
+        super().start()
+
+        from better_launch import BetterLaunch
 
         launcher = BetterLaunch.instance()
         self._state_sub = launcher.ros_adapter.ros_node.create_subscription(
@@ -107,16 +122,8 @@ class LifecycleNode(Node):
         if not self._transition_client.wait_for_service(5.0):
             raise RuntimeError("Could not connect to lifecycle transition service")
 
-        if target_stage > LifecycleNode.LifecycleStage.PRISTINE:
-            self.transition(target_stage)
-
-    @property
-    def stage(self) -> LifecycleStage:
-        return self._current_stage
-
-    @property
-    def state_id(self) -> int:
-        return self._current_state_id
+        if self._target_stage > LifecycleNode.LifecycleStage.PRISTINE:
+            self.transition(self._target_stage)
 
     def _on_transition_event(self, evt: TransitionEvent) -> None:
         self._current_state_id = evt.goal_state.id
