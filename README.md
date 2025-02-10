@@ -38,7 +38,7 @@ def test(enable_x: bool):
 
 And because I apparently have too much free time, there is also a terminal UI reminiscent of the much missed [rosmon](https://github.com/xqms/rosmon). But wait, there is more: because the UI is based on [textual](https://textual.textualize.io/) you can even serve it as an interactive website!
 
-**TODO screenshot**
+![TUI](media/tui.svg)
 
 **TODO link to documentation**
 

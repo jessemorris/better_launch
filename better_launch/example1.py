@@ -36,4 +36,4 @@ def test(enable_x: bool):
         )
 
         # Include another BetterLaunch file
-        bl.include(os.path.dirname(__file__) + "/concept2.py")
+        bl.include(os.path.dirname(__file__) + "/example2.py")
