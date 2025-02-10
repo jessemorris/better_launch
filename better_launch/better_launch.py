@@ -11,12 +11,12 @@ from collections import deque
 import logging
 import yaml
 
-from rclpy import (
+from rclpy.node import (
     Node as RosNode,
     Service as RosServiceProvider,
-    ServiceClient as RosServiceClient,
+    Client as RosServiceClient,
     Publisher as RosPublisher,
-    Subscriber as RosSubscriber,
+    Subscription as RosSubscriber,
 )
 from rclpy.qos import QoSProfile, qos_profile_services_default
 from ament_index_python.packages import get_package_prefix
@@ -33,7 +33,7 @@ except ImportError:
 
     __uuid_generator = lambda: uuid.uuid4().hex
 
-from elements import Group, Node, Composer, Component, LifecycleNode, LifecycleStage
+from elements import Group, Node, Composer, Component, LifecycleNode
 from utils.better_logging import log_default_colormap, RosLogFormatter
 from utils.substitutions import default_substitution_handlers, substitute_tokens
 from utils.introspection import find_calling_frame
@@ -722,7 +722,7 @@ Takeoff in 3... 2... 1...
         pkg: str,
         exec: str,
         name: str = None,
-        target_state: LifecycleStage = LifecycleStage.PRISTINE,
+        target_state: LifecycleNode.LifecycleStage = LifecycleNode.LifecycleStage.ACTIVE,
         *,
         remap: dict[str, str] = None,
         node_args: str | dict[str, Any] = None,

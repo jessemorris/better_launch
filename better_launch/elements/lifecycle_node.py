@@ -9,43 +9,41 @@ from lifecycle_msgs.srv import ChangeState as ChangeLifecycleState
 from .node import Node
 
 
-class LifecycleStage(IntEnum):
-    PRISTINE = 0
-    CONFIGURED = 1
-    ACTIVE = 2
-    FINALIZED = 3
-
-
-_stage_to_state_map = {
-    LifecycleStage.PRISTINE: State.PRIMARY_STATE_UNCONFIGURED,
-    LifecycleStage.CONFIGURED: State.PRIMARY_STATE_INACTIVE,
-    LifecycleStage.ACTIVE: State.PRIMARY_STATE_ACTIVE,
-    LifecycleStage.FINALIZED: State.PRIMARY_STATE_FINALIZED,
-}
-
-
-# See https://design.ros2.org/articles/node_lifecycle.html
-_transition_map = {
-    State.PRIMARY_STATE_UNCONFIGURED: [
-        (Transition.TRANSITION_CONFIGURE, State.PRIMARY_STATE_INACTIVE),
-        (Transition.TRANSITION_UNCONFIGURED_SHUTDOWN, State.PRIMARY_STATE_FINALIZED),
-    ],
-    State.PRIMARY_STATE_INACTIVE: [
-        (Transition.TRANSITION_INACTIVE_SHUTDOWN, State.PRIMARY_STATE_FINALIZED),
-        (Transition.TRANSITION_CLEANUP, State.PRIMARY_STATE_UNCONFIGURED),
-        (Transition.TRANSITION_ACTIVATE, State.PRIMARY_STATE_ACTIVE),
-    ],
-    State.PRIMARY_STATE_ACTIVE: [
-        (Transition.TRANSITION_DEACTIVATE, State.PRIMARY_STATE_INACTIVE),
-        (Transition.TRANSITION_ACTIVE_SHUTDOWN, State.PRIMARY_STATE_FINALIZED),
-    ],
-    State.PRIMARY_STATE_FINALIZED: [
-        (Transition.TRANSITION_DESTROY, State.PRIMARY_STATE_UNKNOWN)
-    ],
-}
-
-
 class LifecycleNode(Node):
+    class LifecycleStage(IntEnum):
+        PRISTINE = 0
+        CONFIGURED = 1
+        ACTIVE = 2
+        FINALIZED = 3
+
+    _stage_to_state_map = {
+        LifecycleStage.PRISTINE: State.PRIMARY_STATE_UNCONFIGURED,
+        LifecycleStage.CONFIGURED: State.PRIMARY_STATE_INACTIVE,
+        LifecycleStage.ACTIVE: State.PRIMARY_STATE_ACTIVE,
+        LifecycleStage.FINALIZED: State.PRIMARY_STATE_FINALIZED,
+    }
+
+
+    # See https://design.ros2.org/articles/node_lifecycle.html
+    _transition_map = {
+        State.PRIMARY_STATE_UNCONFIGURED: [
+            (Transition.TRANSITION_CONFIGURE, State.PRIMARY_STATE_INACTIVE),
+            (Transition.TRANSITION_UNCONFIGURED_SHUTDOWN, State.PRIMARY_STATE_FINALIZED),
+        ],
+        State.PRIMARY_STATE_INACTIVE: [
+            (Transition.TRANSITION_INACTIVE_SHUTDOWN, State.PRIMARY_STATE_FINALIZED),
+            (Transition.TRANSITION_CLEANUP, State.PRIMARY_STATE_UNCONFIGURED),
+            (Transition.TRANSITION_ACTIVATE, State.PRIMARY_STATE_ACTIVE),
+        ],
+        State.PRIMARY_STATE_ACTIVE: [
+            (Transition.TRANSITION_DEACTIVATE, State.PRIMARY_STATE_INACTIVE),
+            (Transition.TRANSITION_ACTIVE_SHUTDOWN, State.PRIMARY_STATE_FINALIZED),
+        ],
+        State.PRIMARY_STATE_FINALIZED: [
+            (Transition.TRANSITION_DESTROY, State.PRIMARY_STATE_UNKNOWN)
+        ],
+    }
+
     def __init__(
         self,
         package: str,
@@ -91,7 +89,7 @@ class LifecycleNode(Node):
             start_immediately=True,
         )
 
-        self._current_stage = LifecycleStage.PRISTINE
+        self._current_stage = LifecycleNode.LifecycleStage.PRISTINE
         self._current_state_id = State.PRIMARY_STATE_UNCONFIGURED
 
         launcher = BetterLaunch.instance()
@@ -108,7 +106,7 @@ class LifecycleNode(Node):
         if not self._transition_client.wait_for_service(5.0):
             raise RuntimeError("Could not connect to lifecycle transition service")
 
-        if target_stage > LifecycleStage.PRISTINE:
+        if target_stage > LifecycleNode.LifecycleStage.PRISTINE:
             self.transition(target_stage)
 
     @property
@@ -121,7 +119,7 @@ class LifecycleNode(Node):
 
     def _on_transition_event(self, evt: TransitionEvent) -> None:
         self._current_state_id = evt.goal_state.id
-        for key, val in _stage_to_state_map.items():
+        for key, val in LifecycleNode._stage_to_state_map.items():
             if val == evt.goal_state.id:
                 self._current_stage = key
                 break
@@ -145,7 +143,7 @@ class LifecycleNode(Node):
             visited.add(current_state)
 
             # Explore transitions from the current state
-            for transition, next_state in _transition_map.get(current_state, []):
+            for transition, next_state in LifecycleNode._transition_map.get(current_state, []):
                 if next_state not in visited:
                     queue.append((next_state, path + [transition]))
 
@@ -161,7 +159,7 @@ class LifecycleNode(Node):
 
     def transition(self, target_stage: LifecycleStage) -> bool:
         # Figure out if and how we can get from our current state to the target state
-        target_state_id = _stage_to_state_map[target_stage]
+        target_state_id = LifecycleNode._stage_to_state_map[target_stage]
         transition_path = self._find_transition_path(
             self._current_state_id, target_state_id
         )
