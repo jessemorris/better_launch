@@ -1,9 +1,10 @@
 from typing import Any, Callable, Mapping, Literal
+import signal
 import logging
 from rclpy import Parameter
 from composition_interfaces.srv import LoadNode, UnloadNode
 
-from .abstract_node import AbstractNode
+from .abstract_node import AbstractNode, LifecycleStage
 from .node import Node
 
 
@@ -11,29 +12,28 @@ class Component(AbstractNode):
     def __init__(
         self,
         composer: "Composer",
-        component_id: int,
         package: str,
-        executable: str,
+        plugin: str,
         name: str,
-        namespace: str,
-        node_args: list[str] = None,
+        *,
         remaps: dict[str, str] = None,
+        node_args: list[str] = None,
     ):
-        super().__init__(package, executable, name, namespace, node_args, remaps)
-        self._component_id = component_id
+        super().__init__(package, plugin, name, composer.namespace, remaps, node_args)
+        self._component_id: int = None
         self._composer = composer
-
-    @property
-    def component_id(self) -> int:
-        return self._component_id
 
     @property
     def composer(self) -> "Composer":
         return self._composer
 
     @property
+    def component_id(self) -> int:
+        return self._component_id
+
+    @property
     def is_loaded(self) -> bool:
-        return self._composer and self in self._composer._loaded_components
+        return self._component_id is not None
 
     @property
     def plugin(self) -> str:
@@ -41,18 +41,41 @@ class Component(AbstractNode):
 
     @property
     def is_running(self) -> bool:
+        if not self.is_loaded:
+            return False
+
         from better_launch import BetterLaunch
 
         # Being loaded doesn't mean we're still running, check if the node is registered in ROS
         bl = BetterLaunch.instance()
-        living_nodes = bl.shared_node.get_fully_qualified_node_names()
+        living_nodes = [
+            ns + ('' if ns.endswith('/') else '/') + name
+            for name, ns in bl.shared_node.get_node_names_and_namespaces()
+        ]
         return self.fullname in living_nodes
 
-    def shutdown(self) -> None:
+    def start(
+        self,
+        lifecycle_target: LifecycleStage = LifecycleStage.ACTIVE,
+        use_intra_process_comms: bool = True,
+        **composer_extra_args,
+    ):
+        self._component_id = self.composer.load_component(
+            self,
+            use_intra_process_comms=use_intra_process_comms,
+            **composer_extra_args
+        )
+
+        if self.is_lifecycle_node:
+            self.lifecycle.transition(lifecycle_target)
+
+    def shutdown(self, reason: str):
+        self.logger.warning(f"Unloading component {self.name}: {reason}")
         self.composer.unload_component(self)
+        self._component_id = None
 
     def __repr__(self) -> str:
-        return __class__.__name__ + " " + self.fullname
+        return f"{self.__class__.__name__} {self.package}/{self.plugin}"
 
 
 class Composer(Node):
@@ -101,8 +124,8 @@ class Composer(Node):
             executable,
             name,
             namespace,
-            node_args=node_args,
             remaps=composer_remaps,
+            node_args=node_args,
             cmd_args=cmd_args,
             env=env,
             isolate_env=isolate_env,
@@ -114,14 +137,30 @@ class Composer(Node):
             respawn_delay=respawn_delay,
             use_shell=use_shell,
             emulate_tty=emulate_tty,
-            start_immediately=True,
         )
 
-        self._language = language
+        self._language: str = language
         # Remaps are not useful for a composable node, but we can forward them to the components
-        self._component_remaps = component_remaps or {}
-        self._loaded_components = []
-        
+        self._component_remaps: dict[str, str] = component_remaps or {}
+        self._loaded_components: dict[int: Component] = {}
+        self._load_node_client = None
+        self._unload_node_client = None
+
+    @property
+    def language(self) -> str:
+        return self._language
+
+    @property
+    def loaded_components(self) -> list[Component]:
+        return list(self._loaded_components.values())
+
+    @property
+    def is_lifecycle(self) -> bool:
+        return False
+
+    def start(self, lifecycle_target: LifecycleStage = LifecycleStage.ACTIVE) -> None:
+        super().start(lifecycle_target)
+
         from better_launch import BetterLaunch
 
         launcher = BetterLaunch.wait_for_instance(0.0)
@@ -137,48 +176,45 @@ class Composer(Node):
         if not self._unload_node_client.wait_for_service(timeout_sec=5.0):
             raise RuntimeError("Failed to connect to composer unload service")
 
-    @property
-    def language(self) -> str:
-        return self._language
+    def shutdown(self, reason: str, signum: int = signal.SIGTERM) -> None:
+        for comp in self._loaded_components.values():
+            try:
+                self.unload_component(comp)
+            except:
+                pass
 
-    def add_component(
+        super().shutdown(reason, signum)
+
+    def load_component(
         self,
-        pkg,
-        plugin,
-        name,
-        *,
-        remaps: dict = None,
-        component_args: dict[str, Any] = None,
+        component: Component,
         use_intra_process_comms: bool = True,
-        **extra_composer_args: dict,
-    ) -> Component:
+        **composer_extra_args: dict,
+    ) -> int:
+        if not self.is_running:
+            raise ValueError("Cannot load components into stopped composer")
+
         # Reference: https://github.com/ros2/launch_ros/blob/rolling/launch_ros/launch_ros/actions/load_composable_nodes.py
         req = LoadNode.Request()
-        req.package_name = pkg
-        req.plugin_name = plugin
-        req.node_name = name
-        req.node_namespace = self.namespace
+        req.package_name = component.package
+        req.plugin_name = component.plugin
+        req.node_name = component.name
+        req.node_namespace = component.namespace
         req.parameters = []
 
-        if isinstance(component_args, str):
-            from better_launch import BetterLaunch
-
-            component_args = BetterLaunch.instance().load_params(component_args)
-
-        if component_args:
-            req.parameters.extend([
+        req.parameters.extend(
+            [
                 Parameter(name=k, value=v).to_parameter_msg()
-                for k, v in component_args.items()
-            ])
+                for k, v in component.node_args.items()
+            ]
+        )
 
-        remaps = {}
+        remaps = component.remaps
         remaps.update(self._component_remaps)
-        if remaps:
-            remaps.update(remaps)
         req.remap_rules = [f"{src}:={dst}" for src, dst in remaps.items()]
 
         composer_args = {}
-        composer_args.update(extra_composer_args)
+        composer_args.update(composer_extra_args)
         composer_args["use_intra_process_comms"] = use_intra_process_comms
         req.extra_arguments = [
             Parameter(name=k, value=v).to_parameter_msg()
@@ -186,57 +222,50 @@ class Composer(Node):
         ]
 
         # Call the load_node service
-        #self.logger.info(f"Loading composable node {pkg}/{plugin}...")
         res = self._load_node_client.call(req)
 
         if res.success:
             if res.full_node_name:
-                name = res.full_node_name
+                namespace, name = res.full_node_name.rsplit("/", maxsplit=1)
+                component._namespace = namespace
+                component._name = name
 
-            comp = Component(
-                self,
-                res.unique_id,
-                pkg,
-                plugin,
-                name,
-                self.namespace,
-                component_args,
-                remaps,
-            )
-            self._loaded_components.append(comp)
-            self.logger.info(f"Loaded component {pkg}/{plugin} as {name}")
-            return comp
+            # Component.start() takes care of this, but the user can call load_component directly
+            cid = res.unique_id
+            component._component_id = cid
+
+            self._loaded_components[cid] = component
+            self.logger.info(f"Loaded component {component}")
+            return cid
         else:
-            self.logger.error(f"Loading component {pkg}/{plugin} failed: {res.error_message}")
+            self.logger.error(
+                f"Loading component {component} failed: {res.error_message}"
+            )
             raise RuntimeError(res.error_message)
 
     def unload_component(self, component: Component | int) -> bool:
+        if not self.is_running:
+            raise ValueError("Cannot unload components from stopped composer")
+
         if isinstance(component, Component):
             cid = component.component_id
         else:
-            for c in self._loaded_components:
-                if c.component_id == component:
-                    cid = c.component_idFalse
-                    component = c
-                    break
+            cid = component
+            component = self._loaded_components[cid]
 
-        if component not in self._loaded_components:
-            self.logger.warning(f"Unloading component not belonging to this composer")
-
-        req = UnloadNode()
+        req = UnloadNode.Request()
         req.unique_id = cid
 
-        #self.logger.info(f"Unloading composable node {component} ({cid})...")
         res = self._unload_node_client.call(req)
 
         if res.success:
-            try:
-                self._loaded_components.remove(component)
-            except ValueError:
-                pass
-
+            # Component.shutdown() takes care of this, but the user can call unload_component directly
+            component._component_id = None
+            del self._loaded_components[cid]
             self.logger.info(f"Unloaded component {component} ({cid})")
             return True
-        
-        self.logger.error(f"Unloading component {component} ({cid}) failed: {res.error_message}")
+
+        self.logger.error(
+            f"Unloading component {component} ({cid}) failed: {res.error_message}"
+        )
         return False
