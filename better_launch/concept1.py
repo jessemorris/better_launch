@@ -1,3 +1,4 @@
+import os
 from better_launch import BetterLaunch, launch_this, LifecycleStage
 
 
@@ -21,15 +22,12 @@ def test(enable_x: bool):
     #        bl.component("composition", "composition::Talker", "comp_talker")
     #        bl.component("composition", "composition::Listener", "comp_listener")
 
-    with bl.group("lifecycle"):
+    with bl.group("lifecycle_A"):
         bl.node(
             "lifecycle",
             "lifecycle_talker",
             "lifecycle_talker",
             lifecycle_target=LifecycleStage.PRISTINE,
         )
-        bl.node(
-            "lifecycle",
-            "lifecycle_listener",
-            "lifecycle_listener",
-        )
+
+        bl.include(os.path.dirname(__file__) + "/concept2.py")

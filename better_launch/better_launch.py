@@ -42,15 +42,12 @@ from ros import logging as roslog
 from ros.logging import LaunchConfig as LogConfig
 
 
-__all__ = [
-    "launch_this",
-    "BetterLaunch",
-    LifecycleStage
-]
+__all__ = ["launch_this", "BetterLaunch", LifecycleStage]
 
 
-_is_launcher_defined = "__better_launch_this_defined"
-_bl_singleton_instance = "__better_launch_instance"
+_is_launcher_defined = "_better_launch_this_defined"
+_bl_singleton_instance = "_better_launch_instance"
+_bl_include_args = "_better_launch_include_args"
 
 
 def launch_this(
@@ -72,7 +69,9 @@ def _launch_this_wrapper(
     join: bool = True,
     log_config: LogConfig = None,
 ):
-    glob = globals()
+    # Globals of the calling module
+    glob = find_calling_frame(_launch_this_wrapper).frame.f_globals
+
     if _is_launcher_defined in glob and _bl_singleton_instance not in glob:
         # Allow using launch_this only once unless we got included from another file
         raise RuntimeError("Can only use one launch decorator")
@@ -87,8 +86,17 @@ def _launch_this_wrapper(
         print(f"Log files will be saved at\n{roslog.launch_config.log_dir}\n")
         print("==================================================")
     else:
+        # We have been included from another file, run the launch function and skip the remaining
+        # initialization as its already been taken care of
+        bl: BetterLaunch = glob[_bl_singleton_instance]
+
         includefile = find_calling_frame(_launch_this_wrapper).filename
-        print(f"Including launch file:\n{includefile}\n")
+        include_args = glob[_bl_include_args]
+        bl.logger.info(f"Including launch file: {includefile} (args={include_args})")
+
+        launch_func(**include_args)
+        bl.execute_pending_ros_actions(join=False)
+        return
 
     # Signal handlers have to be installed on the main thread. Since the BetterLaunch singleton
     # could be instantiated first on a different thread we do it here where we can make stronger
@@ -131,10 +139,6 @@ def _launch_this_wrapper(
             return
 
     # If we get here we were not included by ROS2
-
-    # Disable UI when included from another launch file
-    if _bl_singleton_instance in glob:
-        ui = False
 
     # Logging setup
     if log_config:
@@ -214,6 +218,7 @@ def _launch_this_wrapper(
         else:
             launch_func_wrapper()
 
+    # TODO add param to collect leftover kwargs, they might be relevant for includes
     click_cmd = click.Command(
         "main", callback=run, params=options, help=launch_func_doc
     )
@@ -529,10 +534,10 @@ Takeoff in 3... 2... 1...
         package_dir = get_package_prefix(package) if package else None
 
         if file_name is None:
-            return package_dir
+            return self.resolve_string(package_dir)
 
         if package_dir is None:
-            return file_name
+            return self.resolve_string(file_name)
 
         # look in specific subolder
         if file_dir is not None:
@@ -830,38 +835,47 @@ Takeoff in 3... 2... 1...
         return comp
 
     def include(
-        self, pkg: str, launch_file: str, pass_launch_func_args: bool = True, **kwargs
+        self,
+        launch_file: str,
+        package: str = None,
+        pass_launch_func_args: bool = True,
+        **kwargs,
     ) -> None:
+        # Pass additional arguments, e.g. launch args
+        include_args = {}
         if pass_launch_func_args:
-            local_args = self.launch_args
-        else:
-            local_args = {}
+            include_args.update(self.launch_args)
+        include_args.update(**kwargs)
 
-        if kwargs:
-            local_args.update(kwargs)
-
-        file_path = self.find(pkg, launch_file)
+        # TODO use resolve_string
+        file_path = self.find(package, launch_file)
         if launch_file.endswith(".py"):
             with open(file_path) as f:
                 content = f.read()
                 if "better_launch" in content:
                     # Assume launch file uses better_launch, too
                     try:
+                        # Prepare the source code for execution
                         code = compile(content, launch_file, "exec")
+
+                        # Make sure the included launch file reuses our BetterLaunch instance
                         global_args = dict(globals())
-                        global_args["_better_launcher_instance"] = self
-                        exec(code, global_args, local_args)
+                        global_args[_bl_singleton_instance] = self
+                        global_args[_bl_include_args] = include_args
+
+                        # Since we're running an entire module locals won't have any effect
+                        exec(code, global_args)
                         # TODO we could capture everything the included launch file did and return it
                         return
                     except Exception as e:
                         self.logger.error(
-                            f"Launch include '{pkg}/{launch_file}' failed: {e}"
+                            f"Launch include '{package}/{launch_file}' failed: {e}"
                         )
                         raise
 
         # TODO could be stricter about verification here
         # Was not a better_launch launch file, assume it's a ROS2 launch file (py, xml, yaml)
-        self._make_ros2_include(file_path, **local_args)
+        self._make_ros2_include(file_path, **include_args)
 
     def _make_ros2_include(self, file_path, **kwargs) -> None:
         # Delegate to ros2 launch service
