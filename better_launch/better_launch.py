@@ -383,7 +383,6 @@ Takeoff in 3... 2... 1...
         self.logger.critical(f"Log files at {roslog.launch_config.log_dir}")
 
     def execute_pending_ros_actions(self, join: bool = True) -> None:
-        # TODO seems to work but is not launching anything?
         if self._ros2_actions:
             # Apply our config to the ROS2 launch logging config
             import launch
@@ -405,6 +404,8 @@ Takeoff in 3... 2... 1...
             if not (
                 self._ros2_launcher_thread and self._ros2_launcher_thread.is_alive()
             ):
+                # TODO ros2 LaunchService wants to run on the main thread, but we don't want that
+                # TODO move to its own process?
                 self.logger.info("Starting ROS2 launch service")
                 self._ros2_launcher_thread = threading.Thread(
                     target=self._ros2_launcher.run,
