@@ -38,7 +38,7 @@ And because I apparently have too much free time, there is also a terminal UI re
 
 
 # Why not improve the existing ROS2 launch?
-Because I think it is beyond redemption and no amount of refactoring and REPs (ROS enhancement proposal) will turn the sails. Rather than fixing an inherently broken solution I decided to make a RAP - a ROS abandonment proposal :)
+Because I think it is beyond redemption and no amount of refactoring and REPs (ROS enhancement proposal) will turn the sails. Tools like the highly rated [simple_launch](https://github.com/oKermorgant/simple_launch) exist, but still use ROS2 launch under the hood and so inherit much of its clunkiness. Rather than fixing an inherently broken solution, I decided to make a RAP - a ROS abandonment proposal :)
 
 Essentially, *better_launch* is what I wish ROS2 launch would be: comfortable to use, simple to understand, easy to remember. This is why *better_launch* is **not** yet another abstraction layer over ROS2 launch; it is a **full** replacement with no imports or dependencies on the existing launch system.
 
@@ -73,7 +73,7 @@ ROS2 launch has a bad reputation of leaving stale and abandoned processes behind
 
 # What doesn't work yet
 As of now *better_launch* supports the most important use cases, like starting nodes, proper (nicer!) logging, being awesome. However, there are still a couple of features that I have to work on to make it feature complete (roughly sorted by priority):
-- [ ] it seems like including ROS2 launch files does not work right now (need to verify)
+- [ ] including ROS2 launch files does not work at the moment
 - [ ] document public API
 - [ ] exception handling is barebones, so if something fails, everything fails
 - [ ] better yaml param loader (it's already nice, but could be nicer)
@@ -113,9 +113,7 @@ def generate_launch_description():
     ])
 ```
 
-I think we can agree that this is not exactly elegant. The highly rated [simple_launch](https://github.com/oKermorgant/simple_launch), a tool that solely exists to ease the pain of launch files, is further prove of it. 
-
-Other terrible decisions within ROS2 launch include, but are not limited to:
+I think we can agree that this is not exactly elegant - including another launch file should be doable within a single line, not 10 plus 5 imports. Other terrible decisions within ROS2 launch include, but are not limited to:
 - a weird fetish for import statements (see above)
 - unneccesarily strict type checking (why use python if I have to verify everything?)
 - nonsensical argument types (e.g. remaps are a *list of tuples* instead of simply a *dict*)
