@@ -23,7 +23,6 @@ class LifecycleNode(Node):
         LifecycleStage.FINALIZED: State.PRIMARY_STATE_FINALIZED,
     }
 
-
     # See https://design.ros2.org/articles/node_lifecycle.html
     _transition_map = {
         State.PRIMARY_STATE_UNCONFIGURED: [
