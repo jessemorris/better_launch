@@ -661,6 +661,7 @@ Takeoff in 3... 2... 1...
         node_args: str | dict[str, Any] = None,
         cmd_args: list[str] = None,
         env: dict[str, str] = None,
+        isolate_env: bool = False,
         log_level: int = logging.INFO,
         output_config: (
             Node.LogSink | dict[Node.LogSource, set[Node.LogSink]]
@@ -702,6 +703,7 @@ Takeoff in 3... 2... 1...
             node_args=node_args,
             cmd_args=cmd_args,
             env=env,
+            isolate_env=isolate_env,
             log_level=log_level,
             output_config=output_config,
             reparse_logs=reparse_logs,
@@ -728,6 +730,7 @@ Takeoff in 3... 2... 1...
         node_args: str | dict[str, Any] = None,
         cmd_args: list[str] = None,
         env: dict[str, str] = None,
+        isolate_env: bool = False,
         log_level: int = logging.INFO,
         output_config: (
             Node.LogSink | dict[Node.LogSource, set[Node.LogSink]]
@@ -770,6 +773,7 @@ Takeoff in 3... 2... 1...
             node_args=node_args,
             cmd_args=cmd_args,
             env=env,
+            isolate_env=isolate_env,
             log_level=log_level,
             output_config=output_config,
             reparse_logs=reparse_logs,
@@ -796,6 +800,7 @@ Takeoff in 3... 2... 1...
         node_args: str | dict[str, Any] = None,
         cmd_args: list[str] = None,
         env: dict[str, str] = None,
+        isolate_env: bool = False,
         log_level: int = logging.INFO,
         output_config: (
             Node.LogSink | dict[Node.LogSource, set[Node.LogSink]]
@@ -837,6 +842,7 @@ Takeoff in 3... 2... 1...
             node_args=node_args,
             cmd_args=cmd_args,
             env=env,
+            isolate_env=isolate_env,
             log_level=log_level,
             output_config=output_config,
             reparse_logs=reparse_logs,

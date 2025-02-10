@@ -27,7 +27,7 @@ class Node(AbstractNode):
 
     def __init__(
         self,
-        pkg: str,
+        package: str,
         executable: str,
         name: str,
         namespace: str,
@@ -47,7 +47,7 @@ class Node(AbstractNode):
         emulate_tty: bool = False,
         start_immediately: bool = True,
     ):
-        super().__init__(pkg, executable, name, namespace, node_args, remaps)
+        super().__init__(package, executable, name, namespace, node_args, remaps)
 
         self.env = env or {}
         self.isolate_env = isolate_env
