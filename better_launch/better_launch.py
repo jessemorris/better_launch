@@ -94,8 +94,8 @@ def _launch_this_wrapper(
         include_args = glob[_bl_include_args]
         bl.logger.info(f"Including launch file: {includefile} (args={include_args})")
 
+        # No need to run the ROS2 launch service here, the main launchfile will handle it
         launch_func(**include_args)
-        bl.execute_pending_ros_actions(join=False)
         return
 
     # Signal handlers have to be installed on the main thread. Since the BetterLaunch singleton
