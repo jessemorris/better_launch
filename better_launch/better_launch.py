@@ -42,7 +42,7 @@ from ros import logging as roslog
 from ros.logging import LaunchConfig as LogConfig
 
 
-__all__ = ["launch_this", "BetterLaunch", LifecycleStage]
+__all__ = ["launch_this", "BetterLaunch"]
 
 
 _is_launcher_defined = "__better_launch_this_defined"
