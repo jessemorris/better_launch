@@ -85,6 +85,7 @@ class Node(AbstractNode):
             and not self.shutdown_future.done()
             and self.completed_future is not None
             and not self.completed_future.done()
+            and super().is_running
         )
 
     def _do_start(self) -> None:

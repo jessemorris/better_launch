@@ -44,15 +44,7 @@ class Component(AbstractNode):
         if not self.is_loaded:
             return False
 
-        from better_launch import BetterLaunch
-
-        # Being loaded doesn't mean we're still running, check if the node is registered in ROS
-        bl = BetterLaunch.instance()
-        living_nodes = [
-            ns + ('' if ns.endswith('/') else '/') + name
-            for name, ns in bl.shared_node.get_node_names_and_namespaces()
-        ]
-        return self.fullname in living_nodes
+        return super().is_running
 
     def start(
         self,

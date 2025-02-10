@@ -49,21 +49,16 @@ class AbstractNode:
 
 class LifecycleManager:
     @classmethod
-    def is_lifecycle(cls, full_node_name: str) -> bool:
+    def is_lifecycle(cls, node: AbstractNode) -> bool:
         # Whether a node supports lifecycle management can only be seen once the process has
         # started by checking the services it provides.
+        if not node.is_running:
+            return None
+
         from better_launch import BetterLaunch
 
         bl = BetterLaunch.instance()
         if not bl:
-            return None
-
-        # Check first if the node process has been fully initialized
-        living_nodes = [
-            ns + ('' if ns.endswith('/') else '/') + name
-            for name, ns in bl.shared_node.get_node_names_and_namespaces()
-        ]
-        if not full_node_name in living_nodes:
             return None
 
         # Check if the node provides one of the key lifecycle services
@@ -72,7 +67,7 @@ class LifecycleManager:
         )
         for srv_name, srv_types in services:
             if (
-                srv_name == f"{full_node_name}/get_state"
+                srv_name == f"{node.fullname}/get_state"
                 and "lifecycle_msgs/srv/GetState" in srv_types
             ):
                 return True
