@@ -653,8 +653,8 @@ Takeoff in 3... 2... 1...
 
     def node(
         self,
-        pkg: str,
-        exec: str,
+        package: str,
+        executable: str,
         name: str = None,
         *,
         remap: dict[str, str] = None,
@@ -695,8 +695,8 @@ Takeoff in 3... 2... 1...
         namespace = g.assemble_namespace()
 
         node = Node(
-            pkg,
-            exec,
+            package,
+            executable,
             name,
             namespace,
             remaps=remaps,
@@ -721,8 +721,8 @@ Takeoff in 3... 2... 1...
 
     def lifecycle_node(
         self,
-        pkg: str,
-        exec: str,
+        package: str,
+        executable: str,
         name: str = None,
         target_state: LifecycleNode.LifecycleStage = LifecycleNode.LifecycleStage.ACTIVE,
         *,
@@ -764,8 +764,8 @@ Takeoff in 3... 2... 1...
         namespace = g.assemble_namespace()
 
         node = LifecycleNode(
-            pkg,
-            exec,
+            package,
+            executable,
             name,
             namespace,
             target_state,
@@ -863,7 +863,7 @@ Takeoff in 3... 2... 1...
 
     def component(
         self,
-        pkg: str,
+        package: str,
         plugin: str,
         name: str,
         *,
@@ -876,7 +876,7 @@ Takeoff in 3... 2... 1...
             raise RuntimeError("Cannot add component outside a compose() node")
 
         return self._composition_node.add_component(
-            pkg,
+            package,
             plugin,
             name,
             remaps=remap,
