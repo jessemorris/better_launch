@@ -58,6 +58,15 @@ class LifecycleManager:
         if not bl:
             return None
 
+        # Check first if the node process has been fully initialized
+        living_nodes = [
+            ns + ('' if ns.endswith('/') else '/') + name
+            for name, ns in bl.shared_node.get_node_names_and_namespaces()
+        ]
+        if not full_node_name in living_nodes:
+            return None
+
+        # Check if the node provides one of the key lifecycle services
         services = get_service_names_and_types(
             node=bl.shared_node, include_hidden_services=True
         )
@@ -72,6 +81,9 @@ class LifecycleManager:
 
     @classmethod
     def find_transition_path(cls, start_ros_state: int, goal_ros_state: int) -> list[int]:
+        if start_ros_state == goal_ros_state:
+            return []
+
         # Queue for BFS: (current_state, path_to_state)
         queue = deque([(start_ros_state, [])])
         visited = set()
@@ -105,13 +117,13 @@ class LifecycleManager:
         launcher = BetterLaunch.instance()
         self._state_sub = launcher.ros_adapter.ros_node.create_subscription(
             TransitionEvent,
-            f"{self.node.fullname}/transition_event",
+            f"{self._node.fullname}/transition_event",
             self._on_transition_event,
             10,
         )
 
         self._transition_client = launcher.ros_adapter.ros_node.create_client(
-            ChangeLifecycleState, f"{self.node.fullname}/change_state"
+            ChangeLifecycleState, f"{self._node.fullname}/change_state"
         )
         if not self._transition_client.wait_for_service(5.0):
             raise RuntimeError("Could not connect to lifecycle transition service")
@@ -125,6 +137,9 @@ class LifecycleManager:
         return self._current_ros_state
 
     def transition(self, target_stage: LifecycleStage) -> bool:
+        if target_stage == self.current_stage:
+            return True
+
         # Figure out if and how we can get from our current state to the target state
         target_ros_state = _stage_to_ros_state[target_stage]
         transition_path = LifecycleManager.find_transition_path(

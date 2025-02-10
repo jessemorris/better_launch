@@ -1,4 +1,4 @@
-from better_launch import BetterLaunch, launch_this
+from better_launch import BetterLaunch, launch_this, LifecycleStage
 
 
 # NOTE arguments default to NONE if not specified
@@ -9,14 +9,27 @@ def test(enable_x: bool):
     """
     bl = BetterLaunch()
 
-    with bl.group("test"):
-        bl.node(
-            "examples_rclpy_minimal_publisher",
-            "publisher_local_function",
-            "test_node",
-        )
+    #with bl.group("test"):
+    #    bl.node(
+    #        "examples_rclpy_minimal_publisher",
+    #        "publisher_local_function",
+    #        "test_node",
+    #    )
 
-    with bl.compose("composed"):
-        # TODO should implement a Component class so it can be used to manipulate components
-        bl.component("composition", "composition::Talker", "comp_talker")
-        bl.component("composition", "composition::Listener", "comp_listener")
+    #with bl.group("composition"):
+    #    with bl.compose("composed"):
+    #        bl.component("composition", "composition::Talker", "comp_talker")
+    #        bl.component("composition", "composition::Listener", "comp_listener")
+
+    with bl.group("lifecycle"):
+        bl.node(
+            "lifecycle",
+            "lifecycle_talker",
+            "lifecycle_talker",
+            lifecycle_target=LifecycleStage.PRISTINE,
+        )
+        bl.node(
+            "lifecycle",
+            "lifecycle_listener",
+            "lifecycle_listener",
+        )

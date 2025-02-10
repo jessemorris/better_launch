@@ -45,6 +45,7 @@ from ros.logging import LaunchConfig as LogConfig
 __all__ = [
     "launch_this",
     "BetterLaunch",
+    LifecycleStage
 ]
 
 
