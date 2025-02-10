@@ -98,7 +98,18 @@ class AbstractNode:
 
     @property
     def is_running(self) -> bool:
-        raise NotImplementedError
+        from better_launch import BetterLaunch
+
+        bl = BetterLaunch.instance()
+        if not bl:
+            return None
+
+        # Check if the node shows up in the list of running ROS nodes
+        living_nodes = [
+            ns + ('' if ns.endswith('/') else '/') + name
+            for name, ns in bl.shared_node.get_node_names_and_namespaces()
+        ]
+        return self.fullname in living_nodes
 
     def start(self, lifecycle_target: LifecycleStage = LifecycleStage.ACTIVE) -> None:
         self._do_start()
@@ -115,7 +126,7 @@ class AbstractNode:
     @property
     def is_lifecycle_node(self) -> bool:
         if self._is_lifecycle is None:
-            self._is_lifecycle = LifecycleManager.is_lifecycle(self.fullname)
+            self._is_lifecycle = LifecycleManager.is_lifecycle(self)
 
             if self._is_lifecycle:
                 self._lifecycle_manager = LifecycleManager(self)
