@@ -98,6 +98,10 @@ class AbstractNode:
 
     @property
     def is_running(self) -> bool:
+        raise NotImplementedError
+
+    @property
+    def is_ros2_connected(self) -> bool:
         from better_launch import BetterLaunch
 
         bl = BetterLaunch.instance()
@@ -105,15 +109,20 @@ class AbstractNode:
             return None
 
         # Check if the node shows up in the list of running ROS nodes
-        living_nodes = [
-            ns + ('' if ns.endswith('/') else '/') + name
-            for name, ns in bl.shared_node.get_node_names_and_namespaces()
-        ]
-        return self.fullname in living_nodes
+        try:
+            living_nodes = [
+                ns + ('' if ns.endswith('/') else '/') + name
+                for name, ns in bl.shared_node.get_node_names_and_namespaces()
+            ]
+            return self.fullname in living_nodes
+        except:
+            # Cannot check if the shared node was shut down
+            return None
 
     def start(self, lifecycle_target: LifecycleStage = LifecycleStage.ACTIVE) -> None:
         self._do_start()
 
+        # TODO wait for node to come up fully
         if self.is_lifecycle_node:
             self._lifecycle_manager.transition(lifecycle_target)
 

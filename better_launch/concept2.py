@@ -1,29 +1,20 @@
 from better_launch import BetterLaunch, launch_this, LifecycleStage
 
 
-# NOTE arguments default to NONE if not specified
+# UI will be ignored on included files
 @launch_this(ui=True)
+# enable_x will be filled from the original launch file if pass_launch_func_args is True
 def test(enable_x: bool):
-    """
-    This is how nice your launch files could be!
-    """
+    # This will reuse the original instance
     bl = BetterLaunch()
 
-    #with bl.group("test"):
-    #    bl.node(
-    #        "examples_rclpy_minimal_publisher",
-    #        "publisher_local_function",
-    #        "test_node",
-    #    )
-
-    #with bl.group("composition"):
-    #    with bl.compose("composed"):
-    #        bl.component("composition", "composition::Talker", "comp_talker")
-    #        bl.component("composition", "composition::Listener", "comp_listener")
-
+    # This group will be embedded according to how the include was placed
     with bl.group("lifecycle_B"):
         bl.node(
             "lifecycle",
             "lifecycle_listener",
             "lifecycle_listener",
         )
+
+        # Include a ROS2 launch file. These nodes will not be managed by BetterLaunch (for now)
+        bl.include("composition_demo.launch.py", "composition")

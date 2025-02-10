@@ -45,9 +45,9 @@ from ros.logging import LaunchConfig as LogConfig
 __all__ = ["launch_this", "BetterLaunch", LifecycleStage]
 
 
-_is_launcher_defined = "_better_launch_this_defined"
-_bl_singleton_instance = "_better_launch_instance"
-_bl_include_args = "_better_launch_include_args"
+_is_launcher_defined = "__better_launch_this_defined"
+_bl_singleton_instance = "__better_launch_instance"
+_bl_include_args = "__better_launch_include_args"
 
 
 def launch_this(
@@ -383,13 +383,16 @@ Takeoff in 3... 2... 1...
         self.logger.critical(f"Log files at {roslog.launch_config.log_dir}")
 
     def execute_pending_ros_actions(self, join: bool = True) -> None:
+        # TODO seems to work but is not launching anything?
         if self._ros2_actions:
             # Apply our config to the ROS2 launch logging config
             import launch
 
             launch.logging.launch_config = roslog.launch_config
 
-            self.logger.info("Forwarding pending ROS2 actions to launch service")
+            self.logger.info(
+                "Forwarding pending ROS2 actions to launch service. Any nodes started by this will not be managed by BetterLaunch."
+            )
             if not self._ros2_launcher:
                 if self._ros2_launcher is None:
                     self._ros2_launcher = launch.LaunchService(noninteractive=True)
@@ -531,6 +534,7 @@ Takeoff in 3... 2... 1...
                 self.logger.warning(f"Shutdown callback failed: {e}")
 
     def find(self, package: str, file_name: str = None, file_dir: str = None) -> str:
+        # TODO this function could be made nicer
         package_dir = get_package_prefix(package) if package else None
 
         if file_name is None:
@@ -539,7 +543,7 @@ Takeoff in 3... 2... 1...
         if package_dir is None:
             return self.resolve_string(file_name)
 
-        # look in specific subolder
+        # look in specific subfolder
         if file_dir is not None:
             package_dir = os.path.join(package_dir, file_dir)
 
@@ -848,6 +852,7 @@ Takeoff in 3... 2... 1...
         include_args.update(**kwargs)
 
         # TODO use resolve_string
+        # TODO assume same package if package is None
         file_path = self.find(package, launch_file)
         if launch_file.endswith(".py"):
             with open(file_path) as f:

@@ -44,7 +44,7 @@ class Component(AbstractNode):
         if not self.is_loaded:
             return False
 
-        return super().is_running
+        return self.is_ros2_connected
 
     def start(
         self,

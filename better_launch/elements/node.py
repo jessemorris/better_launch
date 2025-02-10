@@ -85,7 +85,6 @@ class Node(AbstractNode):
             and not self.shutdown_future.done()
             and self.completed_future is not None
             and not self.completed_future.done()
-            and super().is_running
         )
 
     def _do_start(self) -> None:
@@ -231,6 +230,8 @@ class Node(AbstractNode):
                 and not self.shutdown_future.done()
                 and (self.max_respawns < 0 or self._respawn_retries < self.max_respawns)
             ):
+                self.logger.info(f"Restarting {self.name} after unexpected shutdown")
+
                 self._respawn_retries += 1
                 if self.respawn_delay > 0.0:
                     time.sleep(self.respawn_delay)
@@ -300,7 +301,7 @@ class Node(AbstractNode):
 
         if not self.is_running:
             # the process is done or is cleaning up, no need to signal
-            self.logger.debug(
+            self.logger.info(
                 f"'{signame}' not set to '{self.name}' because it is already closing"
             )
             return
@@ -323,7 +324,7 @@ class Node(AbstractNode):
 
             self._process.send_signal(signum)
         except ProcessLookupError:
-            self.logger.debug(
+            self.logger.info(
                 f"'{signame}' not sent to '{self.name}' because it has closed already"
             )
 
