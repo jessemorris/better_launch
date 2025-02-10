@@ -2,7 +2,7 @@ from .node import Node
 
 
 class Group:
-    def __init__(self, parent, namespace: str, remaps: dict[str, str] = None):
+    def __init__(self, parent: "Group", namespace: str, remaps: dict[str, str] = None):
         self.parent = parent
         self.children = []
         self.namespace = namespace
@@ -35,10 +35,10 @@ class Group:
 
         root = self._root_chain[0].parent
         if root:
-            ns = root.ns.strip("/")
+            ns = root.namespace.strip("/")
 
         for g in self._root_chain:
-            ns += "/" + g.ns.strip("/")
+            ns += "/" + g.namespace.strip("/")
 
         while "//" in ns:
             ns = ns.replace("//", "/")

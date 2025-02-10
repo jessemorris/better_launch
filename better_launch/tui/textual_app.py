@@ -16,7 +16,7 @@ from better_launch import BetterLaunch
 import ros.logging as roslog
 from utils.better_logging import LogRecordForwarder
 
-from elements import Node, LifecycleNode, Composer, LifecycleStage
+from elements import Node, LifecycleNode, Composer
 from .log_entry import LogEntry
 from .node_menu import NodeLabel, NodeInfoScreen
 from .choice_dialog import ChoiceDialog
@@ -225,7 +225,7 @@ class BetterUI(App):
         node = label.node
 
         def on_lifecycle_choice(choice: str):
-            cast(LifecycleNode, node).transition(LifecycleStage[choice.upper()])
+            cast(LifecycleNode, node).transition(LifecycleNode.LifecycleStage[choice.upper()])
 
         def on_kill_choice(choice: str):
             if choice == "yes":
@@ -236,7 +236,7 @@ class BetterUI(App):
                 self.push_screen(NodeInfoScreen(node))
 
             elif action == "lifecycle":
-                valid_stages = list(LifecycleStage)
+                valid_stages = list(LifecycleNode.LifecycleStage)
                 valid_stages.remove(node.current_stage)
                 self.push_screen(
                     ChoiceDialog(valid_stages, f"Transition {node.name} to"),
