@@ -1,4 +1,4 @@
-from typing import Any, Callable
+from typing import Any, Callable, Generator
 import os
 import platform
 from ast import literal_eval
@@ -639,7 +639,7 @@ Takeoff in 3... 2... 1...
         )
 
     @contextmanager
-    def group(self, ns: str = None):
+    def group(self, ns: str = None) -> Generator[Group, None, None]:
         if self._composition_node:
             raise RuntimeError("Cannot add groups inside a composition node")
 
@@ -809,7 +809,7 @@ Takeoff in 3... 2... 1...
         use_shell: bool = False,
         emulate_tty: bool = False,
         **kwargs,
-    ) -> Composer:
+    ) -> Generator[Composer, None, None]:
         if self._composition_node is not None:
             raise RuntimeError("Cannot nest composition nodes")
 
