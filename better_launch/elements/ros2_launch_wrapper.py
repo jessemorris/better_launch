@@ -225,45 +225,44 @@ class Ros2LaunchWrapper(AbstractNode):
     def describe_launch_actions(self) -> list[str]:
         descriptions = []
 
-        for ld in self._loaded_launch_descriptions:
-            info = "LaunchDescription("
+        for idx, ld in enumerate(self._loaded_launch_descriptions):
+            info = f"({idx}) LaunchDescription(["
             for entity in ld.describe_sub_entities():
-                info += f"\n{self._format_ros2_entity(entity, 1)}"
-            info += "\n)"
+                info += "\n  " + self._format_properties(entity, 1) + ","
+            info += "\n])"
 
             descriptions.append(info)
 
         return descriptions
 
-    def _format_ros2_entity(self, entity, depth: int = 0):
-        from launch import LaunchDescriptionEntity
+    def _format_properties(self, entity, depth: int = 0):
+        indent = "    "
+        description = f"{entity.__class__.__name__}("
 
-        indent = "  " * depth
-        description = f"{indent}{entity.__class__.__name__}("
-        properties = {}
+        for param in dir(entity.__class__):
+            if param == "self":
+                continue
 
-        if isinstance(entity, LaunchDescriptionEntity):
-            sig = inspect.signature(entity.__class__.__init__)
-            # TODO look for properties, too
-            for param in sig.parameters.keys():
-                if param == "self":
-                    continue
+            if param.startswith("_"):
+                continue
 
-                val = getattr(entity, param, "<?>")
-                if isinstance(entity, LaunchDescriptionEntity):
-                    # TODO formatting not quite right yet
-                    val = self._format_ros2_entity(val, 0)
-                elif hasattr(val, "describe"):
-                    val = val.describe()
+            val = getattr(type(entity), param)
+            if not isinstance(val, property):
+                continue
 
-                properties[param] = val
+            val = val.fget(entity)
 
-        properties_info = ", ".join(f"{k}={v}" for k, v in properties.items())
-        description += f"\n{indent}  {properties_info}"
+            # TODO some substitutions like LaunchDescriptionSource will only be resolved after 
+            # they have been executed by ROS2 launch, but we need to do this on the side of the 
+            # process, NOT in the host process where they are never run
+            if val is None:
+                val = "None"
+            elif val.__class__.__module__.startswith("launch"):
+                val = self._format_properties(val, depth + 1)
+            elif isinstance(val, str):
+                val = "'" + val + "'"
 
-        if hasattr(entity, "describe_sub_entities"):
-            for sub in entity.describe_sub_entities():
-                description += f"\n{self._format_ros2_entity(sub, depth + 1)}"
+            description += f"\n{indent * (depth + 1)}{param}={val},"
 
-        description += f"\n{indent})"
+        description += f"\n{indent * depth})"
         return description
