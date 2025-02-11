@@ -1,3 +1,4 @@
+import os
 import signal
 import asyncio
 import logging
@@ -5,11 +6,28 @@ from multiprocessing import Process, Queue
 import osrf_pycommon.process_utils
 
 import ros.logging as roslog
+from utils.better_logging import RosLogFormatter, LogRecordForwarder
 from .abstract_node import AbstractNode
+from .node import Node
 
 
-def _launchservice_worker(logger: logging.Logger, ros2_launcher, q: Queue) -> None:
-    logger.info("Starting ROS2 launch service")
+def _launchservice_worker(
+    ros2_launcher,
+    q: Queue,
+    logout: logging.Logger,
+    logerr: logging.Logger,
+    enforce_parsable_logs: bool = True,
+) -> None:
+    if enforce_parsable_logs:
+        os.environ["RCUTILS_CONSOLE_OUTPUT_FORMAT"] = "%%{severity}%%{time}%%{message}"
+        os.environ["RCUTILS_COLORIZED_OUTPUT"] = "0"
+
+        # Slight of hand to capture the process' and nodes' stdout and stderr
+        import launch
+
+        handler = LogRecordForwarder()
+        handler.add_listener(logout.handle)
+        launch.logging.launch_config.screen_handler = handler
 
     async def forward_launch_descriptions():
         while True:
@@ -19,7 +37,7 @@ def _launchservice_worker(logger: logging.Logger, ros2_launcher, q: Queue) -> No
                     ros2_launcher.include_launch_description(ld)
                 await asyncio.sleep(0.1)
             except Exception as e:
-                logger.error(f"Failed to add actions to ROS launch service: {e}")
+                logerr.info(f"Failed to add actions to ROS launch service: {e}")
 
     async def wrapper():
         try:
@@ -29,21 +47,19 @@ def _launchservice_worker(logger: logging.Logger, ros2_launcher, q: Queue) -> No
                 ros2_launcher.run_async(shutdown_when_idle=False),
             )
         except Exception as e:
-            logger.error(f"ROS2 launch service wrapper failed: {e}")
+            logerr.info(f"ROS2 launch service wrapper failed: {e}")
             raise
 
-    try:
-        # Basically the same as what LaunchService.run does
-        loop = osrf_pycommon.process_utils.get_loop()
-        task = loop.create_task(wrapper())
-        while True:
-            try:
-                loop.run_until_complete(task)
-            except KeyboardInterrupt:
-                pass
-    except Exception as e:
-        logger.error(f"ROS2 launch service failed to execute: {e}")
-        raise
+    logout.info("Starting ROS2 launch service")
+
+    # Basically the same as what LaunchService.run does
+    loop = osrf_pycommon.process_utils.get_loop()
+    task = loop.create_task(wrapper())
+    while True:
+        try:
+            loop.run_until_complete(task)
+        except Exception as e:
+            logerr.info(f"LaunchService terminated: {e}")
 
 
 class Ros2LaunchWrapper(AbstractNode):
@@ -51,6 +67,10 @@ class Ros2LaunchWrapper(AbstractNode):
         self,
         process_name: str = "LaunchService",
         launch_args: list[str] = None,
+        output_config: (
+            Node.LogSink | dict[Node.LogSource, set[Node.LogSink]]
+        ) = "screen",
+        reparse_logs: bool = True,
     ):
         super().__init__(
             "ros2/launch",
@@ -60,6 +80,9 @@ class Ros2LaunchWrapper(AbstractNode):
             remaps=None,
             node_args=None,
         )
+
+        self.reparse_logs = reparse_logs
+        self.output_config = output_config
 
         self._launch_process: Process = None
         self._action_queue = Queue()
@@ -71,8 +94,15 @@ class Ros2LaunchWrapper(AbstractNode):
 
         original_log_level = roslog.launch_config.level
         launch.logging.launch_config = roslog.launch_config
+
         self._ros2_launcher = launch.LaunchService(
             argv=launch_args, noninteractive=True
+        )
+        # This feels highly illegal and I love it! :>
+        setattr(
+            self._ros2_launcher,
+            f"_{launch.LaunchService.__name__}__logger",
+            self.logger,
         )
 
         # LaunchService modifies the log level, we restore it
@@ -104,9 +134,28 @@ class Ros2LaunchWrapper(AbstractNode):
         self._action_queue.put(ld)
 
     def _do_start(self) -> None:
+        logout, logerr = roslog.get_output_loggers(self.name, self.output_config)
+
+        if self.reparse_logs:
+            screen_handler = roslog.launch_config.get_screen_handler()
+            # LaunchService is a little stubborn about log formatting, but this also allows us to
+            # capture the actual source of the message
+            formatter = RosLogFormatter(
+                roslog_pattern=r"\[(.+)] *%%(\w+)%%([\d.]+)%%(.*)",
+                pattern_info=["name", "levelname", "created", "msg"],
+            )
+            screen_handler.setFormatterFor(logout, formatter)
+            screen_handler.setFormatterFor(logerr, formatter)
+
         self._launch_process = Process(
             target=_launchservice_worker,
-            args=(self.logger, self._ros2_launcher, self._action_queue),
+            args=(
+                self._ros2_launcher,
+                self._action_queue,
+                logout,
+                logerr,
+                self.reparse_logs,
+            ),
             name=self.name,
             daemon=True,
         )
@@ -122,15 +171,20 @@ class Ros2LaunchWrapper(AbstractNode):
             if not self.is_running:
                 return
 
-        if self._terminate_requested or signum == signal.SIGKILL:
-            self.logger.warning(
-                f"(reason), but {self.name} was asked to terminate before -> escalating to SIGKILL. Killing ROS2 launch service may leave stale processes behind!"
-            )
-            self._launch_process.kill()
-        else:
-            self.logger.info(f"{self.name} was asked to terminate: {reason} (SIGTERM)")
-            self._launch_process.terminate()
-            self._terminate_requested = True
+        try:
+            if self._terminate_requested or signum == signal.SIGKILL:
+                self.logger.warning(
+                    f"(reason), but {self.name} was asked to terminate before -> escalating to SIGKILL. Killing ROS2 launch service may leave stale processes behind!"
+                )
+                self._launch_process.kill()
+            else:
+                self.logger.info(
+                    f"{self.name} was asked to terminate: {reason} (SIGTERM)"
+                )
+                self._launch_process.terminate()
+                self._terminate_requested = True
+        except:
+            pass
 
         try:
             self._launch_process.close()
@@ -144,9 +198,6 @@ class Ros2LaunchWrapper(AbstractNode):
             + f"""\
 [bold]Launch Service[/bold]
   PID:       {self.pid}
-  Shutdown:  {self._ros2_launcher.context.is_shutdown}
-  Args:      {self._ros2_launcher.context.argv}
-  Env:       {self._ros2_launcher.context.environment}
 """
         )
 

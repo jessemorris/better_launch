@@ -62,7 +62,8 @@ class RosLogFormatter(logging.Formatter):
         timestamp_format: str = "%Y-%m-%d %H:%M:%S.%f",
         *,
         defaults: Any = None,
-        roslog_pattern: str = r"%%([\w]+)%%([\d.]+)%%(.*)",
+        roslog_pattern: str = r"%%(\w+)%%([\d.]+)%%(.*)",
+        pattern_info: list[str] = ("levelname", "created", "msg"),
         colormap: dict[int, str] = None,
         disable_colors: bool = False,
     ):
@@ -70,6 +71,7 @@ class RosLogFormatter(logging.Formatter):
 
         self.converter = datetime.fromtimestamp
         self.roslog_pattern = re.compile(roslog_pattern)
+        self.pattern_info = pattern_info
         self.colormap = colormap if colormap is not None else dict(log_default_colormap)
         self.mycolor = get_contrast_color()
         self.disable_colors = disable_colors
@@ -78,10 +80,14 @@ class RosLogFormatter(logging.Formatter):
         match = self.roslog_pattern.match(record.msg)
 
         if match:
-            record.levelname = match.group(1)
-            record.levelno = logging.getLevelName(record.levelname)
-            record.created = float(match.group(2))
-            record.msg = match.group(3)
+            for idx, key in enumerate(self.pattern_info):
+                setattr(record, key, match.group(idx + 1))
+
+            if "levelname" in self.pattern_info and "levelno" not in self.pattern_info:
+                record.levelno = logging.getLevelName(record.levelname)
+
+            elif "levelno" in self.pattern_info and "levelname" not in self.pattern_info:
+                record.levelname = logging.getLevelName(record.levelno)
 
         if self.disable_colors:
             record.rgb = (255, 255, 255)
@@ -98,10 +104,13 @@ class RosLogFormatter(logging.Formatter):
         return super().format(record)
 
     def formatTime(self, record, datefmt=None):
-        dt: datetime = self.converter(record.created)
-        if datefmt:
-            return dt.strftime(datefmt)
-        return dt.strftime(self.default_time_format)
+        try:
+            dt: datetime = self.converter(record.created)
+            if datefmt:
+                return dt.strftime(datefmt)
+            return dt.strftime(self.default_time_format)
+        except:
+            return record.created
 
 
 class LogRecordForwarder(logging.Handler):
