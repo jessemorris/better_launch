@@ -1,7 +1,8 @@
 import os
 import signal
-import asyncio
+import inspect
 import logging
+import asyncio
 from multiprocessing import Process, Queue
 import osrf_pycommon.process_utils
 
@@ -27,7 +28,7 @@ def _launchservice_worker(
         pass
 
     if enforce_parsable_logs:
-        # LaunchService is a little stubborn about log formatting and always prepends the node's 
+        # LaunchService is a little stubborn about log formatting and always prepends the node's
         # name, but this also allows us to capture the actual source of the message
         os.environ["RCUTILS_CONSOLE_OUTPUT_FORMAT"] = "%%{severity}%%{time}%%{message}"
         os.environ["RCUTILS_COLORIZED_OUTPUT"] = "0"
@@ -40,15 +41,17 @@ def _launchservice_worker(
 
         std_handler = RecordForwarder()
         std_handler.add_listener(logout.handle)
-        std_handler.setFormatter(PrettyFormatter(
-            roslog_pattern=r"\[(.+)] *%%(\w+)%%([\d.]+)%%(.*)",
-            pattern_info=["name", "levelname", "created", "msg"],
-            color_per_source=True,
-        ))
+        std_handler.setFormatter(
+            PrettyFormatter(
+                roslog_pattern=r"\[(.+)] *%%(\w+)%%([\d.]+)%%(.*)",
+                pattern_info=["name", "levelname", "created", "msg"],
+                color_per_source=True,
+            )
+        )
 
         # The ROS2 launch system will set new formatters for each node and source, so our formatter
         # wouldn't be used. We either have to make our formatter more stubborn, or we run ROS2
-        # in a proper subprocess and create a small launch file to load our actions. However, 
+        # in a proper subprocess and create a small launch file to load our actions. However,
         # there is no easy way to serialize a launch description...
         launch.logging.launch_config.screen_handler = StubbornHandler(std_handler)
 
@@ -109,7 +112,7 @@ class Ros2LaunchWrapper(AbstractNode):
 
         self._launch_process: Process = None
         self._action_queue = Queue()
-        self._loaded_actions = []
+        self._loaded_launch_descriptions = []
         self._terminate_requested = False
 
         # Late import to avoid making this a dependency
@@ -152,8 +155,8 @@ class Ros2LaunchWrapper(AbstractNode):
     def queue_ros2_actions(self, *actions) -> None:
         import launch
 
-        self._loaded_actions.extend(actions)
         ld = launch.LaunchDescription(list(actions))
+        self._loaded_launch_descriptions.append(ld)
         self._action_queue.put(ld)
 
     def _do_start(self) -> None:
@@ -204,9 +207,8 @@ class Ros2LaunchWrapper(AbstractNode):
             pass
 
     def _get_info_section_general(self) -> str:
-        info = super()._get_info_section_general()
         return (
-            info
+            super()._get_info_section_general()
             + f"""\
 [bold]Launch Service[/bold]
   PID:       {self.pid}
@@ -214,10 +216,54 @@ class Ros2LaunchWrapper(AbstractNode):
         )
 
     def _get_info_section_ros(self) -> str:
-        # TODO does not create a nice description yet. As always, ROS2 makes it difficult
-        action_info = "\n\n".join([a.describe() for a in self._loaded_actions])
-
-        return f"""
+        ld_info = "\n".join(self.describe_launch_actions())
+        return f"""\
 [bold]Loaded Actions[/bold]
-{action_info}
+{ld_info}
 """
+
+    def describe_launch_actions(self) -> list[str]:
+        descriptions = []
+
+        for ld in self._loaded_launch_descriptions:
+            info = "LaunchDescription("
+            for entity in ld.describe_sub_entities():
+                info += f"\n{self._format_ros2_entity(entity, 1)}"
+            info += "\n)"
+
+            descriptions.append(info)
+
+        return descriptions
+
+    def _format_ros2_entity(self, entity, depth: int = 0):
+        from launch import LaunchDescriptionEntity
+
+        indent = "  " * depth
+        description = f"{indent}{entity.__class__.__name__}("
+        properties = {}
+
+        if isinstance(entity, LaunchDescriptionEntity):
+            sig = inspect.signature(entity.__class__.__init__)
+            # TODO look for properties, too
+            for param in sig.parameters.keys():
+                if param == "self":
+                    continue
+
+                val = getattr(entity, param, "<?>")
+                if isinstance(entity, LaunchDescriptionEntity):
+                    # TODO formatting not quite right yet
+                    val = self._format_ros2_entity(val, 0)
+                elif hasattr(val, "describe"):
+                    val = val.describe()
+
+                properties[param] = val
+
+        properties_info = ", ".join(f"{k}={v}" for k, v in properties.items())
+        description += f"\n{indent}  {properties_info}"
+
+        if hasattr(entity, "describe_sub_entities"):
+            for sub in entity.describe_sub_entities():
+                description += f"\n{self._format_ros2_entity(sub, depth + 1)}"
+
+        description += f"\n{indent})"
+        return description
