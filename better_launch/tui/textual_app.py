@@ -14,7 +14,7 @@ from ros2node.api import get_node_names
 
 from better_launch import BetterLaunch
 import ros.logging as roslog
-from utils.better_logging import LogRecordForwarder
+from utils.better_logging import RecordForwarder
 
 from elements import Node, Composer, Component, LifecycleStage
 from .log_entry import LogEntry
@@ -80,7 +80,7 @@ class BetterUI(App):
             del os.environ["OVERRIDE_LAUNCH_SCREEN_FORMAT"]
 
         # Install the log handler
-        roslog.launch_config.screen_handler = LogRecordForwarder()
+        roslog.launch_config.screen_handler = RecordForwarder()
 
     def __init__(
         self,
@@ -150,7 +150,7 @@ class BetterUI(App):
                 self.call_later(self.on_log_record, record)
 
         log_handler = roslog.launch_config.screen_handler
-        if not isinstance(log_handler, LogRecordForwarder):
+        if not isinstance(log_handler, RecordForwarder):
             raise RuntimeError(
                 "Something modified the logging handler, UI cant't start"
             )

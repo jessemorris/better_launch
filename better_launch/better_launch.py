@@ -42,7 +42,7 @@ from elements import (
     LifecycleStage,
     Ros2LaunchWrapper,
 )
-from utils.better_logging import log_default_colormap, RosLogFormatter
+from utils.better_logging import log_default_colormap, PrettyFormatter
 from utils.substitutions import default_substitution_handlers, substitute_tokens
 from utils.introspection import find_calling_frame
 from ros.ros_adapter import ROSAdapter
@@ -157,7 +157,7 @@ def _launch_this_wrapper(
         if "OVERRIDE_LAUNCH_SCREEN_FORMAT" not in os.environ:
             colormap = dict(log_default_colormap)
             colormap[logging.INFO] = "\x1b[32;20m"
-            roslog.launch_config.screen_formatter = RosLogFormatter(colormap=colormap)
+            roslog.launch_config.screen_formatter = PrettyFormatter(colormap=colormap)
 
     # Expose launch_func args through click. This enables using launch files like other
     # python files, e.g. './my_better_launchfile.py --help'
@@ -323,9 +323,6 @@ class BetterLaunch(metaclass=_BetterLaunchMeta):
     ):
         if not name:
             name = os.path.basename(BetterLaunch._launchfile)
-            name = os.path.splitext(name)[0]
-            if name.endswith(".launch"):
-                name = os.path.splitext(name)[0]
 
         # roslog.launch_config must be setup before instantiation of BetterLaunch
         self.logger = roslog.get_logger(name)

@@ -6,7 +6,8 @@ from multiprocessing import Process, Queue
 import osrf_pycommon.process_utils
 
 import ros.logging as roslog
-from utils.better_logging import RosLogFormatter, LogRecordForwarder
+from utils.better_logging import PrettyFormatter, RecordForwarder, StubbornHandler
+from utils.colors import get_contrast_color
 from .abstract_node import AbstractNode
 from .node import Node
 
@@ -18,16 +19,38 @@ def _launchservice_worker(
     logerr: logging.Logger,
     enforce_parsable_logs: bool = True,
 ) -> None:
+    try:
+        from setproctitle import setproctitle, getproctitle
+
+        setproctitle(f"{getproctitle()} (LaunchService)")
+    except ImportError:
+        pass
+
     if enforce_parsable_logs:
+        # LaunchService is a little stubborn about log formatting and always prepends the node's 
+        # name, but this also allows us to capture the actual source of the message
         os.environ["RCUTILS_CONSOLE_OUTPUT_FORMAT"] = "%%{severity}%%{time}%%{message}"
         os.environ["RCUTILS_COLORIZED_OUTPUT"] = "0"
+
+        # Create an offset to avoid going through the same sequence of colors
+        get_contrast_color.hue = 0.5
 
         # Slight of hand to capture the process' and nodes' stdout and stderr
         import launch
 
-        handler = LogRecordForwarder()
-        handler.add_listener(logout.handle)
-        launch.logging.launch_config.screen_handler = handler
+        std_handler = RecordForwarder()
+        std_handler.add_listener(logout.handle)
+        std_handler.setFormatter(PrettyFormatter(
+            roslog_pattern=r"\[(.+)] *%%(\w+)%%([\d.]+)%%(.*)",
+            pattern_info=["name", "levelname", "created", "msg"],
+            color_per_source=True,
+        ))
+
+        # The ROS2 launch system will set new formatters for each node and source, so our formatter
+        # wouldn't be used. We either have to make our formatter more stubborn, or we run ROS2
+        # in a proper subprocess and create a small launch file to load our actions. However, 
+        # there is no easy way to serialize a launch description...
+        launch.logging.launch_config.screen_handler = StubbornHandler(std_handler)
 
     async def forward_launch_descriptions():
         while True:
@@ -136,17 +159,6 @@ class Ros2LaunchWrapper(AbstractNode):
     def _do_start(self) -> None:
         logout, logerr = roslog.get_output_loggers(self.name, self.output_config)
 
-        if self.reparse_logs:
-            screen_handler = roslog.launch_config.get_screen_handler()
-            # LaunchService is a little stubborn about log formatting, but this also allows us to
-            # capture the actual source of the message
-            formatter = RosLogFormatter(
-                roslog_pattern=r"\[(.+)] *%%(\w+)%%([\d.]+)%%(.*)",
-                pattern_info=["name", "levelname", "created", "msg"],
-            )
-            screen_handler.setFormatterFor(logout, formatter)
-            screen_handler.setFormatterFor(logerr, formatter)
-
         self._launch_process = Process(
             target=_launchservice_worker,
             args=(
@@ -174,7 +186,7 @@ class Ros2LaunchWrapper(AbstractNode):
         try:
             if self._terminate_requested or signum == signal.SIGKILL:
                 self.logger.warning(
-                    f"(reason), but {self.name} was asked to terminate before -> escalating to SIGKILL. Killing ROS2 launch service may leave stale processes behind!"
+                    f"({reason}), but {self.name} was asked to terminate before -> escalating to SIGKILL. Killing ROS2 launch service may leave stale processes behind!"
                 )
                 self._launch_process.kill()
             else:
