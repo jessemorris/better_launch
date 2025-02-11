@@ -134,7 +134,7 @@ class Composer(Node):
         self._language: str = language
         # Remaps are not useful for a composable node, but we can forward them to the components
         self._component_remaps: dict[str, str] = component_remaps or {}
-        self._loaded_components: dict[int: Component] = {}
+        self._loaded_components: dict[int, Component] = {}
         self._load_node_client = None
         self._unload_node_client = None
 
@@ -261,3 +261,11 @@ class Composer(Node):
             f"Unloading component {component} ({cid}) failed: {res.error_message}"
         )
         return False
+
+    def _get_info_section_general(self):
+        info = super()._get_info_section_general()
+        components = "\n".join([f"  - {c.plugin}" for c in self._loaded_components.values()])
+        return info + f"""
+[bold]Components[/bold]
+{components}
+"""

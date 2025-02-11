@@ -146,5 +146,76 @@ class AbstractNode:
     def lifecycle(self) -> LifecycleManager:
         return self._lifecycle_manager
 
+    def get_info_sheet(self) -> str:
+        # ROS2 prints a lot of useless stuff and avoids the things that are interesting most of
+        # the time, like who is actually subscribed where. Let's fix this!
+        return "\n".join([
+            self._get_info_section_general(),
+            self._get_info_section_config(),
+            self._get_info_section_ros(),
+        ])
+
+    def _get_info_section_general(self) -> str:
+        return f"""\
+[bold]{self.name} ({self.__class__.__name__})[/bold]
+  Status:    {'[green]alive[/green]' if self.is_running else '[red]dead[/red]'}
+  Lifecycle: {self.lifecycle.current_stage.name if self.is_lifecycle_node else 'None'}
+  Package:   {self.package}
+  Command:   {self.executable}
+  Namespace: {self.namespace}
+"""
+
+    def _get_info_section_config(self) -> str:
+        return f"""\
+[bold]Config[/bold]
+  Node Args: {self.node_args}
+  Remaps:    {self.remaps}
+"""
+
+    def _get_info_section_ros(self) -> str:
+        if self.is_ros2_connected:
+            from better_launch import BetterLaunch
+
+            shared_node = BetterLaunch.instance().shared_node
+
+            # Topics the node is publishing
+            pubs = shared_node.get_publisher_names_and_types_by_node(
+                self.name, self.namespace
+            )
+            pubs.sort()
+            pubs_text = ""
+            for topic, types in pubs:
+                pubs_text += f"\n  {topic} [{', '.join(types)}]"
+
+            # Topics the node is subscribed to
+            subs = shared_node.get_subscriber_names_and_types_by_node(
+                self.name, self.namespace
+            )
+            subs.sort()
+            subs_text = ""
+            for topic, types in subs:
+                subs_text += f"\n  {topic} [{', '.join(types)}]"
+
+            # Provided services
+            services = shared_node.get_service_names_and_types_by_node(
+                self.name, self.namespace
+            )
+            services.sort()
+            services_text = ""
+            for srv, types in services:
+                services_text += f"\n  {srv} [{', '.join(types)}]"
+        else:
+            pubs_text = ""
+            subs_text = ""
+            services_text = ""
+
+        return f"""\
+[bold]Publishers:[/bold] {pubs_text}
+
+[bold]Subscriptions:[/bold] {subs_text}
+
+[bold]Services:[/bold] {services_text}
+"""
+
     def __repr__(self):
         return __class__.__name__ + " " + self.fullname
