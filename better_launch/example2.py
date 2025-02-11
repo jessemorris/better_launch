@@ -17,4 +17,4 @@ def test(enable_x: bool):
         )
 
         # Include a ROS2 launch file. These nodes will not be managed by BetterLaunch (for now)
-        #bl.include("composition_demo.launch.py", "composition")
+        bl.include("composition_demo.launch.py", "composition")
