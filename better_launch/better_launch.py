@@ -868,6 +868,7 @@ Takeoff in 3... 2... 1...
         ros2_include = IncludeLaunchDescription(
             AnyLaunchDescriptionSource(file_path),
             launch_arguments=[
+                # ROS2 can handle only tuples of strings and strings/substitutions here...
                 (key, str(val) if val is not None else "")
                 for key, val in kwargs.items()
             ],
