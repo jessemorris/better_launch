@@ -377,5 +377,15 @@ class Node(AbstractNode):
 
         self.my_task = None
 
+    def _get_info_section_general(self):
+        info = super()._get_info_section_general()
+        return info + f"""
+[bold]Process[/bold]
+  PID:       {self.pid}
+  Respawns:  {self._respawn_retries} / {self.max_respawns}
+  Cmd Args:  {self.cmd_args}
+  Env:       {self.env}
+"""
+
     def __repr__(self) -> str:
         return f"{self.name} [node {self.node_id}, cmd {self.package}/{self.executable}, pid {self.pid}, running {self.is_running}]"
