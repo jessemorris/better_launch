@@ -61,7 +61,7 @@ class Component(AbstractNode):
         if self.is_lifecycle_node:
             self.lifecycle.transition(lifecycle_target)
 
-    def shutdown(self, reason: str):
+    def shutdown(self, reason: str, signum: int = signal.SIGTERM):
         self.logger.warning(f"Unloading component {self.name}: {reason}")
         self.composer.unload_component(self)
         self._component_id = None

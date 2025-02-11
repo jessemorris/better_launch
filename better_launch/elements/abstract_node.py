@@ -1,5 +1,6 @@
 from typing import Any
 from pathlib import Path
+import signal
 
 import ros.logging as roslog
 from .lifecycle_manager import LifecycleManager, LifecycleStage
@@ -120,6 +121,9 @@ class AbstractNode:
             return None
 
     def start(self, lifecycle_target: LifecycleStage = LifecycleStage.ACTIVE) -> None:
+        if self.is_running:
+            return
+        
         self._do_start()
 
         # TODO wait for node to come up fully
@@ -129,7 +133,7 @@ class AbstractNode:
     def _do_start(self) -> None:
         raise NotImplementedError
 
-    def shutdown(self, reason: str) -> None:
+    def shutdown(self, reason: str, signum: int = signal.SIGTERM) -> None:
         raise NotImplementedError
 
     @property

@@ -33,7 +33,15 @@ except ImportError:
 
     __uuid_generator = lambda: uuid.uuid4().hex
 
-from elements import Group, AbstractNode, Node, Composer, Component, LifecycleStage
+from elements import (
+    Group,
+    AbstractNode,
+    Node,
+    Composer,
+    Component,
+    LifecycleStage,
+    Ros2LaunchWrapper,
+)
 from utils.better_logging import log_default_colormap, RosLogFormatter
 from utils.substitutions import default_substitution_handlers, substitute_tokens
 from utils.introspection import find_calling_frame
@@ -196,7 +204,8 @@ def _launch_this_wrapper(
 
             # Retrieve the BetterLaunch singleton
             bl = BetterLaunch()
-            bl.execute_pending_ros_actions(join=join and not ui)
+            if join and not ui:
+                bl.spin()
 
         # By default BetterLaunch has access to all arguments from its launch function
         bound_args = launch_func_sig.bind(*args, **kwargs)
@@ -337,10 +346,8 @@ class BetterLaunch(metaclass=_BetterLaunchMeta):
 
         self._composition_node = None
 
-        # Allows to run traditional ros2 launch descriptions
-        self._ros2_actions = []
+        # Allows to run traditional ros2 launch actions and descriptions
         self._ros2_launcher = None
-        self._ros2_launcher_thread = None
 
         self._sigint_received = False
         self._shutdown_future = Future()
@@ -382,42 +389,6 @@ Takeoff in 3... 2... 1...
         print(msg)
         self.logger.critical(f"Log files at {roslog.launch_config.log_dir}")
 
-    def execute_pending_ros_actions(self, join: bool = True) -> None:
-        if self._ros2_actions:
-            # Apply our config to the ROS2 launch logging config
-            import launch
-
-            launch.logging.launch_config = roslog.launch_config
-
-            self.logger.info(
-                "Forwarding pending ROS2 actions to launch service. Any nodes started by this will not be managed by BetterLaunch."
-            )
-            if not self._ros2_launcher:
-                if self._ros2_launcher is None:
-                    self._ros2_launcher = launch.LaunchService(noninteractive=True)
-
-            ld = launch.LaunchDescription(self._ros2_actions)
-            self._ros2_actions.clear()
-            self._ros2_launcher.include_launch_description(ld)
-
-        if self._ros2_launcher:
-            if not (
-                self._ros2_launcher_thread and self._ros2_launcher_thread.is_alive()
-            ):
-                # TODO ros2 LaunchService wants to run on the main thread, but we don't want that
-                # TODO move to its own process?
-                self.logger.info("Starting ROS2 launch service")
-                self._ros2_launcher_thread = threading.Thread(
-                    target=self._ros2_launcher.run,
-                    daemon=True,
-                )
-                self._ros2_launcher_thread.start()
-
-            if join:
-                self.spin()
-        else:
-            self.logger.info("No ROS2 actions pending")
-
     def spin(self) -> None:
         self.ros_adapter._thread.join()
 
@@ -446,6 +417,9 @@ Takeoff in 3... 2... 1...
                 nodes.append(n)
                 if include_components and isinstance(n, Composer):
                     nodes.extend(n.loaded_components)
+
+        if self._ros2_launcher:
+            nodes.append(self._ros2_launcher)
 
         return nodes
 
@@ -881,9 +855,9 @@ Takeoff in 3... 2... 1...
 
         # TODO could be stricter about verification here
         # Was not a better_launch launch file, assume it's a ROS2 launch file (py, xml, yaml)
-        self._make_ros2_include(file_path, **include_args)
+        self._include_ros2_launchfile(file_path, **include_args)
 
-    def _make_ros2_include(self, file_path, **kwargs) -> None:
+    def _include_ros2_launchfile(self, file_path, **kwargs) -> None:
         # Delegate to ros2 launch service
         from launch.actions import IncludeLaunchDescription
         from launch.launch_description_sources import (
@@ -895,7 +869,23 @@ Takeoff in 3... 2... 1...
             AnyLaunchDescriptionSource(file_path),
             launch_arguments=[(key, val) for key, val in kwargs.items()],
         )
-        self.ros2_action(ros2_include)
+        self.ros2_actions(ros2_include)
 
-    def ros2_action(self, ros2_action) -> None:
-        self._ros2_actions.append(ros2_action)
+    def ros2_launch_service(
+        self,
+        process_name: str = "LaunchService",
+        launch_args: list[str] = None,
+        start_immediately: bool = True,
+    ) -> Ros2LaunchWrapper:
+        if not self._ros2_launcher:
+            self._ros2_launcher = Ros2LaunchWrapper(
+                process_name=process_name, launch_args=launch_args
+            )
+
+        if start_immediately:
+            self._ros2_launcher.start()
+
+        return self._ros2_launcher
+
+    def ros2_actions(self, *ros2_actions) -> None:
+        self.ros2_launch_service().queue_ros2_actions(*ros2_actions)
