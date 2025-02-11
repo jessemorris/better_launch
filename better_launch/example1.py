@@ -2,7 +2,7 @@ import os
 from better_launch import BetterLaunch, launch_this, LifecycleStage
 
 
-@launch_this(ui=False)
+@launch_this(ui=True)
 # All arguments will be exposed as command line args (e.g. --enable_x)
 # NOTE arguments default to NONE if not specified
 def test(enable_x: bool):

@@ -21,7 +21,7 @@ log_default_colormap = {
 
 # Taken from ROS2's logging.handlers. Since that module replaces itself this function is not 
 # accessible from the outside.
-def _with_per_logger_formatting(cls):
+def with_per_logger_formatting(cls):
     """Add per logger formatting capabilities to the given logging.Handler."""
     class _trait(cls):
         """A logging.Handler subclass to enable per logger formatting."""
@@ -52,7 +52,7 @@ def _with_per_logger_formatting(cls):
     return _trait
 
 
-class RosLogFormatter(logging.Formatter):
+class PrettyFormatter(logging.Formatter):
     default_screen_format = "[{levelcolor}{levelname}{colorreset}] [{sourcecolor}{name}{colorreset}] [{asctime}]\n{message}"
     default_file_format = "[{levelname}] [{asctime}] {message}"
 
@@ -65,6 +65,7 @@ class RosLogFormatter(logging.Formatter):
         roslog_pattern: str = r"%%(\w+)%%([\d.]+)%%(.*)",
         pattern_info: list[str] = ("levelname", "created", "msg"),
         colormap: dict[int, str] = None,
+        color_per_source: bool = True,
         disable_colors: bool = False,
     ):
         super().__init__(format, timestamp_format, "{", True, defaults=defaults)
@@ -73,8 +74,18 @@ class RosLogFormatter(logging.Formatter):
         self.roslog_pattern = re.compile(roslog_pattern)
         self.pattern_info = pattern_info
         self.colormap = colormap if colormap is not None else dict(log_default_colormap)
-        self.mycolor = get_contrast_color()
+        self.color_per_source = color_per_source
         self.disable_colors = disable_colors
+        self.registered_colors = {}
+
+    def get_color(self, source: str) -> tuple[int, int, int]:
+        if not self.color_per_source:
+            source = "self"
+
+        if source not in self.registered_colors:
+            self.registered_colors[source] = get_contrast_color()
+
+        return self.registered_colors[source]
 
     def format(self, record):
         match = self.roslog_pattern.match(record.msg)
@@ -95,8 +106,8 @@ class RosLogFormatter(logging.Formatter):
             record.sourcecolor = ""
             record.colorreset = ""
         else:
-            r, g, b = self.mycolor
-            record.rgb = self.mycolor
+            r, g, b = self.get_color(record.name)
+            record.rgb = (r, g, b)
             record.levelcolor = self.colormap.get(record.levelno, "")
             record.sourcecolor = f"\x1b[38;2;{r};{g};{b}m"
             record.colorreset = "\x1b[0m"
@@ -113,10 +124,10 @@ class RosLogFormatter(logging.Formatter):
             return record.created
 
 
-class LogRecordForwarder(logging.Handler):
+class RecordForwarder(logging.Handler):
     def __init__(self, level=0):
         super().__init__(level)
-        self.formatter = RosLogFormatter(disable_colors=True)
+        self.formatter = PrettyFormatter(disable_colors=True)
         self.listeners = []
 
     def add_listener(self, callback: Callable[[logging.LogRecord], None]):
@@ -128,9 +139,23 @@ class LogRecordForwarder(logging.Handler):
         for cb in self.listeners:
             cb(record)
 
-    def setFormatter(self, fmt):
-        # Direct access to self.formatter is still allowed
-        raise RuntimeError("setFormatter is disabled for TextualLogHandler")
+
+RecordForwarder = with_per_logger_formatting(RecordForwarder)
 
 
-LogRecordForwarder = _with_per_logger_formatting(LogRecordForwarder)
+class StubbornHandler(logging.Handler):
+    def __init__(self, actual_handler, level: int = 0):
+        super().__init__(level)
+        self.actual_handler = actual_handler
+
+    def setFormatterFor(self, logger, formatter):
+        return
+
+    def unsetFormatterFor(self, logger):
+        return
+
+    def emit(self, record):
+        self.actual_handler.emit(record)
+
+    def format(self, record):
+        return self.actual_handler.format(record)
