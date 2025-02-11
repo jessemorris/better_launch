@@ -50,7 +50,7 @@ Because *better_launch* does not use the ROS2 launch system, some aspects work d
 ### Action immediacy
 In ROS2 launch, launch files create tasks that are then passed as a single batch to an asynchronous event loop. This makes e.g. having conditions on arguments so incredibly weird. In *better_launch* however, all actions are taken immediately: if you create a node, its process is started right away; if you include another *better_launch* launch file, its contents will be handled before the function returns. 
 
-The only exception to this is including other ROS2 launch files. Since they still rely on the ROS2 launch system, they need to be turned into proper ROS2 tasks and passed to the asynchronous event loop. Such includes will be stored until your launch function returns and executed at the very end.
+The only exception to this is adding ROS2 actions, which includes including regular ROS2 launch files. Since they still rely on the ROS2 launch system, they need to be turned into proper ROS2 tasks and passed to the asynchronous event loop. Usually the ROS2 launch service process is started immediately the first time a ROS2 action is passed to *better_launch*, and from then on will handle all passed actions asynchronously in the background.
 
 
 ### Type checking
@@ -73,7 +73,7 @@ ROS2 launch has a bad reputation of leaving stale and abandoned processes behind
 
 # What doesn't work yet
 As of now *better_launch* supports the most important use cases, like starting nodes, proper (nicer!) logging, being awesome. However, there are still a couple of features that I have to work on to make it feature complete (roughly sorted by priority):
-- [x] including ROS2 launch files does not work at the moment
+- [ ] TUI does not show log output from ROS2 launch service
 - [ ] document public API
 - [ ] exception handling is barebones, so if something fails, everything fails
 - [ ] better yaml param loader (it's already nice, but could be nicer)
