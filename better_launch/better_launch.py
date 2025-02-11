@@ -491,7 +491,7 @@ Takeoff in 3... 2... 1...
 
         # If we launched extra ROS2 actions tell the launch service to shut down, too
         if self._ros2_launcher is not None:
-            self._ros2_launcher.shutdown()
+            self._ros2_launcher.shutdown(reason, signum)
 
         try:
             self._shutdown_future.set_result(None)
@@ -867,7 +867,10 @@ Takeoff in 3... 2... 1...
         # See https://github.com/ros2/launch_ros/blob/rolling/ros2launch/ros2launch/api/api.py#L175
         ros2_include = IncludeLaunchDescription(
             AnyLaunchDescriptionSource(file_path),
-            launch_arguments=[(key, val) for key, val in kwargs.items()],
+            launch_arguments=[
+                (key, str(val) if val is not None else "")
+                for key, val in kwargs.items()
+            ],
         )
         self.ros2_actions(ros2_include)
 

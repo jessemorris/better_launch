@@ -42,7 +42,8 @@ class LogEntry(HorizontalGroup):
     def compose(self):
         r = self.record
 
-        source = Static(f"{r.name}:", id="source")
+        name = r.name.rsplit("/", maxsplit=1)[-1]
+        source = Static(f"{name}:", id="source")
         # TODO could also use r.rgb, but its existence depends on where the log comes from
         source.styles.color = self.get_color_for_source(r.name)
         yield source
