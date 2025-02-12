@@ -52,7 +52,7 @@ def with_per_logger_formatting(cls):
     return _trait
 
 
-class PrettyFormatter(logging.Formatter):
+class PrettyLogFormatter(logging.Formatter):
     default_screen_format = "[{levelcolor}{levelname}{colorreset}] [{sourcecolor}{name}{colorreset}] [{asctime}]\n{message}"
     default_file_format = "[{levelname}] [{asctime}] {message}"
 
@@ -125,9 +125,9 @@ class PrettyFormatter(logging.Formatter):
 
 
 class RecordForwarder(logging.Handler):
-    def __init__(self, level=0):
+    def __init__(self, level: int = logging.INFO):
         super().__init__(level)
-        self.formatter = PrettyFormatter(disable_colors=True)
+        self.formatter = PrettyLogFormatter(disable_colors=True)
         self.listeners = []
 
     def add_listener(self, callback: Callable[[logging.LogRecord], None]):
@@ -144,7 +144,7 @@ RecordForwarder = with_per_logger_formatting(RecordForwarder)
 
 
 class StubbornHandler(logging.Handler):
-    def __init__(self, actual_handler, level: int = 0):
+    def __init__(self, actual_handler, level: int = logging.INFO):
         super().__init__(level)
         self.actual_handler = actual_handler
 

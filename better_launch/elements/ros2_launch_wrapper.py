@@ -1,82 +1,96 @@
+from typing import Any
 import os
 import signal
-import inspect
 import logging
 import asyncio
+import threading
 from multiprocessing import Process, Queue
 import osrf_pycommon.process_utils
 
 import ros.logging as roslog
-from utils.better_logging import PrettyFormatter, RecordForwarder, StubbornHandler
+from utils.better_logging import PrettyLogFormatter, RecordForwarder, StubbornHandler
 from utils.colors import get_contrast_color
 from .abstract_node import AbstractNode
 from .node import Node
 
 
 def _launchservice_worker(
-    ros2_launcher,
-    q: Queue,
-    logout: logging.Logger,
-    logerr: logging.Logger,
-    enforce_parsable_logs: bool = True,
+    name: str,
+    launch_args: list[Any],
+    launch_action_queue: Queue,
+    log_queue: Queue,
 ) -> None:
     try:
         from setproctitle import setproctitle, getproctitle
 
-        setproctitle(f"{getproctitle()} (LaunchService)")
+        # Makes it easier to tell what's going on in the process table
+        setproctitle(f"{getproctitle()} ({name})")
     except ImportError:
         pass
 
-    if enforce_parsable_logs:
-        # LaunchService is a little stubborn about log formatting and always prepends the node's
-        # name, but this also allows us to capture the actual source of the message
-        os.environ["RCUTILS_CONSOLE_OUTPUT_FORMAT"] = "%%{severity}%%{time}%%{message}"
-        os.environ["RCUTILS_COLORIZED_OUTPUT"] = "0"
+    # Late import to avoid adding ROS2 launch as a dependency - we are committed here!
+    import launch
 
-        # Create an offset to avoid going through the same sequence of colors
-        get_contrast_color.hue = 0.5
+    # LaunchService is a little stubborn about log formatting and always prepends the node's
+    # name, but this also allows us to capture the actual source of the message
+    os.environ["RCUTILS_CONSOLE_OUTPUT_FORMAT"] = "%%{severity}%%{time}%%{message}"
+    os.environ["RCUTILS_COLORIZED_OUTPUT"] = "0"
 
-        # Slight of hand to capture the process' and nodes' stdout and stderr
-        import launch
+    # Create an offset to avoid going through the same sequence of colors
+    get_contrast_color.hue = 0.3
 
-        std_handler = RecordForwarder()
-        std_handler.add_listener(logout.handle)
-        std_handler.setFormatter(
-            PrettyFormatter(
-                roslog_pattern=r"\[(.+)] *%%(\w+)%%([\d.]+)%%(.*)",
-                pattern_info=["name", "levelname", "created", "msg"],
-                color_per_source=True,
-            )
+    def handle_record(record: logging.LogRecord) -> None:
+        log_queue.put(record)
+
+    std_handler = RecordForwarder()
+    std_handler.add_listener(handle_record)
+    std_handler.setFormatter(
+        PrettyLogFormatter(
+            roslog_pattern=r"\[(.+)] *%%(\w+)%%([\d.]+)%%(.*)",
+            pattern_info=["name", "levelname", "created", "msg"],
+            color_per_source=True,
         )
+    )
 
-        # The ROS2 launch system will set new formatters for each node and source, so our formatter
-        # wouldn't be used. We either have to make our formatter more stubborn, or we run ROS2
-        # in a proper subprocess and create a small launch file to load our actions. However,
-        # there is no easy way to serialize a launch description...
-        launch.logging.launch_config.screen_handler = StubbornHandler(std_handler)
+    # The ROS2 launch system will set new formatters for each node and source, so our formatter
+    # wouldn't be used. We either have to make our formatter more stubborn, or we run ROS2
+    # in a proper subprocess and create a small launch file to load our actions. However,
+    # there is no easy way to serialize a launch description...
+    launch.logging.launch_config.screen_handler = StubbornHandler(std_handler)
+    logger = launch.logging.get_logger(name)
 
+    launch_service = launch.LaunchService(argv=launch_args, noninteractive=True)
+    
+    # This feels highly illegal and I love it! :>
+    setattr(
+        launch_service,
+        f"_{launch_service.__class__.__name__}__logger",
+        logger,
+    )
+
+    # We want to keep an eye on the pipe for new LaunchDescriptions to load
     async def forward_launch_descriptions():
         while True:
             try:
-                while not q.empty():
-                    ld = q.get()
-                    ros2_launcher.include_launch_description(ld)
+                while not launch_action_queue.empty():
+                    ld = launch_action_queue.get()
+                    launch_service.include_launch_description(ld)
                 await asyncio.sleep(0.1)
             except Exception as e:
-                logerr.info(f"Failed to add actions to ROS launch service: {e}")
+                logger.error(f"Failed to add actions to ROS launch service: {e}")
 
     async def wrapper():
         try:
             # Execute both our forwarder and the ros2 launch service
             return asyncio.gather(
                 forward_launch_descriptions(),
-                ros2_launcher.run_async(shutdown_when_idle=False),
+                launch_service.run_async(shutdown_when_idle=False),
             )
         except Exception as e:
-            logerr.info(f"ROS2 launch service wrapper failed: {e}")
+            logger.error(f"ROS2 launch service wrapper failed: {e}")
             raise
 
-    logout.info("Starting ROS2 launch service")
+    logger.info("Starting ROS2 launch service")
 
     # Basically the same as what LaunchService.run does
     loop = osrf_pycommon.process_utils.get_loop()
@@ -85,7 +99,7 @@ def _launchservice_worker(
         try:
             loop.run_until_complete(task)
         except Exception as e:
-            logerr.info(f"LaunchService terminated: {e}")
+            logger.warning(f"ROS2 launch service terminated: {e}")
 
 
 class Ros2LaunchWrapper(AbstractNode):
@@ -96,7 +110,6 @@ class Ros2LaunchWrapper(AbstractNode):
         output_config: (
             Node.LogSink | dict[Node.LogSource, set[Node.LogSink]]
         ) = "screen",
-        reparse_logs: bool = True,
     ):
         super().__init__(
             "ros2/launch",
@@ -107,42 +120,32 @@ class Ros2LaunchWrapper(AbstractNode):
             node_args=None,
         )
 
-        self.reparse_logs = reparse_logs
         self.output_config = output_config
+        self._launch_args = launch_args
 
-        self._launch_process: Process = None
-        self._action_queue = Queue()
+        self._process: Process = None
+        self._launch_action_queue = Queue()
+        self._process_log_queue = Queue()
         self._loaded_launch_descriptions = []
         self._terminate_requested = False
 
-        # Late import to avoid making this a dependency
-        import launch
-
-        original_log_level = roslog.launch_config.level
-        launch.logging.launch_config = roslog.launch_config
-
-        self._ros2_launcher = launch.LaunchService(
-            argv=launch_args, noninteractive=True
-        )
-        # This feels highly illegal and I love it! :>
-        setattr(
-            self._ros2_launcher,
-            f"_{launch.LaunchService.__name__}__logger",
-            self.logger,
-        )
-
-        # LaunchService modifies the log level, we restore it
-        roslog.launch_config.level = original_log_level
-
     @property
     def pid(self) -> int:
-        if self._launch_process:
-            return self._launch_process.pid
+        if self._process:
+            return self._process.pid
         return -1
 
     @property
+    def launch_args(self) -> list[str]:
+        return self._launch_args
+
+    @property
     def is_running(self) -> bool:
-        return self._launch_process and self._launch_process.is_alive()
+        try:
+            return self._process and self._process.is_alive()
+        except ValueError:
+            # For some reason we can't call is_alive when the process was closed
+            return False
 
     @property
     def is_ros2_connected(self) -> bool:
@@ -156,25 +159,44 @@ class Ros2LaunchWrapper(AbstractNode):
         import launch
 
         ld = launch.LaunchDescription(list(actions))
+        self._launch_action_queue.put(ld)
         self._loaded_launch_descriptions.append(ld)
-        self._action_queue.put(ld)
 
     def _do_start(self) -> None:
         logout, logerr = roslog.get_output_loggers(self.name, self.output_config)
 
-        self._launch_process = Process(
+        # Note that passing loggers will not work for the TUI, as they would have to communicate
+        # across the process boundaries. In general, only basic values and instances from the 
+        # multiprocessing module should be passed to the process
+        self._process = Process(
             target=_launchservice_worker,
             args=(
-                self._ros2_launcher,
-                self._action_queue,
-                logout,
-                logerr,
-                self.reparse_logs,
+                self.name,
+                self.launch_args,
+                self._launch_action_queue,
+                self._process_log_queue,
             ),
             name=self.name,
             daemon=True,
         )
-        self._launch_process.start()
+        self._process.start()
+
+        threading.Thread(
+            target=self._process_watcher, args=(logout, logerr), daemon=True
+        ).start()
+
+    def _process_watcher(self, logout: logging.Logger, logerr: logging.Logger):
+        q = self._process_log_queue
+
+        while self.is_running:
+            try:
+                while not q.empty():
+                    record: logging.LogRecord = q.get()
+                    logout.handle(record)
+            except Exception as e:
+                logerr.info(f"Receiving log record failed: {e}")
+
+        self._process.close()
 
     def shutdown(self, reason: str, signum: int = signal.SIGTERM) -> None:
         if not self.is_running:
@@ -182,7 +204,7 @@ class Ros2LaunchWrapper(AbstractNode):
 
         if self._terminate_requested:
             # Give the process a little bit of time to terminate
-            self._launch_process.join(0.5)
+            self._process.join(0.5)
             if not self.is_running:
                 return
 
@@ -191,18 +213,13 @@ class Ros2LaunchWrapper(AbstractNode):
                 self.logger.warning(
                     f"({reason}), but {self.name} was asked to terminate before -> escalating to SIGKILL. Killing ROS2 launch service may leave stale processes behind!"
                 )
-                self._launch_process.kill()
+                self._process.kill()
             else:
                 self.logger.info(
                     f"{self.name} was asked to terminate: {reason} (SIGTERM)"
                 )
-                self._launch_process.terminate()
+                self._process.terminate()
                 self._terminate_requested = True
-        except:
-            pass
-
-        try:
-            self._launch_process.close()
         except:
             pass
 
@@ -252,8 +269,8 @@ class Ros2LaunchWrapper(AbstractNode):
 
             val = val.fget(entity)
 
-            # TODO some substitutions like LaunchDescriptionSource will only be resolved after 
-            # they have been executed by ROS2 launch, but we need to do this on the side of the 
+            # TODO some substitutions like LaunchDescriptionSource will only be resolved after
+            # they have been executed by ROS2 launch, but we need to do this on the side of the
             # process, NOT in the host process where they are never run
             if val is None:
                 val = "None"
@@ -262,7 +279,7 @@ class Ros2LaunchWrapper(AbstractNode):
             elif isinstance(val, str):
                 val = "'" + val + "'"
 
-            description += f"\n{indent * (depth + 1)}{param}={val},"
+            description += f"\n{indent * (depth + 1)}{param} = {val},"
 
         description += f"\n{indent * depth})"
         return description
