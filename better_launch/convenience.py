@@ -146,92 +146,48 @@ def gazebo_axes_args(declared_axes=None):
     return args
 
 
-def create_gz_bridge(
-    launcher: BetterLaunch,
-    bridges: Union[GazeboBridge, List[Union[GazeboBridge, Tuple]]],
-    name="gz_bridge",
+def create_gazebo_bridge(
+    launcher: BetterLaunch, *bridges: GazeboBridge, name="gz_bridge"
 ):
     """
-    Create a ros_gz_bridge::parameter_bridge with the passed GazeboBridge instances
-    The bridge has a default name if not specified
-    If any bridge is used for sensor_msgs/Image, ros_{gz,ign}_image will be used instead
+    Create a ros_gz_bridge::parameter_bridge with the passed GazeboBridge instances.
     """
-    # adapt types
-    if isinstance(bridges, GazeboBridge):
-        bridges = [bridges]
     if len(bridges) == 0:
         return
 
-    # lazy list of bridges
-    for idx, bridge in enumerate(bridges):
-        if not isinstance(bridge, GazeboBridge):
-            bridges[idx] = GazeboBridge(*bridge)
-
     ros_gz = "ros_" + ros_gz_prefix()
 
-    # add camera_info for image bridges
-    im_bridges = [bridge for bridge in bridges if bridge.is_image]
-
-    for bridge in im_bridges:
-
-        gz_head, gz_tail = bridge.gz_topic.split_tail()
-        ros_head, ros_tail = bridge.ros_topic.split_tail()
-
-        if not all(
-            isinstance(tail, Text) and "image" in tail for tail in (ros_tail, gz_tail)
-        ):
-            continue
-
-        cam = []
-        for tail in (gz_tail, ros_tail):
-            idx = tail.rfind("image")
-            cam.append(tail[:idx] + "camera_info")
-
-        bridges.append(
-            GazeboBridge(
-                gz_head + [cam[0]],
-                ros_head + [cam[1]],
-                "sensor_msgs/CameraInfo",
-                GazeboBridge.gz2ros,
-            )
-        )
+    
+    image_bridges = [bridge for bridge in bridges if bridge.is_image]
 
     std_config = sum([bridge.yaml() for bridge in bridges if not bridge.is_image], [])
 
-    if std_config.has_elems():
+    if std_config:
         dst = NamedTemporaryFile().name
-        cmd = f'echo "{std_config}" >> {dst}'
+        with open(dst, "w") as file:
+            file.write(std_config)
 
-        process = subprocess.Popen(
-            cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
+        launcher.load_params(dst)
+        launcher.node(
+            package=f"{ros_gz}_bridge",
+            executable="parameter_bridge",
+            name=name,
+            node_args={"parameters": {"config_file": dst}},
         )
-        stdout, stderr = process.communicate()
 
-        if process.returncode != 0:
-            print(f"Error in command execution: {stderr}")
-        else:
-            launcher.node(
-                f"{ros_gz}_bridge",
-                "parameter_bridge",
-                name=name,
-                parameters={"config_file": dst},
-            )
-
-    if len(im_bridges):
-        # Use remapping to ROS topics
+    if image_bridges:
         remappings = []
-        for bridge in im_bridges:
+        for bridge in image_bridges:
             for ext in ("", "/compressed", "/compressedDepth", "/theora"):
                 remapped_gz_topic = f"{bridge.gz_topic}{ext}"
                 remapped_ros_topic = f"{bridge.ros_topic}{ext}"
                 remappings.append((remapped_gz_topic, remapped_ros_topic))
 
         launcher.node(
-            f"{ros_gz}_image",
-            "image_bridge",
+            package=f"{ros_gz}_image",
+            executable="image_bridge",
             name=f"{name}_image",
-            arguments=[bridge.gz_topic for bridge in im_bridges],
-            remappings=remappings,
+            node_args={"remappings": remappings},
         )
 
 
