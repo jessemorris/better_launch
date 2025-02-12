@@ -32,11 +32,12 @@ def _launchservice_worker(
     import launch
 
     # LaunchService is a little stubborn about log formatting and always prepends the node's
-    # name, but this also allows us to capture the actual source of the message
+    # name and then appends the output format, but this also allows us to capture the actual 
+    # source of the message
     os.environ["RCUTILS_CONSOLE_OUTPUT_FORMAT"] = "%%{severity}%%{time}%%{message}"
     os.environ["RCUTILS_COLORIZED_OUTPUT"] = "0"
 
-    # Create an offset to avoid going through the same sequence of colors
+    # Create an offset to avoid going through the same sequence of colors as the host process
     get_contrast_color.hue = 0.3
 
     def handle_record(record: logging.LogRecord) -> None:

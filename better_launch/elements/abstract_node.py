@@ -148,7 +148,11 @@ class AbstractNode:
 
     @property
     def lifecycle(self) -> LifecycleManager:
-        return self._lifecycle_manager
+        # Returning the _lifecycle_manager would be fine, but this way it will be instantiated 
+        # if supported and not yet done before
+        if self.is_lifecycle_node:
+            return self._lifecycle_manager
+        return None
 
     def get_info_sheet(self) -> str:
         # ROS2 prints a lot of useless stuff and avoids the things that are interesting most of

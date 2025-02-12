@@ -5,8 +5,8 @@ class HighContrastColorGenerator:
     """A generator class that produces high-contrast RGB colors readable on black."""
     
     def __init__(self):
-        # Ensures well-spaced hues
-        self.golden_ratio_conjugate = 0.61803398875
+        # Golden ratio conjugate, ensures well-spaced hues
+        self.hue_step = 0.61803398875
         self.hue = 0
 
     def __iter__(self):
@@ -15,7 +15,7 @@ class HighContrastColorGenerator:
 
     def __next__(self):
         """Generates the next high-contrast color."""
-        self.hue = (self.hue + self.golden_ratio_conjugate) % 1
+        self.hue = (self.hue + self.hue_step) % 1
         r, g, b = colorsys.hsv_to_rgb(self.hue, 1, 1)
         return (int(r * 255), int(g * 255), int(b * 255))
 
