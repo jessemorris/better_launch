@@ -17,7 +17,7 @@ from textwrap import indent
 
 from .abstract_node import AbstractNode
 from ros import logging as roslog
-from utils.better_logging import PrettyFormatter
+from utils.better_logging import PrettyLogFormatter
 
 
 class Node(AbstractNode):
@@ -139,7 +139,7 @@ class Node(AbstractNode):
                 final_env["RCUTILS_COLORIZED_OUTPUT"] = "0"
 
                 screen_handler = roslog.launch_config.get_screen_handler()
-                formatter = PrettyFormatter()
+                formatter = PrettyLogFormatter()
                 screen_handler.setFormatterFor(logout, formatter)
                 screen_handler.setFormatterFor(logerr, formatter)
 

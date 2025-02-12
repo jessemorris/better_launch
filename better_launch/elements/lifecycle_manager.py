@@ -169,5 +169,6 @@ class LifecycleManager:
         req = ChangeLifecycleState.Request()
         req.transition.id = transition_id
 
+        # TODO should make this async, this can take a few seconds
         res = self._transition_client.call(req)
         return res.success
