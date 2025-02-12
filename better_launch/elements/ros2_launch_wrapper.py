@@ -106,7 +106,7 @@ def _launchservice_worker(
 class Ros2LaunchWrapper(AbstractNode):
     def __init__(
         self,
-        process_name: str = "LaunchService",
+        name: str = "LaunchService",
         launch_args: list[str] = None,
         output_config: (
             Node.LogSink | dict[Node.LogSource, set[Node.LogSink]]
@@ -115,7 +115,7 @@ class Ros2LaunchWrapper(AbstractNode):
         super().__init__(
             "ros2/launch",
             "launch_service.py",
-            process_name,
+            name,
             "/",
             remaps=None,
             node_args=None,

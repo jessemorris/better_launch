@@ -44,7 +44,6 @@ class Node(AbstractNode):
         max_respawns: int = 0,
         respawn_delay: float = 0.0,
         use_shell: bool = False,
-        emulate_tty: bool = False,
     ):
         super().__init__(package, executable, name, namespace, remaps, node_args)
 
@@ -68,7 +67,6 @@ class Node(AbstractNode):
         self.max_respawns = max_respawns
         self.respawn_delay = respawn_delay
         self.use_shell = use_shell
-        self.emulate_tty = emulate_tty
 
     @property
     def pid(self) -> int:
@@ -111,7 +109,7 @@ class Node(AbstractNode):
                 f"{self.name}-{self.node_id}", self.output_config
             )
 
-            cmd = launcher.find(self.package, self.executable)
+            cmd = launcher.find(filename=self.executable, package=self.package)
             final_cmd = [cmd] + self.cmd_args + ["--ros-args"]
 
             # Attach additional node args

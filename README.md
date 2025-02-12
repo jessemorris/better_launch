@@ -56,6 +56,10 @@ The only exception to this is adding ROS2 actions like including regular ROS2 la
 While the output of this process (and its nodes) is captures and formatted by *better_launch* just like for any other node, these cannot be managed individually.
 
 
+### Inclding better_launch from ROS2
+It should just work :) I added some magic that detects the LaunchService process and generates a `generate_launch_description` function on the fly that will run your launch function as a ROS2 `OpaqueFunction` action.
+
+
 ### Lifecycle nodes
 Lifecycle nodes differ from regular nodes in that they don't become fully active after their process starts. Instead you have to call one of their lifecycle management services, usually via additional code in your launch file or the `ros2 lifecycle` CLI. However, in the end they are still just nodes.
 
@@ -70,6 +74,10 @@ When passing arguments to a node in ROS2, in the end everything is passed as str
 Simply put: you don't. *better_launch* will check the signature of your launch function and turn all arguments into launch arguments. For example, if your launch function has an `enable_x` argument, you will be able to pass it with `--enable_x` on the command line. Under the hood, *better_launch* is using [click](https://click.palletsprojects.com/), so every launch file you write comes with proper CLI support. 
 
 Tip: add a docstring to your function and call your launch file with `--help`!
+
+
+### Parameter files
+You do **not** have to put `ros__parameters` in your configs anymore. Hooray!
 
 
 ### Logging
@@ -90,6 +98,14 @@ As of now *better_launch* supports the most important use cases, like starting n
 - [ ] check for edge cases
 - [ ] the TUI can miss some log messages and I'm not sure why. If in doubt, check without the TUI!
 - [ ] add launch_this overrides to click CLI handler
+
+
+# Dependencies
+*better_launch* was tested on ROS2 Humble and Jazzy and will be updated for future releases. While earlier versions may work with only slight changes, I am not planning to spend any major effort on these.
+
+There are a few optional dependencies that will make *better_launch* slightly more awesome (it's an asymptotic process :P):
+- *setproctitle*: for setting the process title, otherwise the ROS2 launch service process will have the same name as the launch file process
+- 
 
 
 # What's so bad about ROS2 launch?

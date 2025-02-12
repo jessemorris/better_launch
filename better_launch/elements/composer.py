@@ -95,7 +95,6 @@ class Composer(Node):
         max_respawns: int = 0,
         respawn_delay: float = 0.0,
         use_shell: bool = False,
-        emulate_tty: bool = False,
     ):
         # NOTE: we don't support referencing an already existing composer. If you want to reuse
         # the container, just keep a reference to it.
@@ -128,7 +127,6 @@ class Composer(Node):
             max_respawns=max_respawns,
             respawn_delay=respawn_delay,
             use_shell=use_shell,
-            emulate_tty=emulate_tty,
         )
 
         self._language: str = language
@@ -185,6 +183,13 @@ class Composer(Node):
     ) -> int:
         if not self.is_running:
             raise ValueError("Cannot load components into stopped composer")
+
+        if component.is_running:
+            raise ValueError("Cannot load an already component")
+
+        if component.composer != self:
+            self.logger.warning(f"Component {component.name} was created for a different Composer, updating reference")
+            component._composer = self
 
         # Reference: https://github.com/ros2/launch_ros/blob/rolling/launch_ros/launch_ros/actions/load_composable_nodes.py
         req = LoadNode.Request()

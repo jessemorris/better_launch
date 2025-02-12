@@ -11,6 +11,10 @@ from collections import deque
 import logging
 import yaml
 
+from rclpy.action import (
+    ActionServer as RosActionServer,
+    ActionClient as RosActionClient,
+)
 from rclpy.node import (
     Node as RosNode,
     Service as RosServiceProvider,
@@ -65,6 +69,23 @@ def launch_this(
     join: bool = True,
     log_config: LogConfig = None,
 ):
+    """Use this to decorate your launch function. The function will be run automatically. If you
+    are planning to use the UI the function must not block.
+
+    **NOTE:** this decorator cannot be used more than once per module.
+
+    Parameters
+    ----------
+    launch_func : Callable, optional
+        Your launch function, typically using BetterLaunch to start ROS2 nodes.
+    ui : bool, optional
+        Whether to start the better_launch terminal UI.
+    join : bool, optional
+        If True, join the better_launch process. Has no effect when ui == True.
+    log_config : LogConfig, optional
+        Allows to provide your own logging configuration. It's usually better to change settings per node.
+    """
+
     def decoration_helper(func):
         return _launch_this_wrapper(func, ui=ui, join=join, log_config=log_config)
 
@@ -157,7 +178,9 @@ def _launch_this_wrapper(
         if "OVERRIDE_LAUNCH_SCREEN_FORMAT" not in os.environ:
             colormap = dict(log_default_colormap)
             colormap[logging.INFO] = "\x1b[32;20m"
-            roslog.launch_config.screen_formatter = PrettyLogFormatter(colormap=colormap)
+            roslog.launch_config.screen_formatter = PrettyLogFormatter(
+                colormap=colormap
+            )
 
     # Expose launch_func args through click. This enables using launch files like other
     # python files, e.g. './my_better_launchfile.py --help'
@@ -238,7 +261,15 @@ def _launch_this_wrapper(
             raise
 
 
-def _expose_ros2_launch_function(launch_func):
+def _expose_ros2_launch_function(launch_func: Callable):
+    """Helper function that exposes a function decorated by launch_this so that it can be included by a regular ROS2 launch file. We achieve this by generating a `generate_launch_description` function and adding it to the module globals where the launch function is defined.
+
+    Parameters
+    ----------
+    launch_func : Callable
+        The launch function.
+    """
+
     def generate_launch_description():
         from launch import LaunchDescription, LaunchContext
         from launch.actions import DeclareLaunchArgument, OpaqueFunction
@@ -291,7 +322,7 @@ class _BetterLaunchMeta(type):
     def __call__(cls, *args, **kwargs):
         existing_instance = globals().get(_bl_singleton_instance, None)
         if existing_instance is not None:
-            # TODO raise or warn
+            # TODO raise or warn?
             return existing_instance
 
         obj = cls.__new__(cls, *args, **kwargs)
@@ -312,15 +343,33 @@ class _BetterLaunchMeta(type):
 
 
 class BetterLaunch(metaclass=_BetterLaunchMeta):
+    """This should be all you need to create beautiful, simple and convenient launch files!
+
+    For further details, refer to the documentation at `better_launch <https://git.hb.dfki.de/ndahn/better_launch>`_.
+    """
+
     _launchfile: str = None
     _launch_func_args: dict[str, Any] = {}
 
     def __init__(
         self,
         name: str = None,
-        launch_args: dict = None,
+        launch_args: dict[str, Any] = None,
         root_namespace: str = "/",
     ):
+        """Note that BetterLaunch is a singleton: only the first invocation to `__init__` will succeed. All subsequent calls will return the previous instance. If you need access to the BetterLaunch instance outside your launch function, consider using one of the following classmethods instead:
+        * :py:meth:`BetterLaunch.instance <_BetterLaunchMeta.instance>`
+        * :py:meth:`BetterLaunch.wait_for_instance <_BetterLaunchMeta.wait_for_instance>`
+
+        Parameters
+        ----------
+        name : str, optional
+            The name of this instance, will default to the launchfile's filename.
+        launch_args : dict, optional
+            Override the launch arguments BetterLaunch has access to. By default this will be the launch function's arguments. These will mainly be used for passing to included launch files.
+        root_namespace : str, optional
+            The namespace of the root group.
+        """
         if not name:
             name = os.path.basename(BetterLaunch._launchfile)
 
@@ -353,6 +402,9 @@ class BetterLaunch(metaclass=_BetterLaunchMeta):
         self.hello()
 
     def hello(self) -> None:
+        """Prints our welcome message and some useful information.
+        Note that this will not appear in the logs!
+        """
         # Ascii art based on: https://asciiart.cc/view/10677
         msg = f"""
 \x1b[1;20mBetter Launch is starting!\x1b[0m
@@ -387,12 +439,32 @@ Takeoff in 3... 2... 1...
         self.logger.critical(f"Log files at {roslog.launch_config.log_dir}")
 
     def spin(self) -> None:
+        """Join the BetterLaunch thread until it terminates."""
         self.ros_adapter._thread.join()
 
     def get_unique_name(self, name: str = "") -> str:
+        """Adds a unique suffix to the provided string.
+
+        Parameters
+        ----------
+        name : str, optional
+            The string to use as the base.
+
+        Returns
+        -------
+        str
+            The passed in string with a unique suffix.
+        """
         return name + "_" + __uuid_generator()
 
     def all_groups(self) -> list[Group]:
+        """Returns a list of all in the order they were created.
+
+        Returns
+        -------
+        list[Group]
+            All groups added so far.
+        """
         # Assemble all groups
         groups: list[Group] = [self.group_root]
         queue: list[Group] = [self.group_root]
@@ -405,7 +477,24 @@ Takeoff in 3... 2... 1...
 
         return groups
 
-    def all_nodes(self, include_components: bool = False) -> list[AbstractNode]:
+    def all_nodes(
+        self, include_components: bool = False, include_launch_service: bool = True
+    ) -> list[AbstractNode]:
+        """Returns a list of all nodes in the order they were added. Components will be added right after their composers. If a ROS2 launch service has been started it will be added at the very end.
+
+        Parameters
+        ----------
+        include_components : bool, optional
+            Whether to include :py:class:`Component` instances.
+
+        include_launch_service : bool, optional
+            Whether to include the ROS2 launch service wrapper if it was created.
+
+        Returns
+        -------
+        list[AbstractNode]
+            A list of all nodes, sorted by when they were added.
+        """
         nodes = []
         groups = self.all_groups()
 
@@ -415,43 +504,39 @@ Takeoff in 3... 2... 1...
                 if include_components and isinstance(n, Composer):
                     nodes.extend(n.loaded_components)
 
-        if self._ros2_launcher:
+        if include_launch_service and self._ros2_launcher:
             nodes.append(self._ros2_launcher)
 
         return nodes
 
-    def all_components(self) -> dict[Node, list[str]]:
-        components = {}
-        for n in self.all_nodes():
-            if isinstance(n, Composer):
-                components[n] = n._loaded_components
-        return components
-
     @staticmethod
     def ros_version() -> str:
-        """
-        Returns the name of the currently sourced ros version (e.g. $ROS_VERSION)
-        """
+        """Returns the name of the currently sourced ros version (i.e. *$ROS_VERSION*)."""
         return os.environ["ROS_DISTRO"]
 
     @property
     def launchfile(self) -> str:
+        """The path of the (main) *better_launch* launchfile being executed."""
         return BetterLaunch._launchfile
 
     @property
     def launch_args(self) -> dict[str, Any]:
+        """All key-value pairs that have been passed to the launch function."""
         return BetterLaunch._launch_func_args
 
     @property
     def shared_node(self) -> RosNode:
+        """A ROS2 node instance that can be used for creating publishers, services, etc."""
         return self.ros_adapter.ros_node
 
     @property
     def group_root(self) -> Group:
+        """The root group ("/")."""
         return self._group_stack[0]
 
     @property
     def group_tip(self) -> Group:
+        """The most recent group."""
         return self._group_stack[-1]
 
     def _on_sigint(self, sig, frame) -> None:
@@ -474,17 +559,35 @@ Takeoff in 3... 2... 1...
 
     @property
     def is_shutdown(self) -> bool:
+        """Whether *better_launch* has shutdown."""
+        # TODO this is a remnant from the very beginning when we still took inspiration from ROS2 launch. Remove?
         return self._shutdown_future.done()
 
-    def add_shutdown_callback(self, callback: Callable) -> None:
+    def add_shutdown_callback(self, callback: Callable[[], Any]) -> None:
+        """Adds a callback which will be called when *better_launch* shuts down.
+
+        Parameters
+        ----------
+        callback : Callable
+            The callback to call on shutdown.
+        """
         self._shutdown_callbacks.append(callback)
 
     def shutdown(self, reason: str, signum: int = signal.SIGTERM) -> None:
-        self.ros_adapter.shutdown()
+        """Ask all nodes to shutdown and terminate the internal ROS2 thread. Any subsequent calls to BetterLaunch member functions, including this one, may fail. This will typically be called when you want to terminate your launch file.
 
+        Parameters
+        ----------
+        reason : str
+            A human-readable string explaining the reason for the shutdown.
+        signum : int, optional
+            The signal to send to child processes.
+        """
         # Tell all nodes to shut down
         for n in self.all_nodes():
             n.shutdown(reason, signum)
+
+        self.ros_adapter.shutdown()
 
         # If we launched extra ROS2 actions tell the launch service to shut down, too
         if self._ros2_launcher is not None:
@@ -505,38 +608,149 @@ Takeoff in 3... 2... 1...
             except Exception as e:
                 self.logger.warning(f"Shutdown callback failed: {e}")
 
-    def find(self, package: str, file_name: str = None, file_dir: str = None) -> str:
-        # TODO this function could be made nicer
-        package_dir = get_package_prefix(package) if package else None
+    def find(
+        self,
+        *,
+        filename: str = None,
+        package: str = None,
+        subdir: str = None,
+        resolve_result: bool = True,
+    ) -> str:
+        """Resolve a path to a file or package.
 
-        if file_name is None:
-            return self.resolve_string(package_dir)
+        If the `filename` is absolute, all other arguments will be ignored and the filename will be returned.
 
-        if package_dir is None:
-            return self.resolve_string(file_name)
+        If `package` is provided, the corresponding ROS2 package path will be used as the base path. Otherwise the current working dir is used as the base path. If `subdir` is provided, it will be appended to the base path (existence will not be verified).
 
-        # look in specific subfolder
-        if file_dir is not None:
-            package_dir = os.path.join(package_dir, file_dir)
+        If no `filename` is provided, the established base path is returned. Otherwise, if `filename` is a relative path it will be appended to the base path. Otherwise a file with this name will be searched for in the base path.
 
-        # look for it
-        for root, dirs, files in os.walk(package_dir, topdown=False):
-            if file_name in files:
-                return os.path.join(package_dir, root, file_name)
+        Parameters
+        ----------
+        filename : str, optional
+            Name of a file to look for.
+        package : str, optional
+            Name of a ROS2 package to resolve.
+        subdir : str, optional
+            Path to add to the base path.
+        resolve_result : bool, optional
+            If True, the result will be passed through :py:metho:`resolve_string` before returning.
 
-        # not there
-        raise RuntimeError(f"Could not find file {file_name} in package {package}")
+        Returns
+        -------
+        str
+            A resolved path.
+
+        Raises
+        ------
+        ValueError
+            If `package` contains path separators, or if a `filename` is provided but could not be found within base path.
+        """
+        if resolve_result:
+            resolve = self.resolve_string
+        else:
+            resolve = lambda s: s
+
+        filename = resolve(filename)
+        if os.path.isabs(filename):
+            return filename
+
+        if package:
+            if "/" in package or os.pathsep in package:
+                raise ValueError("Package must be a single name, not a path")
+            base_path = get_package_prefix(package)
+        else:
+            base_path = os.getcwd()
+
+        if subdir:
+            base_path = os.path.join(base_path, subdir)
+
+        if not filename:
+            return resolve(base_path)
+
+        if "/" in filename or os.pathsep in filename:
+            ret = os.path.join(base_path, filename)
+            return resolve(ret)
+
+        base_path = resolve(base_path)
+        for dirpath, _, files in os.walk(base_path, topdown=False):
+            if filename in files:
+                return os.path.join(base_path, dirpath, filename)
+
+        raise ValueError(
+            f"Could not find file or directory (filename={filename}, package={package}, subdir={subdir})"
+        )
 
     def resolve_string(self, s: str) -> str:
-        return substitute_tokens(s, default_substitution_handlers(self, "full"))
+        """Replaces a variety of special strings in the provided string, usually a path.
+
+        This is similar to what ROS1 could do when resolving paths in XML launch files. Substitutions always have the form `$(<substitution-type> <substitution-args>)`. Substitutions can also be nested, so the following is possible:
+
+        ``$(eval $(arg x) * 5)``  ->  if x=2, this will be resolved to 10
+
+        Note that the underlying algorithm will likely fail if it encounters additional brackets within the string.
+
+        The following substitutions are supported:
+        * `$(find <filename> <package> <subdir>)`: return the result of :py:meth:`find`. Note that substitution arguments are always sequential (not kwargs).
+        * `$(arg <name> <default>)`: return the value of an argument passed to the launch function or `<default>` if it doesn't exist. Raises KeyError if no default is provided and no default was provided.
+        * `$(param <full-node-name> <param>)`: retrieves the value of the ROS parameter `<param>` from the `<full-node-name>` (i.e. namespace + node name). Raises KeyError if the node does not exist or ValueError if the node does not have the specified parameter.
+        * `$(env <key> <default>)`: return the value of the environment variable `<key>` or `<default>` if it doesn't exist. Raises KeyError if no default is provided and no default was provided.
+        * `$(eval <python-snippet>)`: returns the result from evaluating the provided `<python-snippet>`. Typical use cases include simple math and assembling strings. **Note** that this indeed uses python's :py:func:`eval`.
+
+        Parameters
+        ----------
+        s : str
+            The string to apply substitutions to.
+
+        Returns
+        -------
+        str
+            The string with all substitutions involved.
+        Raises
+        ------
+        KeyError, ValueError
+            Depending on the substitution that failed.
+        """
+        if not s:
+            return ""
+        # TODO works but could be designed nicer. Consider these non-public API for now
+        return substitute_tokens(s, default_substitution_handlers("full"))
 
     def load_params(
         self, path: str, node_or_namespace: str | Node = None
     ) -> dict[str, Any]:
-        path = self.resolve_string(path)
+        """Load parameters from a yaml file.
+
+        If a node or namespace is provided, the loaded config dict is searched for a matching section. If the config does not contain sections for different namespaces or nodes the entire config is returned regardless. Otherwise a ValueError will be thrown if no matching section can be found.
+
+        Note that *better_launch* could not care less whether you put `"ros__parameters"` in your configs - if it is there it will be silently discarded.
+
+        Parameters
+        ----------
+        path : str
+            The path to the config. Will be resolved using :py:meth:`find`.
+        node_or_namespace : str | Node, optional
+            Used to specifiy which section of the config to return.
+
+        Returns
+        -------
+        dict[str, Any]
+            The key-value pairs from the config.
+
+        Raises
+        ------
+        ValueError
+            If the path cannot be resolved, if `node_or_namespace` is supplied and no matching section could be found, or if a substitution failed.
+        IOError
+            If the config file could not be read.
+        """
+        path = self.find(filename=path)
 
         with open(path) as f:
             params = yaml.safe_load(f)
+
+        if "ros__parameters" in params:
+            # Return the entire config if it doesn't contain sections for different nodes/namespaces
+            return params["ros__parameters"]
 
         if node_or_namespace:
             ns = node_or_namespace
@@ -554,7 +768,6 @@ Takeoff in 3... 2... 1...
                     idx += 1
                     key += "/" + parts[idx]
 
-                # TODO resolve as much as possible instead of throwing
                 if key not in params:
                     raise ValueError(f"Could not find parameter section for {ns}")
 
@@ -566,13 +779,88 @@ Takeoff in 3... 2... 1...
 
         return params
 
+    def publisher(
+        self, topic: str, message_type: type, qos_profile: QoSProfile | int = 10
+    ) -> RosPublisher:
+        """Create a ROS2 publisher using the :py:meth:`shared_node`.
+
+        Parameters
+        ----------
+        topic : str
+            The topic to publish messages on.
+        message_type : type
+            The message type that will be published.
+        qos_profile : QoSProfile | int, optional
+            A quality of service profile that changes how the publisher handles connections and retains data.
+
+        Returns
+        -------
+        RosPublisher
+            The publisher object. Although not required for Jazzy and below, it is recommended to keep a reference.
+        """
+        return self.shared_node.create_publisher(
+            message_type,
+            topic,
+            qos_profile=qos_profile,
+        )
+
+    def subscriber(
+        self,
+        topic: str,
+        message_type: type,
+        callback: Callable[[Any], None],
+        qos_profile: QoSProfile | int = 10,
+    ) -> RosSubscriber:
+        """Create a ROS2 subscriber to receive messages.
+
+        Parameters
+        ----------
+        topic : str
+            The topic to listen on for messages.
+        message_type : type
+            The type of the messages that will be received.
+        callback : Callable[[Any], Any]
+            A function that will be called whenever a message is received.
+        qos_profile : QoSProfile | int, optional
+            A quality of service profile that changes how the publisher handles connections and retains data.
+
+        Returns
+        -------
+        RosSubscriber
+            The subscriber object. Although not required for Jazzy and below, it is recommended to keep a reference.
+        """
+        return self.shared_node.create_subscriber(
+            message_type,
+            topic,
+            callback,
+            qos_profile=qos_profile,
+        )
+
     def service(
         self,
         topic: str,
         service_type: type,
-        callback: Callable,
+        callback: Callable[[Any], Any],
         qos_profile: QoSProfile = None,
     ) -> RosServiceProvider:
+        """Create a ROS2 service provider using the :py:meth:`shared_node`.
+
+        Parameters
+        ----------
+        topic : str
+            The topic the service will live on.
+        service_type : type
+            The service's message type.
+        callback : Callable[[Any], Any]
+            The function that will handle any requests to the service. The type of the request will be of type `service_type.Request`.
+        qos_profile : QoSProfile, optional
+            A quality of service profile that changes how the service handles connections.
+
+        Returns
+        -------
+        RosServiceProvider
+            The service object. Although not required for Jazzy and below, it is recommended to keep a reference.
+        """
         if not qos_profile:
             qos_profile = qos_profile_services_default
 
@@ -590,6 +878,29 @@ Takeoff in 3... 2... 1...
         timeout: float = 0.0,
         qos_profile: QoSProfile = None,
     ) -> RosServiceClient:
+        """Create a ROS2 service client that can be used to call a service.
+
+        Parameters
+        ----------
+        topic : str
+            The service topic to post requests on.
+        service_type : type
+            The service's message type.
+        timeout : float, optional
+            Time to wait for the service to become available. Ignored if <= 0.
+        qos_profile : QoSProfile, optional
+            A quality of service profile that changes how the service handles connections.
+
+        Returns
+        -------
+        RosServiceClient
+            The client object. Although not required for Jazzy and below, it is recommended to keep a reference.
+
+        Raises
+        ------
+        TimeoutError
+            If the service did not become available within the specified timeout.
+        """
         if not qos_profile:
             qos_profile = qos_profile_services_default
 
@@ -598,38 +909,134 @@ Takeoff in 3... 2... 1...
         )
         if timeout > 0.0:
             if not client.wait_for_service(timeout):
-                raise ValueError(f"Service client timed out ({topic}, {service_type})")
+                raise TimeoutError(
+                    f"Service client timed out ({topic}, {service_type})"
+                )
         return client
 
-    def publisher(
-        self, topic: str, message_type: type, qos_profile: QoSProfile | int = 10
-    ) -> RosPublisher:
-        return self.shared_node.create_publisher(
-            message_type,
-            topic,
-            qos_profile=qos_profile,
-        )
-
-    def subscriber(
+    def action_server(
         self,
         topic: str,
-        message_type: type,
-        callback: Callable,
-        qos_profile: QoSProfile | int = 10,
-    ) -> RosSubscriber:
-        return self.shared_node.create_subscriber(
-            message_type,
+        action_type: type,
+        callback: Callable[[Any], Any],
+        qos_profile: QoSProfile = None,
+    ) -> RosActionServer:
+        """Create a ROS2 action server using the :py:meth:`shared_node`.
+
+        Parameters
+        ----------
+        topic : str
+            The topic namespace to provide the action interface on.
+        action_type : type
+            The type of the actions to be handled.
+        callback : Callable[[Any], Any]
+            A function that will handle incoming action requests. The type of the requests will be of type :py:func:`rclpy.action.server.ServerGoalHandle` and contain an `action_type.Goal`.
+        qos_profile : QoSProfile, optional
+            A quality of service profile that changes how the action server handles connections and retains data.
+
+        Returns
+        -------
+        RosActionServer
+            The action server object. Although not required for Jazzy and below, it is recommended to keep a reference.
+        """
+        if not qos_profile:
+            qos_profile = qos_profile_services_default
+
+        return RosActionServer(
+            self.shared_node,
+            action_type,
             topic,
             callback,
-            qos_profile=qos_profile,
+            goal_service_qos_profile=qos_profile,
+            result_service_qos_profile=qos_profile,
+            cancel_service_qos_profile=qos_profile,
         )
 
+    def action_client(
+        self,
+        topic: str,
+        action_type: type,
+        timeout: float = 0.0,
+        qos_profile: QoSProfile = None,
+    ) -> RosActionClient:
+        """Create a ROS2 action client to execute long-running actions.
+
+        Parameters
+        ----------
+        topic : str
+            The topic namespace on which the action interface is provided.
+        action_type : type
+            The type of actions the action server handles.
+        timeout : float, optional
+            Time to wait for the action server to become available. Ignored if <= 0.
+        qos_profile : QoSProfile, optional
+            A quality of service profile that changes how the action server handles connections and retains data.
+
+        Returns
+        -------
+        RosActionClient
+            The action client object. Although not required for Jazzy and below, it is recommended to keep a reference.
+
+        Raises
+        ------
+        TimeoutError
+            If the action server did not become available within the specified timeout.
+        """
+        if not qos_profile:
+            qos_profile = qos_profile_services_default
+
+        client = RosActionClient(
+            self.shared_node,
+            action_type,
+            topic,
+            goal_service_qos_profile=qos_profile,
+            result_service_qos_profile=qos_profile,
+            cancel_service_qos_profile=qos_profile,
+        )
+
+        if timeout > 0.0:
+            if not client.wait_for_server(timeout):
+                raise TimeoutError(f"Action client timed out ({topic}, {action_type})")
+        return client
+
     @contextmanager
-    def group(self, ns: str = None) -> Generator[Group, None, None]:
+    def group(
+        self, namespace: str, remaps: dict[str, str] = None
+    ) -> Generator[Group, None, None]:
+        """Groups are used to bundle nodes into logical collections.
+
+        As in ROS2, groups allow to collect nodes under a common namespace. Additionally, in *better_launch* groups can be used to define topic remaps for all nodes added to them.
+
+        Groups are intended to be used as context objects and can be nested, e.g.
+        .. code-block:: python
+            bl = BetterLaunch()
+            with bl.group("outer"):
+                with bl.group("inner"):
+                    # Node will live within "/outer/inner/"
+                    bl.node("mypkg", "mynode.py", "mynode")
+
+
+        Parameters
+        ----------
+        namespace : str
+            The group's namespace.
+        remaps : dict[str, str], optional
+            Topic remaps that will apply to all nodes in this group or any descendant groups.
+
+        Yields
+        ------
+        Generator[Group, None, None]
+            Places the group on the group stack and yields it. Exiting the context will pop the group from the group stack.
+
+        Raises
+        ------
+        RuntimeError
+            If a group is created within a :py:meth:`compose` context.
+        """
         if self._composition_node:
             raise RuntimeError("Cannot add groups inside a composition node")
 
-        group = Group(self.group_tip, ns)
+        group = Group(self.group_tip, namespace, remaps=remaps)
         self.group_tip.add_group(group)
         self._group_stack.append(group)
         try:
@@ -643,7 +1050,7 @@ Takeoff in 3... 2... 1...
         executable: str,
         name: str = None,
         *,
-        remap: dict[str, str] = None,
+        remaps: dict[str, str] = None,
         node_args: str | dict[str, Any] = None,
         cmd_args: list[str] = None,
         env: dict[str, str] = None,
@@ -660,9 +1067,66 @@ Takeoff in 3... 2... 1...
         respawn_delay: float = 0.0,
         use_shell: bool = False,
         emulate_tty: bool = False,
+        autostart_process: bool = True,
         lifecycle_target: LifecycleStage = LifecycleStage.ACTIVE,
-        **kwargs,
     ) -> Node:
+        """Create a new ROS2 node process. The bread and butter of every ROS setup!
+
+        Note that this method also handles lifecycle nodes (they REALLY should have a common interface). Note that especially for lifecycle nodes you probably want `autostart_process == True`, otherwise there lifecycle management will not exist. With `autostart_process == True`, a lifecycle node will automatically advance to `lifecycle_target` once it is up. Otherwise you can also call :py:meth:`Node.start` later.
+
+        The `ROS2 documentation <https://docs.ros.org/en/rolling/How-To-Guides/Node-arguments.html>`_ can provide some additional information regarding `node_args`, `remaps`, and so on.
+
+        Parameters
+        ----------
+        package : str
+            The package providing the node.
+        executable : str
+            The executable that should be run.
+        name : str, optional
+            The name you want the node to be known as.
+        remaps : dict[str, str], optional
+            Tells the node to replace any topics it wants to interact with according to the provided dict.
+        node_args : str | dict[str, Any], optional
+            Any arguments you want to provide to the node. These are the args you would typically have to declare in your launch file.
+        cmd_args : list[str], optional
+            Additional command line arguments to pass to the node.
+        env : dict[str, str], optional
+            Additional environment variables to set for the node's process.
+        isolate_env : bool, optional
+            If True, the node process' env will not be inherited from the parent process. Be aware that this can result in many common things to not work anymore since e.g. keys like *PATH* will be missing.
+        log_level : int, optional
+            The minimum severity a logged message from this node must have in order to be published.
+        output_config : Node.LogSink  |  dict[Node.LogSource, set[Node.LogSink]], optional
+            How log output from the node should be handled. Sources are `stdout`, `stderr` and `both`. Sinks are `screen`, `log`, `both`, `own_log`, and `full`. See :py:class:`Node` for more details.
+        reparse_logs : bool, optional
+            If True, *better_launch* will capture the node's output and reformat it before publishing. 
+        anonymous : bool, optional
+            If True, the node name will be appended with a unique suffix to avoid name conflicts.
+        hidden : bool, optional
+            If True, the node name will be prepended with a "_", hiding it from common listings.
+        on_exit : Callable, optional
+            A function to call when the node's process terminates (after any possible respawns).
+        max_respawns : int, optional
+            How often to restart the node process if it terminates.
+        respawn_delay : float, optional
+            How long to wait before restarting the node process after it terminates.
+        use_shell : bool, optional
+            If True, invoke the node executable via the system shell. Use only if you know you need it.
+        autostart_process : bool, optional
+            If True, start the node process before returning from this function.
+        lifecycle_target : LifecycleStage, optional
+            The lifecycle stage to bring the node into after starting. Has no effect if `autostart_process == False` or the node turns out not to be a lifecycle node.
+
+        Returns
+        -------
+        Node
+            The node object wrapping the node process.
+
+        Raises
+        ------
+        RuntimeError
+            If you try to add a node withing a :py:meth:`compose` context.
+        """
         if self._composition_node:
             raise RuntimeError("Cannot add nodes inside a composition node")
 
@@ -675,8 +1139,8 @@ Takeoff in 3... 2... 1...
         # Assemble additional node remaps from our group branch
         g = self.group_tip
         remaps = g.assemble_remaps()
-        if remap:
-            remaps.update(remap)
+        if remaps:
+            remaps.update(remaps)
 
         namespace = g.assemble_namespace()
 
@@ -698,11 +1162,11 @@ Takeoff in 3... 2... 1...
             respawn_delay=respawn_delay,
             use_shell=use_shell,
             emulate_tty=emulate_tty,
-            **kwargs,
         )
 
         g.add_node(node)
-        node.start(lifecycle_target)
+        if autostart_process:
+            node.start(lifecycle_target)
         return node
 
     @contextmanager
@@ -729,9 +1193,67 @@ Takeoff in 3... 2... 1...
         max_respawns: int = 0,
         respawn_delay: float = 0.0,
         use_shell: bool = False,
-        emulate_tty: bool = False,
-        **kwargs,
+        autostart_process: bool = True,
     ) -> Generator[Composer, None, None]:
+        """Creates a composer node which can be used to load composable components.
+
+        This can be used as a context object, e.g.
+        .. code-block:: python
+            bl = BetterLaunch()
+            with bl.compose("my-composer"):
+                bl.component("my_package", "mystuff:TheComponentOfDreams", "normal-component")
+
+        Parameters
+        ----------
+        name : str
+            The name you want the node to be known as.
+        language : str, optional
+            The programming language of the composer (and components) you want to use.
+        composer_mode : Composer.ComposerMode, optional
+            Use a special variant of the composer. Usually the standard one is sufficient.
+        component_remaps : dict[str, str], optional
+            Any remaps you want to apply to all components loaded into this composer.
+        composer_remaps : dict[str, str], optional
+            Remaps you want to apply for the composer itself. Usually less useful (i.e. not at all).
+        node_args : str | dict[str, Any], optional
+            Any arguments you want to provide to the node. These are the args you would typically have to declare in your launch file.
+        cmd_args : list[str], optional
+            Additional command line arguments to pass to the node.
+        env : dict[str, str], optional
+            Additional environment variables to set for the node's process.
+        isolate_env : bool, optional
+            If True, the node process' env will not be inherited from the parent process. Be aware that this can result in many common things to not work anymore since e.g. keys like *PATH* will be missing.
+        log_level : int, optional
+            The minimum severity a logged message from this node must have in order to be published.
+        output_config : Node.LogSink  |  dict[Node.LogSource, set[Node.LogSink]], optional
+            How log output from the node should be handled. Sources are `stdout`, `stderr` and `both`. Sinks are `screen`, `log`, `both`, `own_log`, and `full`. See :py:class:`Node` for more details.
+        reparse_logs : bool, optional
+            If True, *better_launch* will capture the node's output and reformat it before publishing. 
+        anonymous : bool, optional
+            If True, the node name will be appended with a unique suffix to avoid name conflicts.
+        hidden : bool, optional
+            If True, the node name will be prepended with a "_", hiding it from common listings.
+        on_exit : Callable, optional
+            A function to call when the node's process terminates (after any possible respawns).
+        max_respawns : int, optional
+            How often to restart the node process if it terminates.
+        respawn_delay : float, optional
+            How long to wait before restarting the node process after it terminates.
+        use_shell : bool, optional
+            If True, invoke the node executable via the system shell. Use only if you know you need it.
+        autostart_process : bool, optional
+            If True, start the node process before returning from this function. Note that setting this to False for a composer will make it unusable as a context object, since you won't be able to load any components.
+
+        Yields
+        ------
+        Generator[Composer, None, None]
+            Sets the composition flag and yields the composer.
+
+        Raises
+        ------
+        RuntimeError
+            If you try to create a composer within a :py:func:`compose` context.
+        """
         if self._composition_node is not None:
             raise RuntimeError("Cannot nest composition nodes")
 
@@ -767,13 +1289,12 @@ Takeoff in 3... 2... 1...
             max_respawns=max_respawns,
             respawn_delay=respawn_delay,
             use_shell=use_shell,
-            emulate_tty=emulate_tty,
-            **kwargs,
         )
 
         try:
             g.add_node(comp)
-            comp.start()
+            if autostart_process:
+                comp.start()
             self._composition_node = comp
             yield comp
         finally:
@@ -791,6 +1312,37 @@ Takeoff in 3... 2... 1...
         lifecycle_target: LifecycleStage = LifecycleStage.ACTIVE,
         **extra_composer_args: dict[str, Any],
     ) -> Component:
+        """Create a component and load it into an existing :py:meth:`compose` context.
+
+        If you instead want to load components without a `compose` context, you should instantiate :py:class:`Component` objects directly, then load them via :py:meth:`Component.start` or :py:meth:`Composer.load_component`.
+
+        Parameters
+        ----------
+        package : str
+            The package providing the component implementation.
+        plugin : str
+            The name the component is registered as, typically of the form `<package>::<Name>`.
+        name : str
+            The name the instantiated component should be known as.
+        remaps : dict[str, str], optional
+            Tells the node to replace any topics it wants to interact with according to the provided dict.
+        component_args : str | dict[str, Any], optional
+            Node arguments you want to pass to the component. See :py:meth:`node` for details.
+        use_intra_process_comms : bool, optional
+            If True, ask the composer node to enable intra-process communication, i.e. share memory between components when passing messages instead of serializing and deserializing.
+        lifecycle_target : LifecycleStage, optional
+            The lifecycle stage to bring the componment into after starting. Has no effect if the component turns out not to be a lifecycle component.
+
+        Returns
+        -------
+        Component
+            The component that has been loaded into the current :py:meth:`compose` context.
+
+        Raises
+        ------
+        RuntimeError
+            If this is called outside a :py:meth:`compose` context.
+        """
         if self._composition_node is None:
             raise RuntimeError("Cannot add component outside a compose() node")
 
@@ -812,11 +1364,26 @@ Takeoff in 3... 2... 1...
 
     def include(
         self,
-        launch_file: str,
+        launchfile: str,
         package: str = None,
         pass_launch_func_args: bool = True,
         **kwargs,
     ) -> None:
+        """Include another launch file. The `launchfile` path is resolfed using :py:meth:`find`. 
+
+        The file is first read into memory and checked. If it seems to be a *better_launch* launch file, it is executed immediately (using :py:func:`exec`). The BetterLaunch instance and global context will be shared. Any arguments to :py:deco:`launch_this` will be ignored (e.g. `ui`). 
+
+        If the file does not appear to be a *better_launch* launch file, it is assumed to be a regular ROS2 launch file. In this case a :py:class:`launch.actions.IncludeLaunchDescription` instance is created and passed to :py:meth:`ros2_actions`.
+
+        Parameters
+        ----------
+        launchfile : str
+            Path to the launch file to include.
+        package : str, optional
+            Name of a package to resolve the launch file path.
+        pass_launch_func_args : bool, optional
+            If True, all :py:meth:`launch_args` will be passed to the included launch file. Additional launch arguments can also be provided via the `kwargs`.
+        """
         # Pass additional arguments, e.g. launch args
         include_args = {}
         if pass_launch_func_args:
@@ -825,15 +1392,15 @@ Takeoff in 3... 2... 1...
 
         # TODO use resolve_string
         # TODO assume same package if package is None
-        file_path = self.find(package, launch_file)
-        if launch_file.endswith(".py"):
+        file_path = self.find(filename=launchfile, package=package)
+        if launchfile.endswith(".py"):
             with open(file_path) as f:
                 content = f.read()
                 if "better_launch" in content:
                     # Assume launch file uses better_launch, too
                     try:
                         # Prepare the source code for execution
-                        code = compile(content, launch_file, "exec")
+                        code = compile(content, launchfile, "exec")
 
                         # Make sure the included launch file reuses our BetterLaunch instance
                         global_args = dict(globals())
@@ -846,7 +1413,7 @@ Takeoff in 3... 2... 1...
                         return
                     except Exception as e:
                         self.logger.error(
-                            f"Launch include '{package}/{launch_file}' failed: {e}"
+                            f"Launch include '{package}/{launchfile}' failed: {e}"
                         )
                         raise
 
@@ -874,13 +1441,35 @@ Takeoff in 3... 2... 1...
 
     def ros2_launch_service(
         self,
-        process_name: str = "LaunchService",
+        name: str = "LaunchService",
         launch_args: list[str] = None,
         start_immediately: bool = True,
     ) -> Ros2LaunchWrapper:
+        """Create or retrieve a manager object that can be used for queueing ROS2 launch actions. 
+
+        Usually, calling :py:meth:`ros2_actions` is more convenient for queueing actions. However, calling this *first* allows to prevent starting the underlying :py:class:`launch.LaunchService` immediately, giving more control over when the actions are executed.
+
+        Since the `LaunchService` insists on running on the main thread it will be started as a sub process.
+
+        Note that only one instance of the ROS2 wrapper should ever exist. Calling this method after it has been created will return the already existing instance instead. Any passed arguments will be silently discarded.
+
+        Parameters
+        ----------
+        name : str, optional
+            The name used to identify the process and its logger.
+        launch_args : list[str], optional
+            Additional launch arguments to pass to the ROS2 launch service. These will end up in :py:meth:`launch.LaunchContext.argv`.
+        start_immediately : bool, optional
+            If True, the ROS2 launch service process is started immediately.
+
+        Returns
+        -------
+        Ros2LaunchWrapper
+            The wrapper hosting the ROS2 launch service process.
+        """
         if not self._ros2_launcher:
             self._ros2_launcher = Ros2LaunchWrapper(
-                process_name=process_name, launch_args=launch_args
+                name=name, launch_args=launch_args
             )
 
         if start_immediately:
@@ -889,4 +1478,8 @@ Takeoff in 3... 2... 1...
         return self._ros2_launcher
 
     def ros2_actions(self, *ros2_actions) -> None:
+        """Submit additional ROS2 launch actions for execution. 
+        
+        If no :py:class:`launch.LaunchService` exists yet it will be created and started immediately.
+        """
         self.ros2_launch_service().queue_ros2_actions(*ros2_actions)

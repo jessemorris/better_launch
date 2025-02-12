@@ -35,5 +35,5 @@ def test(enable_x: bool):
             lifecycle_target=LifecycleStage.PRISTINE,
         )
 
-        # Include another BetterLaunch file
+        # Include another BetterLaunch file within this group
         bl.include(os.path.dirname(__file__) + "/example2.py")

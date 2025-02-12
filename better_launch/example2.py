@@ -3,7 +3,8 @@ from better_launch import BetterLaunch, launch_this
 
 # UI will be ignored on included files
 @launch_this(ui=True)
-# enable_x will be filled from the original launch file if pass_launch_func_args is True
+# enable_x will be filled from the original launch file if include() was called with 
+# pass_launch_func_args == True
 def test(enable_x: bool):
     # This will reuse the original instance
     bl = BetterLaunch()

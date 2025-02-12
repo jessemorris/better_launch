@@ -17,27 +17,30 @@ _sentinel = object()
 
 
 def default_substitution_handlers(
-    launcher, eval_type: Literal["full", "literal", "none"]
+    eval_type: Literal["full", "literal", "none"]
 ):
+    from better_launch import BetterLaunch
+
+    bl = BetterLaunch.instance()
+
     # $(package my_ros_package my_config.yaml)
-    def _package(pkg: str, file: str = None, dir: str = None):
-        return launcher.find(pkg, file, dir)
+    def _package(filename: str = None, package: str = None, subdir: str = None):
+        return bl.find(filename=filename, package=package, subdir=subdir)
 
     # $(arg x 2.0)
     def _arg(key: str, default: Any = _sentinel):
         if default != _sentinel:
-            return launcher.all_args.get(key, default)
-        return launcher.all_args[key]
+            return bl.launch_args.get(key, default)
+        return bl.launch_args[key]
 
     # $(param /myrobot/my_node rate)
     def _param(full_node_name: str, param: str):
-        # TODO This will only work once the main loop starts running
-        srv = launcher.ros_adapter.ros_node.create_client(
+        srv = bl.shared_node.create_client(
             GetParameters, f"{full_node_name}/get_parameters"
         )
 
         if not srv.wait_for_service(5.0):
-            raise RuntimeError("Failed to wait for node parameter service")
+            raise KeyError("Failed to wait for node parameter service")
 
         req = GetParameters.Request()
         req.names = [param]
@@ -60,7 +63,7 @@ def default_substitution_handlers(
     def _eval(*args):
         expr = " ".join(args)
         if eval_type == "full":
-            return eval(expr, {}, launcher.all_args)
+            return eval(expr, {}, dict(bl.launch_args))
         elif eval_type == "literal":
             return literal_eval(expr)
         else:
