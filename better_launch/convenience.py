@@ -4,9 +4,7 @@ import threading
 import time
 from better_launch import BetterLaunch
 import subprocess
-from .gazebo import silent_exec, GazeboBridge, ros_gz_prefix, gz_launch_setup
-from os.path import join, exists
-from typing import Text, List, Iterable, Tuple, Union
+from .gazebo import GazeboBridge, ros_gz_prefix, gz_launch_setup
 from tempfile import NamedTemporaryFile
 
 

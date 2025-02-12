@@ -8,7 +8,6 @@ from os import environ
 from shlex import split
 
 
-
 logger = logging.getLogger(__name__)
 
 
@@ -34,12 +33,10 @@ def gz_launch_setup(world_file, gz_args=None, show_args=False, launcher=None):
     if launcher is None:
         raise ValueError("Launcher must be provided")
 
-    logger = launcher.get_logger()  # Get logger from the launcher instance
+    logger = launcher.get_logger()  
 
-    # Always assume full_args will be a string
     full_args = world_file + (" " + gz_args if gz_args else "")
 
-    # Determine the correct Gazebo version and set up launch arguments
     if get_gazebo_prefix() == "gz":
         launch_file = join(
             get_package_share_directory("ros_gz_sim"), "launch", "gz_sim.launch.py"
