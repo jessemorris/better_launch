@@ -27,6 +27,7 @@ def test(enable_x: bool):
             bl.component("composition", "composition::Talker", "CompTalker")
             bl.component("composition", "composition::Listener", "CompListener")
 
+        # You can also include regular ROS2 launch files!
         bl.include("my_other_launchfile.py", "my_other_package")
 ```
 
@@ -50,17 +51,25 @@ Because *better_launch* does not use the ROS2 launch system, some aspects work d
 ### Action immediacy
 In ROS2 launch, launch files create tasks that are then passed as a single batch to an asynchronous event loop. This makes e.g. having conditions on arguments so incredibly weird. In *better_launch* however, all actions are taken immediately: if you create a node, its process is started right away; if you include another *better_launch* launch file, its contents will be handled before the function returns. 
 
-The only exception to this is adding ROS2 actions, which includes including regular ROS2 launch files. Since they still rely on the ROS2 launch system, they need to be turned into proper ROS2 tasks and passed to the asynchronous event loop. Usually the ROS2 launch service process is started immediately the first time a ROS2 action is passed to *better_launch*, and from then on will handle all passed actions asynchronously in the background.
+The only exception to this is adding ROS2 actions like including regular ROS2 launch files. Since these still rely on the ROS2 launch system, they need to be turned into proper ROS2 tasks and passed to the asynchronous event loop. Usually a ROS2 launch service sub-process is started immediately the first time a ROS2 action is passed to *better_launch*. From then on this process will handle all ROS2 actions asynchronously in the background. 
+
+While the output of this process (and its nodes) is captures and formatted by *better_launch* just like for any other node, these cannot be managed individually.
+
+
+### Lifecycle nodes
+Lifecycle nodes differ from regular nodes in that they don't become fully active after their process starts. Instead you have to call one of their lifecycle management services, usually via additional code in your launch file or the `ros2 lifecycle` CLI. However, in the end they are still just nodes.
+
+*better_launch* makes no distinction between regular and lifecycle nodes. Instead, all "lifecyclable" objects (e.g. nodes and components) provide a `LifecycleManager` object via their `lifecycle` member. This will be `None` if the object is not a lifecycle-thing - otherwise you can use it to manage the object's lifecycle. Additionally, all objects that turn out to be lifecyclable will transition to their *ACTIVE* state by default, unless you pass a different target state on instantiation.
 
 
 ### Type checking
-When passing arguments to a node in ROS2, in the end everything is passed as stringified command line arguments. So why bother with types? *better_launch* does not enforce overly strict type checking on you and will happily accept *int*, *string*, *float*, etc. for any given argument. In addition, sensible and *unsurprising* types have been chosen for all arguments you may provide.
+When passing arguments to a node in ROS2, in the end everything is passed as stringified command line arguments. So why bother with types? *better_launch* does not enforce overly strict type checking on you and will happily accept `int`, `string`, `float`, etc. for any given argument. In addition, sensible and *unsurprising* types have been chosen for all arguments you may provide (e.g. remaps are defined as a `dict[str, str]`).
 
 
 ### Declaring launch arguments
-Simply put: you don't. *better_launch* will check the signature of your launch function and turn all arguments into launch arguments. For example, if your launch function has an `enable_x` argument, you will be able to pass it with `--enable_x` on the command line. Under the hood, *better_launch* is using [click](https://click.palletsprojects.com/), so every launch file you write comes with proper argument listing. 
+Simply put: you don't. *better_launch* will check the signature of your launch function and turn all arguments into launch arguments. For example, if your launch function has an `enable_x` argument, you will be able to pass it with `--enable_x` on the command line. Under the hood, *better_launch* is using [click](https://click.palletsprojects.com/), so every launch file you write comes with proper CLI support. 
 
-Special tip: add a docstring to your function and call your launch file with `--help`!
+Tip: add a docstring to your function and call your launch file with `--help`!
 
 
 ### Logging
@@ -73,7 +82,6 @@ ROS2 launch has a bad reputation of leaving stale and abandoned processes behind
 
 # What doesn't work yet
 As of now *better_launch* supports the most important use cases, like starting nodes, proper (nicer!) logging, being awesome. However, there are still a couple of features that I have to work on to make it feature complete (roughly sorted by priority):
-- [ ] TUI does not show log output from ROS2 launch service
 - [ ] document public API
 - [ ] exception handling is barebones, so if something fails, everything fails
 - [ ] better yaml param loader (it's already nice, but could be nicer)
@@ -81,6 +89,7 @@ As of now *better_launch* supports the most important use cases, like starting n
 - [ ] check how well it handles high-volume logging
 - [ ] check for edge cases
 - [ ] the TUI can miss some log messages and I'm not sure why. If in doubt, check without the TUI!
+- [ ] add launch_this overrides to click CLI handler
 
 
 # What's so bad about ROS2 launch?
