@@ -6,7 +6,7 @@ from datetime import datetime
 from .colors import get_contrast_color
 
 
-log_default_colormap = {
+default_log_colormap = {
     #  0m: resets all colors and attributes.
     # 20m: resets only attributes (underline, etc.), leaving colors unchanged.
     # 39m: resets only foreground color, leaving attributes unchanged.
@@ -73,7 +73,7 @@ class PrettyLogFormatter(logging.Formatter):
         self.converter = datetime.fromtimestamp
         self.roslog_pattern = re.compile(roslog_pattern)
         self.pattern_info = pattern_info
-        self.colormap = colormap if colormap is not None else dict(log_default_colormap)
+        self.colormap = colormap if colormap is not None else dict(default_log_colormap)
         self.color_per_source = color_per_source
         self.disable_colors = disable_colors
         self.registered_colors = {}

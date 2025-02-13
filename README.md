@@ -90,11 +90,11 @@ ROS2 launch has a bad reputation of leaving stale and abandoned processes behind
 
 # What doesn't work yet
 As of now *better_launch* supports the most important use cases, like starting nodes, proper (nicer!) logging, being awesome. However, there are still a couple of features that I have to work on to make it feature complete (roughly sorted by priority):
+- [ ] fully integrate convenience module
 - [ ] document public API
 - [ ] exception handling is barebones, so if something fails, everything fails
-- [ ] better yaml param loader (it's already nice, but could be nicer)
 - [ ] the TUI is fast, but could maybe be even faster
-- [ ] check how well it handles high-volume logging
+- [ ] check how well the TUI handles high-volume logging
 - [ ] check for edge cases
 - [ ] the TUI can miss some log messages and I'm not sure why. If in doubt, check without the TUI!
 - [ ] add launch_this overrides to click CLI handler

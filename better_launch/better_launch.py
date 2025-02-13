@@ -4,7 +4,6 @@ import platform
 from ast import literal_eval
 import signal
 import inspect
-import threading
 from concurrent.futures import Future
 from contextlib import contextmanager
 from collections import deque
@@ -46,7 +45,7 @@ from elements import (
     LifecycleStage,
     Ros2LaunchWrapper,
 )
-from utils.better_logging import log_default_colormap, PrettyLogFormatter
+from utils.better_logging import default_log_colormap, PrettyLogFormatter
 from utils.substitutions import default_substitution_handlers, substitute_tokens
 from utils.introspection import find_calling_frame
 from ros.ros_adapter import ROSAdapter
@@ -176,7 +175,7 @@ def _launch_this_wrapper(
     else:
         roslog.launch_config.level = logging.INFO
         if "OVERRIDE_LAUNCH_SCREEN_FORMAT" not in os.environ:
-            colormap = dict(log_default_colormap)
+            colormap = dict(default_log_colormap)
             colormap[logging.INFO] = "\x1b[32;20m"
             roslog.launch_config.screen_formatter = PrettyLogFormatter(
                 colormap=colormap
