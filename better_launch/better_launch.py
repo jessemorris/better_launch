@@ -619,7 +619,7 @@ Takeoff in 3... 2... 1...
 
         If the `filename` is absolute, all other arguments will be ignored and the filename will be returned.
 
-        If `package` is provided, the corresponding ROS2 package path will be used as the base path. Otherwise the current working dir is used as the base path. If `subdir` is provided, it will be appended to the base path (existence will not be verified).
+        If `package` is provided, the corresponding ROS2 package path will be used as the base path. Else we attempt to locate the current launch file's package by searching its directory and parent directories for a `package.xml`. If the package cannot be determined the current working dir is used as the base path. If `subdir` is provided, it will be appended to the base path (existence will not be verified).
 
         If no `filename` is provided, the established base path is returned. Otherwise, if `filename` is a relative path it will be appended to the base path. Otherwise a file with this name will be searched for in the base path.
 
@@ -652,6 +652,16 @@ Takeoff in 3... 2... 1...
         filename = resolve(filename)
         if os.path.isabs(filename):
             return filename
+
+        if not package:
+            # Search the launch file directory tree for a "package.xml"
+            searchpath = os.path.dirname(self.launchfile)
+            while os.pathsep in searchpath:
+                files = os.listdir(searchpath)
+                if "package.xml" in files:
+                    package = os.path.basename(os.path.normpath(searchpath))
+                    break
+                searchpath = searchpath.rsplit(os.pathsep, maxsplit=1)[0]
 
         if package:
             if "/" in package or os.pathsep in package:
@@ -767,7 +777,6 @@ Takeoff in 3... 2... 1...
                     idx += 1
                     key += "/" + parts[idx]
 
-                # TODO resolve as much as possible instead of throwing
                 if key not in params:
                     raise ValueError(f"Could not find parameter section for {ns}")
 
@@ -1369,7 +1378,7 @@ Takeoff in 3... 2... 1...
         pass_launch_func_args: bool = True,
         **kwargs,
     ) -> None:
-        """Include another launch file. The `launchfile` path is resolfed using :py:meth:`find`. 
+        """Include another launch file. The `launchfile` path is resolved using :py:meth:`find`. 
 
         The file is first read into memory and checked. If it seems to be a *better_launch* launch file, it is executed immediately (using :py:func:`exec`). The BetterLaunch instance and global context will be shared. Any arguments to :py:deco:`launch_this` will be ignored (e.g. `ui`). 
 
@@ -1390,8 +1399,6 @@ Takeoff in 3... 2... 1...
             include_args.update(self.launch_args)
         include_args.update(**kwargs)
 
-        # TODO use resolve_string
-        # TODO assume same package if package is None
         file_path = self.find(filename=launchfile, package=package)
         if launchfile.endswith(".py"):
             with open(file_path) as f:
