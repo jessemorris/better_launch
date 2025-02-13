@@ -39,9 +39,9 @@ And because I apparently have too much free time, there is also a terminal UI re
 
 
 # Why not improve the existing ROS2 launch?
-Because I think it is beyond redemption and no amount of refactoring and REPs (ROS enhancement proposal) will turn the sails. Tools like the highly rated [simple_launch](https://github.com/oKermorgant/simple_launch) exist, but still use ROS2 launch under the hood and so inherit much of its clunkiness. Rather than fixing an inherently broken solution, I decided to make a RAP - a ROS abandonment proposal :)
+Because I think it is beyond redemption and no amount of refactoring and REPs (ROS enhancement proposals) will turn the sails. Tools like the highly rated [simple_launch](https://github.com/oKermorgant/simple_launch) exist, but still use ROS2 launch under the hood and so inherit much of its clunkiness. Rather than fixing an inherently broken solution, I decided to make a RAP - a ROS abandonment proposal :)
 
-Essentially, *better_launch* is what I wish ROS2 launch would be: comfortable to use, simple to understand, easy to remember. This is why *better_launch* is **not** yet another abstraction layer over ROS2 launch; it is a **full** replacement with no imports or dependencies on the existing launch system.
+Essentially, *better_launch* is what I wish ROS2 launch would be: comfortable to use, simple to understand, easy to remember. This is why *better_launch* is **not** yet another abstraction layer over ROS2 launch; it is a **full** replacement with no required dependencies on the existing launch system.
 
 
 # Okay, what are the differences?
@@ -53,7 +53,7 @@ In ROS2 launch, launch files create tasks that are then passed as a single batch
 
 The only exception to this is adding ROS2 actions like including regular ROS2 launch files. Since these still rely on the ROS2 launch system, they need to be turned into proper ROS2 tasks and passed to the asynchronous event loop. Usually a ROS2 launch service sub-process is started immediately the first time a ROS2 action is passed to *better_launch*. From then on this process will handle all ROS2 actions asynchronously in the background. 
 
-While the output of this process (and its nodes) is captures and formatted by *better_launch* just like for any other node, these cannot be managed individually.
+While the output of this process (and its nodes) is captured and formatted by *better_launch* just like for all other nodes, these cannot be managed individually.
 
 
 ### Inclding better_launch from ROS2

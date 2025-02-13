@@ -168,19 +168,6 @@ def _launch_this_wrapper(
 
     # If we get here we were not included by ROS2
 
-    # Logging setup
-    if log_config:
-        roslog.launch_config = log_config
-        # roslog.reset()
-    else:
-        roslog.launch_config.level = logging.INFO
-        if "OVERRIDE_LAUNCH_SCREEN_FORMAT" not in os.environ:
-            colormap = dict(default_log_colormap)
-            colormap[logging.INFO] = "\x1b[32;20m"
-            roslog.launch_config.screen_formatter = PrettyLogFormatter(
-                colormap=colormap
-            )
-
     # Expose launch_func args through click. This enables using launch files like other
     # python files, e.g. './my_better_launchfile.py --help'
     import click
@@ -219,7 +206,39 @@ def _launch_this_wrapper(
             )
         )
 
+    # Additional overrides for launch arguments
+    def click_ui_override(ctx: click.Context, param: click.Parameter, value: Any):
+        if value != "unset":
+            nonlocal ui
+            ui = (value == "enable")
+        return value
+
+    options.extend([
+        click.Option(
+            ["--bl-ui-override"],
+            type=click.types.Choice(["enable", "disable", "unset"], case_sensitive=False),
+            show_choices=True,
+            default="unset",
+            help="Override to enable/disable the terminal UI",
+            expose_value=False,  # not passed to our run method
+            callback=click_ui_override,
+        ),
+    ])
+
     def run(*args, **kwargs):
+        # Logging setup
+        if log_config:
+            roslog.launch_config = log_config
+            # roslog.reset()
+        else:
+            roslog.launch_config.level = logging.INFO
+            if "OVERRIDE_LAUNCH_SCREEN_FORMAT" not in os.environ:
+                colormap = dict(default_log_colormap)
+                colormap[logging.INFO] = "\x1b[32;20m"
+                roslog.launch_config.screen_formatter = PrettyLogFormatter(
+                    colormap=colormap
+                )
+
         # Wrap the launch function so we can do some preparation and cleanup tasks
         def launch_func_wrapper():
             launch_func(*args, **kwargs)
@@ -1075,7 +1094,6 @@ Takeoff in 3... 2... 1...
         max_respawns: int = 0,
         respawn_delay: float = 0.0,
         use_shell: bool = False,
-        emulate_tty: bool = False,
         autostart_process: bool = True,
         lifecycle_target: LifecycleStage = LifecycleStage.ACTIVE,
     ) -> Node:
@@ -1170,7 +1188,6 @@ Takeoff in 3... 2... 1...
             max_respawns=max_respawns,
             respawn_delay=respawn_delay,
             use_shell=use_shell,
-            emulate_tty=emulate_tty,
         )
 
         g.add_node(node)
