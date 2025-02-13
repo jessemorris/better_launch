@@ -1026,7 +1026,7 @@ Takeoff in 3... 2... 1...
 
         Groups are intended to be used as context objects and can be nested, e.g.
 
-        .. code-block:: python
+        .. code:: python
 
             bl = BetterLaunch()
             with bl.group("outer"):
@@ -1216,7 +1216,7 @@ Takeoff in 3... 2... 1...
 
         This can be used as a context object, e.g.
 
-        .. code-block:: python
+        .. code:: python
         
             bl = BetterLaunch()
             with bl.compose("my-composer"):

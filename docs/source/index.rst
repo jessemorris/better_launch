@@ -3,14 +3,18 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-.. since we use numpy docstrings we need to run napoleon first so autodoc can understand them:
+.. since we use numpy docstrings we need to run napoleon first so autodoc can understand them. 
+   To build the documentation:
+
    sphinx-apidoc -f -o docs/source .
+   cd docs
+   make html
 
 better_launch
 ===========================
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 3
    :caption: Contents:
 
-   better_launch
+   modules

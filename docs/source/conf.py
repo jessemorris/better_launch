@@ -35,6 +35,7 @@ exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
 
 napoleon_include_init_with_doc = True
 
+toc_object_entries_show_parents = "hide"
 autodoc_typehints = "signature"
 autodoc_member_order = "bysource"
 
@@ -45,5 +46,5 @@ myst_enable_extensions = ["colon_fence", "deflist", "linkify"]
 # -- Options for HTML output -------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
 
-html_theme = 'furo'
+html_theme = 'sphinx_rtd_theme'
 html_static_path = ['_static']
