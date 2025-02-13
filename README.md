@@ -102,10 +102,18 @@ As of now *better_launch* supports the most important use cases, like starting n
 - [ ] allow to add multiple launch functions to one launch file and select one via the CLI - how should we handle click execution then?
 
 
-# Dependencies
-*better_launch* was tested on ROS2 Humble and Jazzy and will be updated for future releases. While earlier versions may work with only slight changes, I am not planning to spend any major effort on these.
+# Installation
+Unfortunately, the ROS foundation is adamant about maintaining their own package list for `rosdep` instead of forwarding to e.g. `pip` to handle dependencies. Since *better_launch* uses a few python libraries that are not found in the official ROS package list, you will have to install them manually using the provided `requirements.txt` file. Of course, if you have setup e.g. a *venv* or *conda* environment for your workspace you should activate these first. 
 
-There are a few optional dependencies that will make *better_launch* slightly more awesome (it's an asymptotic process :P):
+```bash
+# Install regular ROS dependencies
+rosdep install better_launch
+
+# Install required python libraries
+pip install -r requirements.txt
+```
+
+In addition, *better_launch* will make use of the following optional python libraries:
 - *wonderwords*: if installed, wonderwords will be used to generate unique suffixes for anonymous nodes. Otherwise UUIDs will be used.
 
 
