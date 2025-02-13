@@ -1,0 +1,25 @@
+<?xml version="1.0"?>
+<package format="2">
+  <name>better_launch</name>
+  <version>0.9</version>
+  <description>
+    Replacement for the ROS2 launch system: intuitive, simple, memorable.
+  </description>
+  <maintainer email="nikolas.dahn@gmail.com">Nikolas Dahn</maintainer>
+  <license>MIT</license>
+
+  <buildtool_depend>ament_cmake_python</buildtool_depend>
+
+  <depend>ament_index_python</depend>
+  <depend>rcl_interfaces</depend>
+  <depend>lifecycle_msgs</depend>
+  <depend>composition_interfaces</depend>
+  <depend>ros2node</depend>
+  <depend>ros2param</depend>
+  <depend>ros2service</depend>
+  <depend>rclpy</depend>
+
+  <export>
+    <build_type>ament_cmake</build_type>
+  </export>
+</package>
