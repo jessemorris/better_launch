@@ -103,14 +103,14 @@ As of now *better_launch* supports the most important use cases, like starting n
 
 
 # Installation
-Unfortunately, the ROS foundation is adamant about maintaining their own package list for `rosdep` instead of forwarding to e.g. `pip` to handle dependencies. Since *better_launch* uses a few python libraries that are not found in the official ROS package list, you will have to install them manually using the provided `requirements.txt` file. Of course, if you have setup e.g. a *venv* or *conda* environment for your workspace you should activate these first. 
+*better_launch* is a regular ROS2 package, which means you can install it in your workspace and then use it in all launch files within that workspace.
+
+Unfortunately, the ROS foundation is adamant about maintaining their own package list for `rosdep` instead of forwarding to e.g. `pip` to handle dependencies. Since *better_launch* uses a few python libraries that are not found in the official ROS package list, you will have to install them manually - a `requirements.txt` file is provided of course. In case you have setup a *venv* or *conda* environment for your workspace you should activate it first. 
 
 ```bash
-# Install regular ROS dependencies
 rosdep install better_launch
-
-# Install required python libraries
 pip install -r requirements.txt
+colcon build --packages-select better_launch
 ```
 
 In addition, *better_launch* will make use of the following optional python libraries:
