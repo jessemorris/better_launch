@@ -767,6 +767,7 @@ Takeoff in 3... 2... 1...
                     idx += 1
                     key += "/" + parts[idx]
 
+                # TODO resolve as much as possible instead of throwing
                 if key not in params:
                     raise ValueError(f"Could not find parameter section for {ns}")
 
