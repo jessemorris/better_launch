@@ -90,7 +90,6 @@ ROS2 launch has a bad reputation of leaving stale and abandoned processes behind
 
 # What doesn't work yet
 As of now *better_launch* supports the most important use cases, like starting nodes, proper (nicer!) logging, being awesome. However, there are still a couple of features that I have to work on to make it feature complete (roughly sorted by priority):
-- [ ] make log output selectable
 - [ ] document public API
 - [ ] fully integrate convenience module
 - [ ] exception handling is barebones, so if something fails, everything fails
@@ -98,17 +97,16 @@ As of now *better_launch* supports the most important use cases, like starting n
 - [ ] check how well the TUI handles high-volume logging
 - [ ] check for edge cases
 - [ ] the TUI can miss some log messages and I'm not sure why. If in doubt, check without the TUI!
-- [ ] add launch_this overrides to click CLI handler
 - [ ] allow to add multiple launch functions to one launch file and select one via the CLI - how should we handle click execution then?
 
 
 # Installation
 *better_launch* is a regular ROS2 package, which means you can install it in your workspace and then use it in all launch files within that workspace.
 
-Unfortunately, the ROS foundation is adamant about maintaining their own package list for `rosdep` instead of forwarding to e.g. `pip` to handle dependencies. Since *better_launch* uses a few python libraries that are not found in the official ROS package list, you will have to install them manually - a `requirements.txt` file is provided of course. In case you have setup a *venv* or *conda* environment for your workspace you should activate it first. 
+Unfortunately, the ROS foundation is adamant about maintaining their own python package list for `rosdep` instead of forwarding to e.g. `pip` to handle dependencies. Since *better_launch* uses a few python libraries that are not found in the official ROS package list, you will have to install them manually - a `requirements.txt` file is provided of course. In case you have setup a *venv* or *conda* environment for your workspace you should activate it first. 
 
 ```bash
-rosdep install better_launch
+rosdep install --ignore-src --from-paths path/to/better_launch
 pip install -r requirements.txt
 colcon build --packages-select better_launch
 ```
