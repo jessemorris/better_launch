@@ -1,7 +1,7 @@
 from typing import Any
 import signal
 
-import ros.logging as roslog
+import better_launch.ros.logging as roslog
 from .lifecycle_manager import LifecycleManager, LifecycleStage
 
 

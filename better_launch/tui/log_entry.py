@@ -4,7 +4,7 @@ from textual.widgets import Static
 from textual.containers import HorizontalGroup
 from textual.color import Color
 
-from utils.colors import get_contrast_color
+from better_launch.utils.colors import get_contrast_color
 
 
 class LogEntry(HorizontalGroup):

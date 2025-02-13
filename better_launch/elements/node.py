@@ -15,9 +15,9 @@ from concurrent.futures import Future
 from pprint import pformat
 from textwrap import indent
 
+from better_launch.ros import logging as roslog
+from better_launch.utils.better_logging import PrettyLogFormatter
 from .abstract_node import AbstractNode
-from ros import logging as roslog
-from utils.better_logging import PrettyLogFormatter
 
 
 class Node(AbstractNode):

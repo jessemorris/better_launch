@@ -8,9 +8,9 @@ from multiprocessing import Process, Queue
 import osrf_pycommon.process_utils
 from setproctitle import setproctitle, getproctitle
 
-import ros.logging as roslog
-from utils.better_logging import PrettyLogFormatter, RecordForwarder, StubbornHandler
-from utils.colors import get_contrast_color
+import better_launch.ros.logging as roslog
+from better_launch.utils.better_logging import PrettyLogFormatter, RecordForwarder, StubbornHandler
+from better_launch.utils.colors import get_contrast_color
 from .abstract_node import AbstractNode
 from .node import Node
 

@@ -3,7 +3,7 @@
   <name>better_launch</name>
   <version>0.9.0</version>
   <description>
-    Replacement for the ROS2 launch system: intuitive, simple, memorable.
+    A better replacement for the ROS2 launch system: intuitive, simple, memorable.
   </description>
   <maintainer email="nikolas.dahn@gmail.com">Nikolas Dahn</maintainer>
   <license>MIT</license>

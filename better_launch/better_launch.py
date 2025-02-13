@@ -38,7 +38,7 @@ except ImportError:
 
     __uuid_generator = lambda: uuid.uuid4().hex
 
-from elements import (
+from better_launch.elements import (
     Group,
     AbstractNode,
     Node,
@@ -47,15 +47,12 @@ from elements import (
     LifecycleStage,
     Ros2LaunchWrapper,
 )
-from utils.better_logging import default_log_colormap, PrettyLogFormatter
-from utils.substitutions import default_substitution_handlers, substitute_tokens
-from utils.introspection import find_calling_frame
-from ros.ros_adapter import ROSAdapter
-from ros import logging as roslog
-from ros.logging import LaunchConfig as LogConfig
-
-
-__all__ = ["launch_this", "BetterLaunch"]
+from better_launch.utils.better_logging import default_log_colormap, PrettyLogFormatter
+from better_launch.utils.substitutions import default_substitution_handlers, substitute_tokens
+from better_launch.utils.introspection import find_calling_frame
+from better_launch.ros.ros_adapter import ROSAdapter
+from better_launch.ros import logging as roslog
+from better_launch.ros.logging import LaunchConfig as LogConfig
 
 
 _is_launcher_defined = "__better_launch_this_defined"
@@ -356,8 +353,6 @@ class _BetterLaunchMeta(type):
 
 class BetterLaunch(metaclass=_BetterLaunchMeta):
     """This should be all you need to create beautiful, simple and convenient launch files!
-
-    For further details, refer to the documentation at `better_launch <https://git.hb.dfki.de/ndahn/better_launch>`_.
     """
 
     _launchfile: str = None
@@ -1030,7 +1025,9 @@ Takeoff in 3... 2... 1...
         As in ROS2, groups allow to collect nodes under a common namespace. Additionally, in *better_launch* groups can be used to define topic remaps for all nodes added to them.
 
         Groups are intended to be used as context objects and can be nested, e.g.
+
         .. code-block:: python
+
             bl = BetterLaunch()
             with bl.group("outer"):
                 with bl.group("inner"):
@@ -1218,7 +1215,9 @@ Takeoff in 3... 2... 1...
         """Creates a composer node which can be used to load composable components.
 
         This can be used as a context object, e.g.
+
         .. code-block:: python
+        
             bl = BetterLaunch()
             with bl.compose("my-composer"):
                 bl.component("my_package", "mystuff:TheComponentOfDreams", "normal-component")

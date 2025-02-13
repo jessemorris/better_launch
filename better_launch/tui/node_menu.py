@@ -5,7 +5,7 @@ from textual.widgets import Label, Static, Button
 from textual.containers import VerticalScroll, HorizontalGroup
 from textual.screen import ModalScreen
 
-from elements import AbstractNode, Composer, Component
+from better_launch.elements import AbstractNode, Composer, Component
 
 
 class NodeLabel(HorizontalGroup):
