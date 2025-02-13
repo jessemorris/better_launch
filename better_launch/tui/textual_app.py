@@ -51,7 +51,8 @@ class BetterUI(App):
 
             LogEntry {
                 #source {
-                    width: 20;
+                    width: 25%;
+                    max-width: 30;
                     height: 1;
                     text-align: right;
                 }
@@ -61,9 +62,9 @@ class BetterUI(App):
                     text-align: center;
                 }
                 #message {
-                    width: 100%;
+                    width: 70%;
                     text-align: left;
-                    padding-left: 1;
+                    margin-right: 1;
                 }
             }
         }
