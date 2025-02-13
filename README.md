@@ -6,7 +6,7 @@ Let's face it: ROS2 has been a severe downgrade in terms of usability compared t
 Like this! 
 
 ```python
-from better_launch import BetterLaunch, launch_this, LifecycleStage
+from better_launch import BetterLaunch, launch_this
 
 @launch_this
 def test(enable_x: bool):
@@ -44,8 +44,28 @@ Because I think it is beyond redemption and no amount of refactoring and REPs (R
 Essentially, *better_launch* is what I wish ROS2 launch would be: intuitive to use, simple to understand, easy to remember. This is why *better_launch* is **not** yet another abstraction layer over ROS2 launch; it is a **full** replacement with no required dependencies on the existing launch system.
 
 
-# Okay, what are the differences?
-Because *better_launch* does not use the ROS2 launch system, some aspects work different from what you may be used to. 
+# Okay, what can I do with it?
+Everything you would expect and a little more! The `BetterLaunch` instance allows you to
+- create *subscribers*, *publishers*, *services*, *service clients*, *action servers* and *action clients* on the fly
+- start and stop *nodes*
+- start and stop *lifecycle nodes* and manage their lifecycle stage
+- start and stop *composers* and load *components* into them
+- organize your nodes in *groups*
+- define hasslefree *topic remaps* for nodes and groups
+- *pass any arguments* from the command line without having to declare them
+- easily *load parameters* from yaml files
+- *locate files* based on filenames and package names
+- use *string substitutions* to resolve e.g. paths
+- include other *better_launch launch files*
+- include other *ROS2 launch files*
+- let regular ROS2 launch files *include* your *better_launch* launch files
+- configure *logging* just as you would in ROS2, yet have much more readable output
+
+> In the future, there will also be a `convenience` module that will help with e.g. setting up *gazebo* environments.
+
+
+# What are the differences?
+Because *better_launch* does not use the ROS2 launch system, some aspects work differently from what you may be used to. 
 
 
 ### Action immediacy
@@ -53,11 +73,7 @@ In ROS2 launch, launch files create tasks that are then passed as a single batch
 
 The only exception to this is adding ROS2 actions like including regular ROS2 launch files. Since these still rely on the ROS2 launch system, they need to be turned into proper ROS2 tasks and passed to the asynchronous event loop. Usually a ROS2 launch service sub-process is started immediately the first time a ROS2 action is passed to *better_launch*. From then on this process will handle all ROS2 actions asynchronously in the background. 
 
-While the output of this process (and its nodes) is captured and formatted by *better_launch* just like for all other nodes, these cannot be managed individually.
-
-
-### Inclding better_launch from ROS2
-It should just work :) I added some magic that detects the LaunchService process and generates a `generate_launch_description` function on the fly that will run your launch function as a ROS2 `OpaqueFunction` action.
+> While the output of the ROS2 launch service process (and its nodes) is captured and formatted by *better_launch* just like for all other nodes, these cannot be managed individually.
 
 
 ### Lifecycle nodes
@@ -71,9 +87,9 @@ When passing arguments to a node in ROS2, in the end everything is passed as str
 
 
 ### Declaring launch arguments
-Simply put: you don't. *better_launch* will check the signature of your launch function and turn all arguments into launch arguments. For example, if your launch function has an `enable_x` argument, you will be able to pass it with `--enable_x` on the command line. Under the hood, *better_launch* is using [click](https://click.palletsprojects.com/), so every launch file you write comes with proper CLI support. 
+Simply put: you don't. *better_launch* will check the signature of your launch function and turn all arguments into launch arguments. For example, if your launch function has an `enable_x` argument, you will be able to pass it with `--enable_x` from the command line. Under the hood *better_launch* is using [click](https://click.palletsprojects.com/), so every launch file you write comes with proper CLI support. 
 
-Tip: add a docstring to your function and call your launch file with `--help`!
+> Tip: try adding a docstring to your launch function and call your launch file with `--help`!
 
 
 ### Parameter files
@@ -150,6 +166,6 @@ I think we can agree that this is not exactly elegant - including another launch
 - a weird fetish for import statements (see above)
 - unneccesarily strict type checking (why use python if I have to verify everything?)
 - nonsensical argument types (e.g. remaps are a *list of tuples* instead of simply a *dict*)
-- using asyncio may be slightly faster, but prevents using readily available launch arguments (ever wondered why there is no `if my_arg: launch_node()`?)
+- using asyncio may be slightly faster, but prevents using readily available launch arguments (ever wondered why you always see these weird Condition classes instead of `if my_arg:`?)
 - horrendous API for starting lifecycle nodes (also, why the hell are there two completely separate base interfaces?)
 - and the list goes on...
