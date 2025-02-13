@@ -6,6 +6,7 @@ import asyncio
 import threading
 from multiprocessing import Process, Queue
 import osrf_pycommon.process_utils
+from setproctitle import setproctitle, getproctitle
 
 import ros.logging as roslog
 from utils.better_logging import PrettyLogFormatter, RecordForwarder, StubbornHandler
@@ -20,13 +21,8 @@ def _launchservice_worker(
     launch_action_queue: Queue,
     log_queue: Queue,
 ) -> None:
-    try:
-        from setproctitle import setproctitle, getproctitle
-
-        # Makes it easier to tell what's going on in the process table
-        setproctitle(f"{getproctitle()} ({name})")
-    except ImportError:
-        pass
+    # Makes it easier to tell what's going on in the process table
+    setproctitle(f"{getproctitle()} ({name})")
 
     # Late import to avoid adding ROS2 launch as a dependency - we are committed here!
     import launch

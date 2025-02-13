@@ -9,6 +9,8 @@ from contextlib import contextmanager
 from collections import deque
 import logging
 import yaml
+import click
+from docstring_parser import parse as parse_docstring
 
 from rclpy.action import (
     ActionServer as RosActionServer,
@@ -170,21 +172,13 @@ def _launch_this_wrapper(
 
     # Expose launch_func args through click. This enables using launch files like other
     # python files, e.g. './my_better_launchfile.py --help'
-    import click
-
     options = []
     launch_func_sig = inspect.signature(launch_func)
 
-    # Optional: extract more fine-grained information from the docstring
-    try:
-        from docstring_parser import parse as parse_docstring
-
-        _doc = parse_docstring(launch_func.__doc__)
-        launch_func_doc = _doc.short_description
-        param_docstrings = {p.arg_name: p.description for p in _doc.params}
-    except ImportError:
-        launch_func_doc = launch_func.__doc__
-        param_docstrings = {}
+    # Extract more fine-grained information from the docstring
+    parsed_doc = parse_docstring(launch_func.__doc__)
+    launch_func_doc = parsed_doc.short_description
+    param_docstrings = {p.arg_name: p.description for p in parsed_doc.params}
 
     # Create CLI options for click
     for param in launch_func_sig.parameters.values():

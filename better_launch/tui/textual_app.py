@@ -15,7 +15,6 @@ from ros2node.api import get_node_names
 from better_launch import BetterLaunch
 import ros.logging as roslog
 from utils.better_logging import RecordForwarder
-
 from elements import Node, Composer, Component, LifecycleStage
 from .log_entry import LogEntry
 from .node_menu import NodeLabel, NodeInfoScreen
@@ -265,10 +264,10 @@ class BetterUI(App):
         if pyperclip.is_available():
             text = "[{created}] [{name}] {message}".format(**entry.record.__dict__)
             pyperclip.copy(text)
-            self.notify("Copied to clipboard!", timeout=2.0)
+            self.notify("Copied to clipboard! To select text instead, use shift+click.", timeout=2.0)
         else:
             self.notify(
-                "pyperclip failed, see documentation", severity="error", timeout=3.0
+                "pyperclip failed, see documentation. You can still copy using shift+click.", severity="error", timeout=3.0
             )
 
         self.logview.index = None

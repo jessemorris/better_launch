@@ -90,22 +90,23 @@ ROS2 launch has a bad reputation of leaving stale and abandoned processes behind
 
 # What doesn't work yet
 As of now *better_launch* supports the most important use cases, like starting nodes, proper (nicer!) logging, being awesome. However, there are still a couple of features that I have to work on to make it feature complete (roughly sorted by priority):
-- [ ] fully integrate convenience module
+- [ ] make log output selectable
 - [ ] document public API
+- [ ] fully integrate convenience module
 - [ ] exception handling is barebones, so if something fails, everything fails
 - [ ] the TUI is fast, but could maybe be even faster
 - [ ] check how well the TUI handles high-volume logging
 - [ ] check for edge cases
 - [ ] the TUI can miss some log messages and I'm not sure why. If in doubt, check without the TUI!
 - [ ] add launch_this overrides to click CLI handler
+- [ ] allow to add multiple launch functions to one launch file and select one via the CLI - how should we handle click execution then?
 
 
 # Dependencies
 *better_launch* was tested on ROS2 Humble and Jazzy and will be updated for future releases. While earlier versions may work with only slight changes, I am not planning to spend any major effort on these.
 
 There are a few optional dependencies that will make *better_launch* slightly more awesome (it's an asymptotic process :P):
-- *setproctitle*: for setting the process title, otherwise the ROS2 launch service process will have the same name as the launch file process
-- 
+- *wonderwords*: if installed, wonderwords will be used to generate unique suffixes for anonymous nodes. Otherwise UUIDs will be used.
 
 
 # What's so bad about ROS2 launch?
