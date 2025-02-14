@@ -12,7 +12,7 @@ from textual.reactive import reactive
 
 from ros2node.api import get_node_names
 
-from better_launch.better_launch import BetterLaunch
+from better_launch.launcher import BetterLaunch
 import better_launch.ros.logging as roslog
 from better_launch.utils.better_logging import RecordForwarder
 from better_launch.elements import Node, Composer, Component, LifecycleStage

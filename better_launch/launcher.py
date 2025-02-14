@@ -49,7 +49,7 @@ from better_launch.elements import (
 )
 from better_launch.utils.better_logging import default_log_colormap, PrettyLogFormatter
 from better_launch.utils.substitutions import default_substitution_handlers, substitute_tokens
-from better_launch.utils.introspection import find_calling_frame, is_betterlaunch_launchfile
+from better_launch.utils.introspection import find_calling_frame, find_launchthis_function
 from better_launch.ros.ros_adapter import ROSAdapter
 from better_launch.ros import logging as roslog
 from better_launch.ros.logging import LaunchConfig as LogConfig
@@ -193,7 +193,7 @@ def _launch_this_wrapper(
                 type=ptype,
                 default=default,
                 show_default=True,
-                help=param_docstrings.get(param.name, ""),
+                help=param_docstrings.get(param.name, None),
             )
         )
 
@@ -251,7 +251,7 @@ def _launch_this_wrapper(
             # app = BetterUI()
             # app.start(launch_func_wrapper)
 
-            from tui.textual_app import BetterUI
+            from better_launch.tui.textual_app import BetterUI
 
             BetterUI.setup_logging()
             app = BetterUI(launch_func_wrapper)
@@ -1410,17 +1410,19 @@ Takeoff in 3... 2... 1...
         include_args.update(**kwargs)
 
         file_path = self.find(filename=launchfile, package=package)
-        launchfile_code = is_betterlaunch_launchfile(file_path, True)
-
-        if launchfile_code:
+        
+        if find_launchthis_function(file_path):
             try:
+                source = open(file_path).read()
+                code = compile(source, launchfile, "exec")
+
                 # Make sure the included launch file reuses our BetterLaunch instance
                 global_args = dict(globals())
                 global_args[_bl_singleton_instance] = self
                 global_args[_bl_include_args] = include_args
 
                 # Since we're running an entire module locals won't have any effect
-                exec(launchfile_code, global_args)
+                exec(code, global_args)
             except Exception as e:
                 self.logger.error(
                     f"Launch include '{package}/{launchfile}' failed: {e}"

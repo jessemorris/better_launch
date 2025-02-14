@@ -1,4 +1,6 @@
+from types import CodeType
 import os
+import ast
 import inspect
 
 
@@ -29,7 +31,7 @@ def find_function_frame(func):
 
 
 def find_calling_frame(func):
-    """Find the most recent stack frame the specified function is called in that is NOT in the same file as the 
+    """Find the most recent stack frame the specified function is called in that is NOT in the same file as the
     function's frame (e.g. a module importing and calling a function).
 
     Parameters
@@ -110,38 +112,96 @@ def find_decorated_function_args(decorator_func) -> dict:
     raise RuntimeError("Could not determine the decorated function")
 
 
-def is_betterlaunch_launchfile(filepath: str, return_compiled: bool = True) -> bool | object:
-    """Checks whether the provided file is a better_launch launch file.
+def find_launchthis_function(filepath: str) -> ast.FunctionDef:
+    """Parses a source file and searches for a function decorated by :py:meth:`better_launch.launch_this`.
 
     Parameters
     ----------
     filepath : str
         _description_
-    return_compiled : bool, optional
-        _description_, by default True
 
     Returns
     -------
-    bool | object
+    ast.FunctionDef
         _description_
     """
-    if not filepath.lower().endswith(".py"):
-        return False
+    try:
+        with open(filepath, "r", encoding="utf-8") as f:
+            source = f.read()
+
+        tree = ast.parse(source)
+    except:
+        return None
+
+    for node in ast.walk(tree):
+        if not isinstance(node, ast.FunctionDef):
+            continue
+
+        # Check if function is decorated by launch_this
+        for decorator in node.decorator_list:
+            if isinstance(decorator, ast.Call) and decorator.func.id == "launch_this":
+                return node
+
+    return None
+
+
+def get_launchfunc_signature_from_file(filepath: str) -> tuple[str, inspect.Signature, str]:
+    """Searches for a launch function in the specified source file and returns its name, signature and docstring.
+
+    .. seealso::
+
+        :py:meth:`find_launchthis_function`
+
+    Parameters
+    ----------
+    filepath : str
+        _description_
+
+    Returns
+    -------
+    tuple[str, inspect.Signature]
+        _description_
+    """
+    func_node = find_launchthis_function(filepath)
+
+    if not func_node:
+        return None, None, None
+
+    # Extract function signature
+    params = []
+    for arg in func_node.args.args:
+        arg_name = arg.arg
+        annotation = inspect.Parameter.empty
+        if arg.annotation:
+            annotation = ast.unparse(arg.annotation)
+
+        params.append(
+            inspect.Parameter(
+                arg_name,
+                inspect.Parameter.POSITIONAL_OR_KEYWORD,
+                annotation=annotation,
+            )
+        )
+    
+    # Handle *args
+    if func_node.args.vararg:
+        params.append(
+            inspect.Parameter(
+                func_node.args.vararg.arg, inspect.Parameter.VAR_POSITIONAL
+            )
+        )
+
+    # Handle **kwargs
+    if func_node.args.kwarg:
+        params.append(
+            inspect.Parameter(
+                func_node.args.kwarg.arg, inspect.Parameter.VAR_KEYWORD
+            )
+        )
 
     try:
-        with open(filepath) as f:
-            content = f.read()
-            if "better_launch" not in content:
-                return False
+        doc = ast.get_docstring(func_node)
+    except TypeError:
+        doc = None
 
-            code = compile(content, os.path.basename(filepath), "exec")
-
-            if "better_launch" not in code.co_names:
-                return False
-
-            if return_compiled:
-                return code
-
-            return True
-    except:
-        return False
+    return (func_node.name, inspect.Signature(params), doc)
