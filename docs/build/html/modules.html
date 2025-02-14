@@ -11,6 +11,7 @@
       <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
 
   
+    <link rel="shortcut icon" href="_static/logo.svg"/>
       <script src="_static/jquery.js?v=5d32c60e"></script>
       <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
       <script src="_static/documentation_options.js?v=39bb1c6d"></script>
@@ -33,6 +34,7 @@
           
           <a href="index.html" class="icon icon-home">
             better_launch
+              <img src="_static/logo.svg" class="logo" alt="Logo"/>
           </a>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
@@ -104,7 +106,7 @@
 <li class="toctree-l4"><a class="reference internal" href="better_launch.tui.html#module-better_launch.tui.choice_dialog">better_launch.tui.choice_dialog module</a></li>
 <li class="toctree-l4"><a class="reference internal" href="better_launch.tui.html#module-better_launch.tui.log_entry">better_launch.tui.log_entry module</a></li>
 <li class="toctree-l4"><a class="reference internal" href="better_launch.tui.html#module-better_launch.tui.node_menu">better_launch.tui.node_menu module</a></li>
-<li class="toctree-l4"><a class="reference internal" href="better_launch.tui.html#module-better_launch.tui.textual_app">better_launch.tui.textual_app module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="better_launch.tui.html#better-launch-tui-textual-app-module">better_launch.tui.textual_app module</a></li>
 <li class="toctree-l4"><a class="reference internal" href="better_launch.tui.html#module-better_launch.tui">Module contents</a></li>
 </ul>
 </li>
@@ -120,65 +122,40 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="better_launch.html#submodules">Submodules</a></li>
-<li class="toctree-l2"><a class="reference internal" href="better_launch.html#module-better_launch.better_launch">better_launch.better_launch module</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="better_launch.html#better_launch.better_launch.launch_this"><code class="docutils literal notranslate"><span class="pre">launch_this()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="better_launch.html#better_launch.better_launch.BetterLaunch"><code class="docutils literal notranslate"><span class="pre">BetterLaunch</span></code></a><ul>
-<li class="toctree-l4"><a class="reference internal" href="better_launch.html#better_launch.better_launch.BetterLaunch.__init__"><code class="docutils literal notranslate"><span class="pre">__init__()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="better_launch.html#better_launch.better_launch.BetterLaunch.hello"><code class="docutils literal notranslate"><span class="pre">hello()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="better_launch.html#better_launch.better_launch.BetterLaunch.spin"><code class="docutils literal notranslate"><span class="pre">spin()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="better_launch.html#better_launch.better_launch.BetterLaunch.get_unique_name"><code class="docutils literal notranslate"><span class="pre">get_unique_name()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="better_launch.html#better_launch.better_launch.BetterLaunch.all_groups"><code class="docutils literal notranslate"><span class="pre">all_groups()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="better_launch.html#better_launch.better_launch.BetterLaunch.all_nodes"><code class="docutils literal notranslate"><span class="pre">all_nodes()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="better_launch.html#better_launch.better_launch.BetterLaunch.ros_version"><code class="docutils literal notranslate"><span class="pre">ros_version()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="better_launch.html#better_launch.better_launch.BetterLaunch.launchfile"><code class="docutils literal notranslate"><span class="pre">launchfile</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="better_launch.html#better_launch.better_launch.BetterLaunch.launch_args"><code class="docutils literal notranslate"><span class="pre">launch_args</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="better_launch.html#better_launch.better_launch.BetterLaunch.shared_node"><code class="docutils literal notranslate"><span class="pre">shared_node</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="better_launch.html#better_launch.better_launch.BetterLaunch.group_root"><code class="docutils literal notranslate"><span class="pre">group_root</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="better_launch.html#better_launch.better_launch.BetterLaunch.group_tip"><code class="docutils literal notranslate"><span class="pre">group_tip</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="better_launch.html#better_launch.better_launch.BetterLaunch.is_shutdown"><code class="docutils literal notranslate"><span class="pre">is_shutdown</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="better_launch.html#better_launch.better_launch.BetterLaunch.add_shutdown_callback"><code class="docutils literal notranslate"><span class="pre">add_shutdown_callback()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="better_launch.html#better_launch.better_launch.BetterLaunch.shutdown"><code class="docutils literal notranslate"><span class="pre">shutdown()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="better_launch.html#better_launch.better_launch.BetterLaunch.find"><code class="docutils literal notranslate"><span class="pre">find()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="better_launch.html#better_launch.better_launch.BetterLaunch.resolve_string"><code class="docutils literal notranslate"><span class="pre">resolve_string()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="better_launch.html#better_launch.better_launch.BetterLaunch.load_params"><code class="docutils literal notranslate"><span class="pre">load_params()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="better_launch.html#better_launch.better_launch.BetterLaunch.publisher"><code class="docutils literal notranslate"><span class="pre">publisher()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="better_launch.html#better_launch.better_launch.BetterLaunch.subscriber"><code class="docutils literal notranslate"><span class="pre">subscriber()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="better_launch.html#better_launch.better_launch.BetterLaunch.service"><code class="docutils literal notranslate"><span class="pre">service()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="better_launch.html#better_launch.better_launch.BetterLaunch.service_client"><code class="docutils literal notranslate"><span class="pre">service_client()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="better_launch.html#better_launch.better_launch.BetterLaunch.action_server"><code class="docutils literal notranslate"><span class="pre">action_server()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="better_launch.html#better_launch.better_launch.BetterLaunch.action_client"><code class="docutils literal notranslate"><span class="pre">action_client()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="better_launch.html#better_launch.better_launch.BetterLaunch.group"><code class="docutils literal notranslate"><span class="pre">group()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="better_launch.html#better_launch.better_launch.BetterLaunch.node"><code class="docutils literal notranslate"><span class="pre">node()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="better_launch.html#better_launch.better_launch.BetterLaunch.compose"><code class="docutils literal notranslate"><span class="pre">compose()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="better_launch.html#better_launch.better_launch.BetterLaunch.component"><code class="docutils literal notranslate"><span class="pre">component()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="better_launch.html#better_launch.better_launch.BetterLaunch.include"><code class="docutils literal notranslate"><span class="pre">include()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="better_launch.html#better_launch.better_launch.BetterLaunch.ros2_launch_service"><code class="docutils literal notranslate"><span class="pre">ros2_launch_service()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="better_launch.html#better_launch.better_launch.BetterLaunch.ros2_actions"><code class="docutils literal notranslate"><span class="pre">ros2_actions()</span></code></a></li>
-</ul>
-</li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="better_launch.html#better-launch-convenience-module">better_launch.convenience module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="better_launch.html#better-launch-example1-module">better_launch.example1 module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="better_launch.html#better-launch-example2-module">better_launch.example2 module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="better_launch.html#module-better_launch.gazebo">better_launch.gazebo module</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="better_launch.html#better_launch.gazebo.gz_launch_setup"><code class="docutils literal notranslate"><span class="pre">gz_launch_setup()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="better_launch.html#better_launch.gazebo.get_gazebo_prefix"><code class="docutils literal notranslate"><span class="pre">get_gazebo_prefix()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="better_launch.html#better_launch.gazebo.GazeboBridge"><code class="docutils literal notranslate"><span class="pre">GazeboBridge</span></code></a><ul>
-<li class="toctree-l4"><a class="reference internal" href="better_launch.html#better_launch.gazebo.GazeboBridge.logger"><code class="docutils literal notranslate"><span class="pre">logger</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="better_launch.html#better_launch.gazebo.GazeboBridge.gz2ros"><code class="docutils literal notranslate"><span class="pre">gz2ros</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="better_launch.html#better_launch.gazebo.GazeboBridge.ros2gz"><code class="docutils literal notranslate"><span class="pre">ros2gz</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="better_launch.html#better_launch.gazebo.GazeboBridge.bidirectional"><code class="docutils literal notranslate"><span class="pre">bidirectional</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="better_launch.html#better_launch.gazebo.GazeboBridge.generate_msg_map"><code class="docutils literal notranslate"><span class="pre">generate_msg_map()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="better_launch.html#better_launch.gazebo.GazeboBridge.msg_map"><code class="docutils literal notranslate"><span class="pre">msg_map</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="better_launch.html#better_launch.gazebo.GazeboBridge.yaml"><code class="docutils literal notranslate"><span class="pre">yaml()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="better_launch.html#better_launch.gazebo.GazeboBridge.valid"><code class="docutils literal notranslate"><span class="pre">valid()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="better_launch.html#better_launch.gazebo.GazeboBridge.set_world_name"><code class="docutils literal notranslate"><span class="pre">set_world_name()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="better_launch.html#better_launch.gazebo.GazeboBridge.world"><code class="docutils literal notranslate"><span class="pre">world()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="better_launch.html#better_launch.gazebo.GazeboBridge.model_prefix"><code class="docutils literal notranslate"><span class="pre">model_prefix()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="better_launch.html#better_launch.gazebo.GazeboBridge.model_topic"><code class="docutils literal notranslate"><span class="pre">model_topic()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="better_launch.html#better_launch.gazebo.GazeboBridge.clock"><code class="docutils literal notranslate"><span class="pre">clock()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="better_launch.html#better_launch.gazebo.GazeboBridge.joint_states_bridge"><code class="docutils literal notranslate"><span class="pre">joint_states_bridge()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="better_launch.html#module-better_launch.launcher">better_launch.launcher module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="better_launch.html#better_launch.launcher.launch_this"><code class="docutils literal notranslate"><span class="pre">launch_this()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="better_launch.html#better_launch.launcher.BetterLaunch"><code class="docutils literal notranslate"><span class="pre">BetterLaunch</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="better_launch.html#better_launch.launcher.BetterLaunch.__init__"><code class="docutils literal notranslate"><span class="pre">__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="better_launch.html#better_launch.launcher.BetterLaunch.hello"><code class="docutils literal notranslate"><span class="pre">hello()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="better_launch.html#better_launch.launcher.BetterLaunch.spin"><code class="docutils literal notranslate"><span class="pre">spin()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="better_launch.html#better_launch.launcher.BetterLaunch.get_unique_name"><code class="docutils literal notranslate"><span class="pre">get_unique_name()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="better_launch.html#better_launch.launcher.BetterLaunch.all_groups"><code class="docutils literal notranslate"><span class="pre">all_groups()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="better_launch.html#better_launch.launcher.BetterLaunch.all_nodes"><code class="docutils literal notranslate"><span class="pre">all_nodes()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="better_launch.html#better_launch.launcher.BetterLaunch.ros_version"><code class="docutils literal notranslate"><span class="pre">ros_version()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="better_launch.html#better_launch.launcher.BetterLaunch.launchfile"><code class="docutils literal notranslate"><span class="pre">launchfile</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="better_launch.html#better_launch.launcher.BetterLaunch.launch_args"><code class="docutils literal notranslate"><span class="pre">launch_args</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="better_launch.html#better_launch.launcher.BetterLaunch.shared_node"><code class="docutils literal notranslate"><span class="pre">shared_node</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="better_launch.html#better_launch.launcher.BetterLaunch.group_root"><code class="docutils literal notranslate"><span class="pre">group_root</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="better_launch.html#better_launch.launcher.BetterLaunch.group_tip"><code class="docutils literal notranslate"><span class="pre">group_tip</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="better_launch.html#better_launch.launcher.BetterLaunch.is_shutdown"><code class="docutils literal notranslate"><span class="pre">is_shutdown</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="better_launch.html#better_launch.launcher.BetterLaunch.add_shutdown_callback"><code class="docutils literal notranslate"><span class="pre">add_shutdown_callback()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="better_launch.html#better_launch.launcher.BetterLaunch.shutdown"><code class="docutils literal notranslate"><span class="pre">shutdown()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="better_launch.html#better_launch.launcher.BetterLaunch.find"><code class="docutils literal notranslate"><span class="pre">find()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="better_launch.html#better_launch.launcher.BetterLaunch.resolve_string"><code class="docutils literal notranslate"><span class="pre">resolve_string()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="better_launch.html#better_launch.launcher.BetterLaunch.load_params"><code class="docutils literal notranslate"><span class="pre">load_params()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="better_launch.html#better_launch.launcher.BetterLaunch.publisher"><code class="docutils literal notranslate"><span class="pre">publisher()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="better_launch.html#better_launch.launcher.BetterLaunch.subscriber"><code class="docutils literal notranslate"><span class="pre">subscriber()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="better_launch.html#better_launch.launcher.BetterLaunch.service"><code class="docutils literal notranslate"><span class="pre">service()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="better_launch.html#better_launch.launcher.BetterLaunch.service_client"><code class="docutils literal notranslate"><span class="pre">service_client()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="better_launch.html#better_launch.launcher.BetterLaunch.action_server"><code class="docutils literal notranslate"><span class="pre">action_server()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="better_launch.html#better_launch.launcher.BetterLaunch.action_client"><code class="docutils literal notranslate"><span class="pre">action_client()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="better_launch.html#better_launch.launcher.BetterLaunch.group"><code class="docutils literal notranslate"><span class="pre">group()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="better_launch.html#better_launch.launcher.BetterLaunch.node"><code class="docutils literal notranslate"><span class="pre">node()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="better_launch.html#better_launch.launcher.BetterLaunch.compose"><code class="docutils literal notranslate"><span class="pre">compose()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="better_launch.html#better_launch.launcher.BetterLaunch.component"><code class="docutils literal notranslate"><span class="pre">component()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="better_launch.html#better_launch.launcher.BetterLaunch.include"><code class="docutils literal notranslate"><span class="pre">include()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="better_launch.html#better_launch.launcher.BetterLaunch.ros2_launch_service"><code class="docutils literal notranslate"><span class="pre">ros2_launch_service()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="better_launch.html#better_launch.launcher.BetterLaunch.ros2_actions"><code class="docutils literal notranslate"><span class="pre">ros2_actions()</span></code></a></li>
 </ul>
 </li>
 </ul>

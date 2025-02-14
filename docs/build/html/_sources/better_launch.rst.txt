@@ -15,42 +15,10 @@ Subpackages
 Submodules
 ----------
 
-better\_launch.better\_launch module
-------------------------------------
-
-.. automodule:: better_launch.better_launch
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-better\_launch.convenience module
----------------------------------
-
-.. automodule:: better_launch.convenience
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-better\_launch.example1 module
+better\_launch.launcher module
 ------------------------------
 
-.. automodule:: better_launch.example1
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-better\_launch.example2 module
-------------------------------
-
-.. automodule:: better_launch.example2
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-better\_launch.gazebo module
-----------------------------
-
-.. automodule:: better_launch.gazebo
+.. automodule:: better_launch.launcher
    :members:
    :undoc-members:
    :show-inheritance:

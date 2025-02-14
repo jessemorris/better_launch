@@ -48,3 +48,5 @@ myst_enable_extensions = ["colon_fence", "deflist", "linkify"]
 
 html_theme = 'sphinx_rtd_theme'
 html_static_path = ['_static']
+html_logo = '../../media/logo.svg'
+html_favicon = '../../media/logo.svg'
