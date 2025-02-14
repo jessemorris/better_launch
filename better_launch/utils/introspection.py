@@ -1,3 +1,4 @@
+import os
 import inspect
 
 
@@ -107,3 +108,40 @@ def find_decorated_function_args(decorator_func) -> dict:
             return get_bound_arguments(val)
 
     raise RuntimeError("Could not determine the decorated function")
+
+
+def is_betterlaunch_launchfile(filepath: str, return_compiled: bool = True) -> bool | object:
+    """Checks whether the provided file is a better_launch launch file.
+
+    Parameters
+    ----------
+    filepath : str
+        _description_
+    return_compiled : bool, optional
+        _description_, by default True
+
+    Returns
+    -------
+    bool | object
+        _description_
+    """
+    if not filepath.lower().endswith(".py"):
+        return False
+
+    try:
+        with open(filepath) as f:
+            content = f.read()
+            if "better_launch" not in content:
+                return False
+
+            code = compile(content, os.path.basename(filepath), "exec")
+
+            if "better_launch" not in code.co_names:
+                return False
+
+            if return_compiled:
+                return code
+
+            return True
+    except:
+        return False

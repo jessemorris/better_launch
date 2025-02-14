@@ -49,7 +49,7 @@ from better_launch.elements import (
 )
 from better_launch.utils.better_logging import default_log_colormap, PrettyLogFormatter
 from better_launch.utils.substitutions import default_substitution_handlers, substitute_tokens
-from better_launch.utils.introspection import find_calling_frame
+from better_launch.utils.introspection import find_calling_frame, is_betterlaunch_launchfile
 from better_launch.ros.ros_adapter import ROSAdapter
 from better_launch.ros import logging as roslog
 from better_launch.ros.logging import LaunchConfig as LogConfig
@@ -1410,33 +1410,26 @@ Takeoff in 3... 2... 1...
         include_args.update(**kwargs)
 
         file_path = self.find(filename=launchfile, package=package)
-        if launchfile.endswith(".py"):
-            with open(file_path) as f:
-                content = f.read()
-                if "better_launch" in content:
-                    # Assume launch file uses better_launch, too
-                    try:
-                        # Prepare the source code for execution
-                        code = compile(content, launchfile, "exec")
+        launchfile_code = is_betterlaunch_launchfile(file_path, True)
 
-                        # Make sure the included launch file reuses our BetterLaunch instance
-                        global_args = dict(globals())
-                        global_args[_bl_singleton_instance] = self
-                        global_args[_bl_include_args] = include_args
+        if launchfile_code:
+            try:
+                # Make sure the included launch file reuses our BetterLaunch instance
+                global_args = dict(globals())
+                global_args[_bl_singleton_instance] = self
+                global_args[_bl_include_args] = include_args
 
-                        # Since we're running an entire module locals won't have any effect
-                        exec(code, global_args)
-                        # TODO we could capture everything the included launch file did and return it
-                        return
-                    except Exception as e:
-                        self.logger.error(
-                            f"Launch include '{package}/{launchfile}' failed: {e}"
-                        )
-                        raise
-
-        # TODO could be stricter about verification here
-        # Was not a better_launch launch file, assume it's a ROS2 launch file (py, xml, yaml)
-        self._include_ros2_launchfile(file_path, **include_args)
+                # Since we're running an entire module locals won't have any effect
+                exec(launchfile_code, global_args)
+            except Exception as e:
+                self.logger.error(
+                    f"Launch include '{package}/{launchfile}' failed: {e}"
+                )
+                raise
+        else:
+            # TODO could be stricter about verification here
+            # Was not a better_launch launch file, assume it's a ROS2 launch file (py, xml, yaml)
+            self._include_ros2_launchfile(file_path, **include_args)
 
     def _include_ros2_launchfile(self, file_path, **kwargs) -> None:
         # Delegate to ros2 launch service
