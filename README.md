@@ -65,7 +65,11 @@ See the [documentation](docs/build/html/index.html) (or [source code](better_lau
 
 
 # What are the differences?
-Because *better_launch* does not use the ROS2 launch system, some aspects work differently from what you may be used to. 
+Because *better_launch* does not use the ROS2 launch system, some aspects work differently from what you may be used to.
+
+
+## Launching launch files
+While you indeed *can* launch *better_launch* launch files via `ros2 launch`, this comes with the caveat that you now run one launch system from another. The best option right now is to run your launch files directly (e.g. by making them executable and creating symlinks). I will provide a script in the near future that can be used similarly to `ros2 launch`.
 
 
 ## Action immediacy
