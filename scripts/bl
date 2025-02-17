@@ -119,7 +119,7 @@ class BetterLaunchFile(LaunchFile):
         launchfile = os.path.basename(filepath)
         super().__init__(package, launchfile, filepath, params, doc)
 
-    def run(self, ctx: click.Context, **kwargs):
+    def run(self, ctx: click.Context, **kwargs) -> None:
         print(
             f">> Delegating to better_launch: {self.package}/{self.launchfile}, args={kwargs}",
             flush=True,
@@ -136,7 +136,7 @@ class BetterLaunchFile(LaunchFile):
 class Ros2LaunchFile(LaunchFile):
     @classmethod
     def _option_from_ros2_kwargs(cls, kwargs: dict[str, Any]) -> click.Option:
-        def eval_arg(arg):
+        def eval_arg(arg: Any) -> Any:
             try:
                 return ast.literal_eval(arg)
             except:
@@ -149,9 +149,7 @@ class Ros2LaunchFile(LaunchFile):
 
         if default:
             # Yes ROS2, I also think that simple things are boring and uninspiring...
-            default = parameter_value_to_python(
-                get_parameter_value(default)
-            )
+            default = parameter_value_to_python(get_parameter_value(default))
 
         if choices:
             ptype = click.Choice(choices)
@@ -196,7 +194,7 @@ class Ros2LaunchFile(LaunchFile):
                 call_name = getattr(node.func, "id", getattr(node.func, "attr", None))
                 if call_name == "DeclareLaunchArgument":
                     kwargs = {key.arg: key.value for key in node.keywords if key}
-                    
+
                     if node.args:
                         # Passed as a positional argument
                         kwargs["name"] = node.args[0]
@@ -226,7 +224,7 @@ class Ros2LaunchFile(LaunchFile):
             raise ValueError("Not an xml launch file")
 
         args = [arg.attrib for arg in root.findall("arg")]
-        
+
         options = []
         doc = ""  # Not clear how to get a comment above the root element
 
@@ -242,7 +240,7 @@ class Ros2LaunchFile(LaunchFile):
     ) -> tuple[list[click.Option], str]:
         if not filepath.lower().endswith((".yml", ".yaml")):
             raise ValueError("Not a yaml file")
-        
+
         with open(filepath) as f:
             content = yaml.safe_load(f)
 
@@ -279,7 +277,7 @@ class Ros2LaunchFile(LaunchFile):
 
         super().__init__(package, launchfile, filepath, params, doc)
 
-    def run(self, ctx: click.Context, **kwargs):
+    def run(self, ctx: click.Context, **kwargs) -> None:
         print(
             f">> Delegating to ROS2 launch: {self.package}/{self.launchfile}, args={kwargs}",
             flush=True,
@@ -303,7 +301,7 @@ class ExecutableLaunchFile(LaunchFile):
         doc = None
         super().__init__(package, launchfile, filepath, params, doc)
 
-    def run(self, ctx: click.Context, **kwargs):
+    def run(self, ctx: click.Context, **kwargs) -> None:
         print(
             f">> Directly executing launch file: {self.package}/{self.launchfile}, args={kwargs}",
             flush=True,
@@ -415,7 +413,9 @@ In contrast to ROS2 launch, it also generates useful shell completion suggestion
             **kwargs,
         )
 
-    def print_version(self, ctx: click.Context, param: click.Parameter, value):
+    def print_version(
+        self, ctx: click.Context, param: click.Parameter, value: Any
+    ) -> None:
         if not value or ctx.resilient_parsing:
             return
 
@@ -430,7 +430,9 @@ In contrast to ROS2 launch, it also generates useful shell completion suggestion
         # return a the command that will handle selecting launch files from the package
         return LaunchfileSelectionCLI(name)
 
-    def format_commands(self, ctx, formatter):
+    def format_commands(
+        self, ctx: click.Context, formatter: click.HelpFormatter
+    ) -> None:
         # Prevent listing all packages when calling without args
         pass
 
