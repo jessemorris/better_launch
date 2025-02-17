@@ -29,6 +29,10 @@ def test(enable_x: bool):
         bl.include("my_other_launchfile.py", "my_other_package")
 ```
 
+```bash
+    bl my_package my_launch_file.py --enable_x True
+```
+
 Do I have your attention? Read on to learn more!
 
 
@@ -59,6 +63,8 @@ Everything you would expect and a little more! The `BetterLaunch` instance allow
 - manage your node using a nice *terminal UI* reminiscent of [rosmon](https://github.com/xqms/rosmon)
 - serve the terminal *UI as an interactive web page* courtesy of [textual](https://textual.textualize.io/) - how crazy is that?!
 
+*better_launch* also comes with a launch script called `bl` for starting both *better_launch* and ROS2 launch files. In addition to avoiding some of the ROS2 overhead, it provides sensible shell completions for packages, launch files and even launch arguments.
+
 See the [documentation](docs/build/html/index.html) (or [source code](better_launch/better_launch.py)) for details.
 
 > In the future, there will also be a `convenience` module that will help with e.g. setting up *Gazebo* environments.
@@ -69,7 +75,7 @@ Because *better_launch* does not use the ROS2 launch system, some aspects work d
 
 
 ## Launching launch files
-While you indeed *can* launch *better_launch* launch files via `ros2 launch`, this comes with the caveat that you now run one launch system from another. The best option right now is to run your launch files directly (e.g. by making them executable and creating symlinks). I will provide a script in the near future that can be used similarly to `ros2 launch`.
+While you indeed *can* launch *better_launch* launch files via `ros2 launch`, this comes with the caveat that you now run one launch system from another. In the worst case, you have ros2launch -> better_launch -> ros2launch. However, *better_launch* comes with its own launch script called `bl`, which not only avoids the first launch system layer, but also provides help texts and shell completions for your launch files and their arguments. It is automatically installed and should be on your path as soon as you source your workspace!
 
 
 ## Action immediacy
@@ -116,7 +122,7 @@ As of now *better_launch* supports the most important use cases, like starting n
 - [ ] the TUI is fast, but could maybe be even faster
 - [ ] check how well the TUI handles high-volume logging
 - [ ] check for edge cases
-- [ ] the TUI can miss some log messages and I'm not sure why. If in doubt, check without the TUI!
+- [ ] the TUI can miss some exception logs when internal stuff breaks and I'm not sure why. Without the TUI this is not an issue.
 - [ ] allow to add multiple launch functions to one launch file and select one via the CLI - how should we handle click execution then?
 
 
