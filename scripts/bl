@@ -10,9 +10,12 @@ bl <package> <launchfile> <--launch-args>
 - A dash ("-") followed by autocomplete after <launchfile> should list launch args for better_launch launch files and declared args for ROS2 launch files.
 """
 
+from typing import Any
 import sys
 import os
 import ast
+import yaml
+from xml.etree import ElementTree
 import click
 from docstring_parser import parse as parse_docstring
 
@@ -132,6 +135,37 @@ class BetterLaunchFile(LaunchFile):
 
 class Ros2LaunchFile(LaunchFile):
     @classmethod
+    def _option_from_ros2_kwargs(cls, kwargs: dict[str, Any]) -> click.Option:
+        def eval_arg(arg):
+            try:
+                return ast.literal_eval(arg)
+            except:
+                return None
+
+        name = eval_arg(kwargs.get("name", None))
+        description = eval_arg(kwargs.get("description", None))
+        default = eval_arg(kwargs.get("default_value", None))
+        choices = eval_arg(kwargs.get("choices", None))
+
+        if default:
+            # Yes ROS2, I also think that simple things are boring and uninspiring...
+            default = parameter_value_to_python(
+                get_parameter_value(default)
+            )
+
+        if choices:
+            ptype = click.Choice(choices)
+        else:
+            ptype = type(default) if default is not None else None
+
+        return click.Option(
+            [f"--{name}"],
+            type=ptype,
+            help=description,
+            default=default,
+        )
+
+    @classmethod
     def _get_launch_params_and_doc_ros2(
         cls, filepath: str
     ) -> tuple[list[click.Option], str]:
@@ -150,12 +184,6 @@ class Ros2LaunchFile(LaunchFile):
         doc = None
         options = []
 
-        def eval_arg(arg):
-            try:
-                return ast.literal_eval(arg)
-            except:
-                return None
-
         for node in ast.walk(tree):
             if (
                 isinstance(node, ast.FunctionDef)
@@ -168,34 +196,16 @@ class Ros2LaunchFile(LaunchFile):
                 call_name = getattr(node.func, "id", getattr(node.func, "attr", None))
                 if call_name == "DeclareLaunchArgument":
                     kwargs = {key.arg: key.value for key in node.keywords if key}
+                    
                     if node.args:
-                        name = eval_arg(node.args[0])
-                    else:
-                        name = eval_arg(kwargs.get("name", None))
+                        # Passed as a positional argument
+                        kwargs["name"] = node.args[0]
 
-                    opt_doc = eval_arg(kwargs.get("description", None))
-                    default = eval_arg(kwargs.get("default_value", None))
-                    choices = eval_arg(kwargs.get("choices", None))
+                    # XML and YAML are very consistent here, but DeclareLaunchArgument is... not
+                    kwargs["default"] = kwargs.get("default_value", None)
 
-                    if default:
-                        # Yes ROS2, I also think that simple things are boring and uninspiring...
-                        default = parameter_value_to_python(
-                            get_parameter_value(default)
-                        )
-
-                    if choices:
-                        ptype = click.Choice(choices)
-                    else:
-                        ptype = type(default) if default is not None else None
-
-                    options.append(
-                        click.Option(
-                            [f"--{name}"],
-                            type=ptype,
-                            help=opt_doc,
-                            default=default,
-                        )
-                    )
+                    option = cls._option_from_ros2_kwargs(kwargs)
+                    options.append(option)
 
         if not has_launch_func:
             raise ValueError("Not a ROS2 launch file")
@@ -206,15 +216,50 @@ class Ros2LaunchFile(LaunchFile):
     def _get_launch_params_and_doc_xml(
         cls, filepath: str
     ) -> tuple[list[click.Option], str]:
-        # Not implemented yet"
-        return [], None
+        if not filepath.lower().endswith(".xml"):
+            raise ValueError("Not a python file")
+
+        tree = ElementTree.parse(filepath)
+        root = tree.getroot()
+
+        if root.tag != "launch":
+            raise ValueError("Not an xml launch file")
+
+        args = [arg.attrib for arg in root.findall("arg")]
+        
+        options = []
+        doc = ""  # Not clear how to get a comment above the root element
+
+        for kwargs in args:
+            option = cls._option_from_ros2_kwargs(kwargs)
+            options.append(option)
+
+        return options, doc
 
     @classmethod
     def _get_launch_params_and_doc_yaml(
         cls, filepath: str
     ) -> tuple[list[click.Option], str]:
-        # Not implemented yet
-        return [], None
+        if not filepath.lower().endswith((".yml", ".yaml")):
+            raise ValueError("Not a yaml file")
+        
+        with open(filepath) as f:
+            content = yaml.safe_load(f)
+
+        if "launch" not in content:
+            raise ValueError("Not a yaml launch file")
+
+        definitions: list[dict] = content["launch"]
+        options = []
+        doc = ""  # PyYAML does not preserve comments
+
+        for item in definitions:
+            if "arg" in item:
+                # YAML might only support name and default, but who knows!
+                option = cls._option_from_ros2_kwargs(item["arg"])
+                options.append(option)
+
+        return options, doc
 
     def __init__(self, package: str, filepath: str):
         launchfile = os.path.basename(filepath)
