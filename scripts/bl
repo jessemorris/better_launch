@@ -36,6 +36,7 @@ except:
     from rclpy import get_parameter_value, parameter_value_to_python
 
 
+from better_launch import __version__
 from better_launch.utils.introspection import get_launchfunc_signature_from_file
 
 
@@ -279,6 +280,7 @@ class LaunchfileSelectionCLI(click.MultiCommand):
 
     def list_commands(self, ctx: click.Context) -> list[str]:
         executables = self._get_executables()
+        executables.sort()
         return list(map(os.path.basename, executables))
 
     def get_command(self, ctx: click.Context, name: str) -> click.Command:
@@ -336,20 +338,56 @@ class LaunchfileSelectionCLI(click.MultiCommand):
                     ):
                         if filename == "package.xml":
                             continue
-                        
+
                         executables.append(path)
 
         return executables
 
 
 class PackageSelectionCLI(click.MultiCommand):
+    def __init__(self, **kwargs):
+        options = [
+            click.Option(
+                ["-v", "--version"],
+                is_flag=True,
+                callback=self.print_version,
+                expose_value=False,
+                is_eager=True,
+            )
+        ]
+
+        super().__init__(
+            params=options,
+            subcommand_metavar="<package> <launchfile> [args]",
+            help="""\
+The better_launch launcher.
+
+This script allows you to run both better_launch and ROS2 launch files. While using ROS2 launch should work, it would mean having an additional launch system instance running (worst case: ros2launch -> better_launch -> ros2_launch). 
+
+In contrast to ROS2 launch, it also generates useful shell completion suggestions for packages, launch files and arguments. Launch args declared in your launch files are also recognized and will be completed (you need to type at least one dash though).
+""",
+            epilog="Bugs, ideas, feedback, questions? Find me at https://github.com/ndahn",
+            **kwargs,
+        )
+
+    def print_version(self, ctx: click.Context, param: click.Parameter, value):
+        if not value or ctx.resilient_parsing:
+            return
+
+        click.echo(__version__)
+        ctx.exit()
+
     def list_commands(self, ctx: click.Context) -> list[str]:
         # list ROS2 packages
-        return list(get_packages_with_prefixes().keys())
+        return sorted(get_packages_with_prefixes().keys())
 
     def get_command(self, ctx: click.Context, name: str) -> click.Command:
         # return a the command that will handle selecting launch files from the package
         return LaunchfileSelectionCLI(name)
+
+    def format_commands(self, ctx, formatter):
+        # Prevent listing all packages when calling without args
+        pass
 
 
 if __name__ == "__main__":
