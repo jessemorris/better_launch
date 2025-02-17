@@ -63,8 +63,6 @@ Everything you would expect and a little more! The `BetterLaunch` instance allow
 - manage your node using a nice *terminal UI* reminiscent of [rosmon](https://github.com/xqms/rosmon)
 - serve the terminal *UI as an interactive web page* courtesy of [textual](https://textual.textualize.io/) - how crazy is that?!
 
-*better_launch* also comes with a launch script called `bl` for starting both *better_launch* and ROS2 launch files. In addition to avoiding some of the ROS2 overhead, it provides sensible shell completions for packages, launch files and even launch arguments.
-
 See the [documentation](docs/build/html/index.html) (or [source code](better_launch/better_launch.py)) for details.
 
 > In the future, there will also be a `convenience` module that will help with e.g. setting up *Gazebo* environments.

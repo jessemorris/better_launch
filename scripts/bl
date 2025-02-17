@@ -3,11 +3,13 @@
 """
 This script should be used as follows:
 
-bl <package> <launchfile> <--launch-args>
+bl <package> <launchfile> <launch-args>
 
 - Autocomplete after bl will list available ROS2 packages.
 - Automcplate after <package> will list launch files (.py, .xml, .yaml, .yml) and executable files in the package.
 - A dash ("-") followed by autocomplete after <launchfile> should list launch args for better_launch launch files and declared args for ROS2 launch files.
+
+See --help and readme for further details.
 """
 
 from typing import Any
