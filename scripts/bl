@@ -334,6 +334,9 @@ class LaunchfileSelectionCLI(click.MultiCommand):
                         filename.endswith((".py", ".xml", ".yaml", ".yml"))
                         or ".launch." in filename
                     ):
+                        if filename == "package.xml":
+                            continue
+                        
                         executables.append(path)
 
         return executables
