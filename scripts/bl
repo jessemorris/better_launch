@@ -205,13 +205,15 @@ class Ros2LaunchFile(LaunchFile):
     def _get_launch_params_and_doc_xml(
         cls, filepath: str
     ) -> tuple[list[click.Option], str]:
-        raise ValueError("Not implemented yet")
+        # Not implemented yet"
+        return [], None
 
     @classmethod
     def _get_launch_params_and_doc_yaml(
         cls, filepath: str
     ) -> tuple[list[click.Option], str]:
-        raise ValueError("Not implemented yet")
+        # Not implemented yet
+        return [], None
 
     def __init__(self, package: str, filepath: str):
         launchfile = os.path.basename(filepath)
