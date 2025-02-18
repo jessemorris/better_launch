@@ -1,5 +1,6 @@
 from typing import Any
 import signal
+import time
 import json
 
 import better_launch.ros.logging as roslog
@@ -90,25 +91,6 @@ class AbstractNode:
     def is_running(self) -> bool:
         raise NotImplementedError
 
-    @property
-    def is_ros2_connected(self) -> bool:
-        from better_launch import BetterLaunch
-
-        bl = BetterLaunch.instance()
-        if not bl:
-            return None
-
-        # Check if the node shows up in the list of running ROS nodes
-        try:
-            living_nodes = [
-                ns + ('' if ns.endswith('/') else '/') + name
-                for name, ns in bl.shared_node.get_node_names_and_namespaces()
-            ]
-            return self.fullname in living_nodes
-        except:
-            # Cannot check if the shared node was shut down
-            return None
-
     def _ros_args(self) -> dict[str, str]:
         ros_args = dict(self.remaps)
 
@@ -141,21 +123,38 @@ class AbstractNode:
         delve(self.params, "")
         return ret
 
-    def start(self, lifecycle_target: LifecycleStage = LifecycleStage.ACTIVE) -> None:
-        if self.is_running:
-            return
-        
-        self._do_start()
-
-        # TODO wait for node to come up fully
-        if self.is_lifecycle_node:
-            self._lifecycle_manager.transition(lifecycle_target)
-
-    def _do_start(self) -> None:
+    def start(self) -> None:
         raise NotImplementedError
 
     def shutdown(self, reason: str, signum: int = signal.SIGTERM) -> None:
         raise NotImplementedError
+
+    def check_ros2_connected(self, timeout: float = None) -> bool:
+        from better_launch import BetterLaunch
+
+        bl = BetterLaunch.instance()
+        if not bl:
+            return None
+
+        # Check if the node shows up in the list of running ROS nodes
+        try:
+            now = time.time()
+            while True:
+                living_nodes = [
+                    ns + ('' if ns.endswith('/') else '/') + name
+                    for name, ns in bl.shared_node.get_node_names_and_namespaces()
+                ]
+
+                if self.fullname in living_nodes:
+                    return True
+
+                if timeout is None or (timeout > 0 and time.time() >= now + timeout):
+                    return False
+
+                time.sleep(0.1)
+        except:
+            # Cannot check if the shared node was shut down
+            return None
 
     @property
     def is_lifecycle_node(self) -> bool:
@@ -202,7 +201,7 @@ class AbstractNode:
 """
 
     def _get_info_section_ros(self) -> str:
-        if self.is_ros2_connected:
+        if self.check_ros2_connected:
             from better_launch import BetterLaunch
 
             shared_node = BetterLaunch.instance().shared_node

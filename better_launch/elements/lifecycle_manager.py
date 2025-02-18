@@ -52,7 +52,7 @@ class LifecycleManager:
     def is_lifecycle(cls, node: AbstractNode) -> bool:
         # Whether a node supports lifecycle management can only be seen once the process has
         # started by checking the services it provides.
-        if not node.is_ros2_connected:
+        if not node.is_ros2_connected():
             return None
 
         from better_launch import BetterLaunch

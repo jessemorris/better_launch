@@ -1071,7 +1071,7 @@ Takeoff in 3... 2... 1...
         name: str = None,
         *,
         remaps: dict[str, str] = None,
-        node_args: str | dict[str, Any] = None,
+        params: str | dict[str, Any] = None,
         cmd_args: list[str] = None,
         env: dict[str, str] = None,
         isolate_env: bool = False,
@@ -1087,13 +1087,14 @@ Takeoff in 3... 2... 1...
         respawn_delay: float = 0.0,
         use_shell: bool = False,
         autostart_process: bool = True,
+        init_waittime: float = 5.0,
         lifecycle_target: LifecycleStage = LifecycleStage.ACTIVE,
     ) -> Node:
         """Create a new ROS2 node process. The bread and butter of every ROS setup!
 
         Note that this method also handles lifecycle nodes (they REALLY should have a common interface). Note that especially for lifecycle nodes you probably want `autostart_process == True`, otherwise there lifecycle management will not exist. With `autostart_process == True`, a lifecycle node will automatically advance to `lifecycle_target` once it is up. Otherwise you can also call :py:meth:`Node.start` later.
 
-        The `ROS2 documentation <https://docs.ros.org/en/rolling/How-To-Guides/Node-arguments.html>`_ can provide some additional information regarding `node_args`, `remaps`, and so on.
+        The `ROS2 documentation <https://docs.ros.org/en/rolling/How-To-Guides/Node-arguments.html>`_ can provide some additional information regarding `params`, `remaps`, and so on.
 
         Parameters
         ----------
@@ -1105,7 +1106,7 @@ Takeoff in 3... 2... 1...
             The name you want the node to be known as.
         remaps : dict[str, str], optional
             Tells the node to replace any topics it wants to interact with according to the provided dict.
-        node_args : str | dict[str, Any], optional
+        params : str | dict[str, Any], optional
             Any arguments you want to provide to the node. These are the args you would typically have to declare in your launch file.
         cmd_args : list[str], optional
             Additional command line arguments to pass to the node.
@@ -1133,6 +1134,8 @@ Takeoff in 3... 2... 1...
             If True, invoke the node executable via the system shell. Use only if you know you need it.
         autostart_process : bool, optional
             If True, start the node process before returning from this function.
+        init_waittime : float, optional
+            If autostart_process is True, wait for this amount of time for the node to come up. If it came up and is a lifecylce node, its lifecycle target will be applied. Set to -1 to wait indefinitely.
         lifecycle_target : LifecycleStage, optional
             The lifecycle stage to bring the node into after starting. Has no effect if `autostart_process == False` or the node turns out not to be a lifecycle node.
 
@@ -1169,7 +1172,7 @@ Takeoff in 3... 2... 1...
             name,
             namespace,
             remaps=remaps,
-            node_args=node_args,
+            params=params,
             cmd_args=cmd_args,
             env=env,
             isolate_env=isolate_env,
@@ -1184,7 +1187,11 @@ Takeoff in 3... 2... 1...
 
         g.add_node(node)
         if autostart_process:
-            node.start(lifecycle_target)
+            node.start()
+            
+            if node.check_ros2_connected(init_waittime) and node.is_lifecycle_node:
+                node.lifecycle.transition(lifecycle_target)
+
         return node
 
     @contextmanager
@@ -1212,6 +1219,7 @@ Takeoff in 3... 2... 1...
         respawn_delay: float = 0.0,
         use_shell: bool = False,
         autostart_process: bool = True,
+        init_waittime: float = 5.0,
     ) -> Generator[Composer, None, None]:
         """Creates a composer node which can be used to load composable components.
 
@@ -1263,7 +1271,9 @@ Takeoff in 3... 2... 1...
             If True, invoke the node executable via the system shell. Use only if you know you need it.
         autostart_process : bool, optional
             If True, start the node process before returning from this function. Note that setting this to False for a composer will make it unusable as a context object, since you won't be able to load any components.
-
+        init_waittime : float, optional
+            If autostart_process is True, wait for this long for the composer to come up.
+        
         Yields
         ------
         Generator[Composer, None, None]
@@ -1313,8 +1323,11 @@ Takeoff in 3... 2... 1...
 
         try:
             g.add_node(comp)
+
             if autostart_process:
                 comp.start()
+                comp.check_ros2_connected(init_waittime)
+            
             self._composition_node = comp
             yield comp
         finally:
@@ -1329,6 +1342,7 @@ Takeoff in 3... 2... 1...
         remaps: dict[str, str] = None,
         component_args: str | dict[str, Any] = None,
         use_intra_process_comms: bool = True,
+        init_waittime: float = 5.0,
         lifecycle_target: LifecycleStage = LifecycleStage.ACTIVE,
         **extra_composer_args: dict[str, Any],
     ) -> Component:
@@ -1350,6 +1364,8 @@ Takeoff in 3... 2... 1...
             Node arguments you want to pass to the component. See :py:meth:`node` for details.
         use_intra_process_comms : bool, optional
             If True, ask the composer node to enable intra-process communication, i.e. share memory between components when passing messages instead of serializing and deserializing.
+        init_waittime : bool, optional
+            Wait for this long for the component to fully initialize. If it came up and is a lifecycle component, its lifecycle target will also be applied.
         lifecycle_target : LifecycleStage, optional
             The lifecycle stage to bring the componment into after starting. Has no effect if the component turns out not to be a lifecycle component.
 
@@ -1374,11 +1390,15 @@ Takeoff in 3... 2... 1...
             remaps=remaps,
             node_args=component_args,
         )
+
+        # Equivalent to self._composition_node.load_component(comp)
         comp.start(
-            lifecycle_target,
             use_intra_process_comms=use_intra_process_comms,
             **extra_composer_args,
         )
+
+        if comp.check_ros2_connected(init_waittime) and comp.is_lifecycle_node:
+            comp.lifecycle.transition(lifecycle_target)
 
         return comp
 

@@ -144,8 +144,7 @@ class Ros2LaunchWrapper(AbstractNode):
             # For some reason we can't call is_alive when the process was closed
             return False
 
-    @property
-    def is_ros2_connected(self) -> bool:
+    def check_ros2_connected(self, timeout: float = None) -> bool:
         return self.is_running
 
     @property
@@ -159,7 +158,11 @@ class Ros2LaunchWrapper(AbstractNode):
         self._launch_action_queue.put(ld)
         self._loaded_launch_descriptions.append(ld)
 
-    def _do_start(self) -> None:
+    def start(self) -> None:
+        if self.is_running:
+            self.logger.warning(f"LaunchService {self.name} is alrady running")
+            return
+
         logout, logerr = roslog.get_output_loggers(self.name, self.output_config)
 
         # Note that passing loggers will not work for the TUI, as they would have to communicate

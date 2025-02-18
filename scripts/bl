@@ -103,6 +103,9 @@ class BetterLaunchFile(LaunchFile):
             ptype = None
             if default is None and param.annotation is not param.empty:
                 ptype = param.annotation
+                if isinstance(ptype, str):
+                    # If it's a primitive type we can parse it, otherwise ignore it
+                    ptype = getattr(__builtins__, ptype, None)
 
             options.append(
                 click.Option(
@@ -129,7 +132,9 @@ class BetterLaunchFile(LaunchFile):
 
         # First argument becomes argv[0], so should be the program name
         args = ["python3", self.filepath]
-        args.extend([f"--{key} {arg}" for key, arg in kwargs.items()])
+        for key, arg in kwargs.items():
+            if arg is not None:
+                args.extend([f"--{key}", arg])
 
         # This does NOT return and will replace our executable with the new executable in the same process
         os.execvp("python3", args)

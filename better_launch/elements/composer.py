@@ -44,11 +44,10 @@ class Component(AbstractNode):
         if not self.is_loaded:
             return False
 
-        return self.is_ros2_connected
+        return self.check_ros2_connected()
 
     def start(
         self,
-        lifecycle_target: LifecycleStage = LifecycleStage.ACTIVE,
         use_intra_process_comms: bool = True,
         **composer_extra_args,
     ):
@@ -57,9 +56,6 @@ class Component(AbstractNode):
             use_intra_process_comms=use_intra_process_comms,
             **composer_extra_args
         )
-
-        if self.is_lifecycle_node:
-            self.lifecycle.transition(lifecycle_target)
 
     def shutdown(self, reason: str, signum: int = signal.SIGTERM):
         self.logger.warning(f"Unloading component {self.name}: {reason}")

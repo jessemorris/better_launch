@@ -85,7 +85,7 @@ class Node(AbstractNode):
             and not self.completed_future.done()
         )
 
-    def _do_start(self) -> None:
+    def start(self) -> None:
         from better_launch import BetterLaunch
 
         launcher = BetterLaunch.instance()
@@ -96,7 +96,6 @@ class Node(AbstractNode):
             return
 
         if self.is_running:
-            # Already started
             self.logger.warning(f"Node {self} is already started")
             return
 
