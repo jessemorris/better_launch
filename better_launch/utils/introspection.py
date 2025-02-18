@@ -139,13 +139,17 @@ def find_launchthis_function(filepath: str) -> ast.FunctionDef:
 
         # Check if function is decorated by launch_this
         for decorator in node.decorator_list:
-            if isinstance(decorator, ast.Call) and decorator.func.id == "launch_this":
+            if (
+                isinstance(decorator, ast.Call) and decorator.func.id == "launch_this"
+            ) or (isinstance(decorator, ast.Name) and decorator.id == "launch_this"):
                 return node
 
     return None
 
 
-def get_launchfunc_signature_from_file(filepath: str) -> tuple[str, inspect.Signature, str]:
+def get_launchfunc_signature_from_file(
+    filepath: str,
+) -> tuple[str, inspect.Signature, str]:
     """Searches for a launch function in the specified source file and returns its name, signature and docstring.
 
     .. seealso::
@@ -182,7 +186,7 @@ def get_launchfunc_signature_from_file(filepath: str) -> tuple[str, inspect.Sign
                 annotation=annotation,
             )
         )
-    
+
     # Handle *args
     if func_node.args.vararg:
         params.append(
@@ -194,9 +198,7 @@ def get_launchfunc_signature_from_file(filepath: str) -> tuple[str, inspect.Sign
     # Handle **kwargs
     if func_node.args.kwarg:
         params.append(
-            inspect.Parameter(
-                func_node.args.kwarg.arg, inspect.Parameter.VAR_KEYWORD
-            )
+            inspect.Parameter(func_node.args.kwarg.arg, inspect.Parameter.VAR_KEYWORD)
         )
 
     try:

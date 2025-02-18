@@ -160,7 +160,7 @@ def _launch_this_wrapper(
         if "self" not in frame_locals:
             continue
         owner = frame_locals["self"]
-        if isinstance(owner, object) and owner.__name__ == "IncludeLaunchDescription":
+        if isinstance(owner, object) and getattr(owner, "__name__", None) == "IncludeLaunchDescription":
             # We were included, expose the expected method in our caller's globals and return
             _expose_ros2_launch_function(launch_func)
             return
