@@ -627,9 +627,11 @@ Takeoff in 3... 2... 1...
 
         If the `filename` is absolute, all other arguments will be ignored and the filename will be returned.
 
-        If `package` is provided, the corresponding ROS2 package path will be used as the base path. Else we attempt to locate the current launch file's package by searching its directory and parent directories for a `package.xml`. If the package cannot be determined the current working dir is used as the base path. If `subdir` is provided, it will be appended to the base path (existence will not be verified).
-
-        If no `filename` is provided, the established base path is returned. Otherwise, if `filename` is a relative path it will be appended to the base path. Otherwise a file with this name will be searched for in the base path.
+        If `package` is provided, the corresponding ROS2 package path will be used as the base path. Else we attempt to locate the current launch file's package by searching its directory and parent directories for a `package.xml`. If the package cannot be determined the current working dir is used as the base path. 
+        
+        If neither `subdir` nor `filename` are provided, the base path is returned. Otherwise, subdir and filename are concatenated to form a target path. The base path is then searched for any directory or file matching the target path. 
+        
+        More specifically, if only `filename` is provided, a file with that name is located. If only `subdir` is provided, a matching path within the base path is located. If both `filename` and `subdir` are provided, a file within the specified path fragment is located.
 
         Parameters
         ----------
@@ -657,17 +659,18 @@ Takeoff in 3... 2... 1...
         else:
             resolve = lambda s: s
 
-        filename = resolve(filename)
-        if os.path.isabs(filename):
-            return filename
+        if filename:
+            filename = resolve(filename)
+            if os.path.isabs(filename):
+                return filename
 
         if not package:
             # Search the launch file directory tree for a "package.xml"
-            searchpath = os.path.dirname(self.launchfile)
+            searchpath = os.path.normpath(os.path.dirname(self.launchfile))
             while os.pathsep in searchpath:
                 files = os.listdir(searchpath)
                 if "package.xml" in files:
-                    package = os.path.basename(os.path.normpath(searchpath))
+                    package = os.path.basename(searchpath)
                     break
                 searchpath = searchpath.rsplit(os.pathsep, maxsplit=1)[0]
 
@@ -678,20 +681,18 @@ Takeoff in 3... 2... 1...
         else:
             base_path = os.getcwd()
 
-        if subdir:
-            base_path = os.path.join(base_path, subdir)
-
-        if not filename:
-            return resolve(base_path)
-
-        if "/" in filename or os.pathsep in filename:
-            ret = os.path.join(base_path, filename)
-            return resolve(ret)
-
         base_path = resolve(base_path)
+        if not filename and not subdir:
+            return base_path
+
+        targetpath = subdir if subdir else ""
+        if filename:
+            targetpath = os.path.join(targetpath, filename)
+        
         for dirpath, _, files in os.walk(base_path, topdown=False):
-            if filename in files:
-                return os.path.join(base_path, dirpath, filename)
+            path = os.path.join(base_path, dirpath)
+            if (not filename or filename in files) and path.endswith(targetpath):
+                return os.path.join(targetpath, filename)
 
         raise ValueError(
             f"Could not find file or directory (filename={filename}, package={package}, subdir={subdir})"
