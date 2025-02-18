@@ -36,9 +36,9 @@ try:
 
     get_parameter_value = lambda s: get_parameter_value_humble(string_value=s)
     parameter_value_to_python = lambda p: get_value_humble(parameter_value=p)
-except:
+except ImportError:
     # Jazzy
-    from rclpy import get_parameter_value, parameter_value_to_python
+    from rclpy.parameter import get_parameter_value, parameter_value_to_python
 
 
 from better_launch import __version__
