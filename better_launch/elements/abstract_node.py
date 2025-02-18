@@ -4,7 +4,7 @@ import time
 import json
 
 import better_launch.ros.logging as roslog
-from .lifecycle_manager import LifecycleManager, LifecycleStage
+from better_launch.elements.lifecycle_manager import LifecycleManager
 
 
 _node_counter = 0
@@ -20,10 +20,32 @@ class AbstractNode:
         remaps: dict[str, str] = None,
         params: str | dict[str, Any] = None,
     ):
+        """Base class for all node-like objects.
+
+        Parameters
+        ----------
+        package : str
+            The package this node can be found in.
+        executable : str
+            How the node can be executed. Not necessarily an executable file object.
+        name : str
+            This node's name. If it is a ROS node it should be how the node registers with ROS.
+        namespace : str
+            The node's namespace.
+        remaps : dict[str, str], optional
+            Topic remaps for this node.
+        params : str | dict[str, Any], optional
+            Node parameters. If a string is passed it will be lazy loaded with :py:meth`BetterLaunch.find`.
+
+        Raises
+        ------
+        ValueError
+            If the name is empty or executable is None.
+        """
         if not name:
             raise ValueError("Name cannot be empty")
 
-        if not executable:
+        if executable is None:
             raise ValueError("No executable provided")
 
         if remaps is None:
@@ -49,22 +71,32 @@ class AbstractNode:
 
     @property
     def package(self) -> str:
+        """The package this node can be found in.
+        """
         return self._pkg
 
     @property
     def executable(self) -> str:
+        """How this node can be executed. This is not required to be an executable file. It's meaning depends on the node implementation.
+        """
         return self._exec
 
     @property
     def name(self) -> str:
+        """The name of this node. If this represents a ROS node this will also be the name by which it is known in ROS.
+        """
         return self._name
 
     @property
     def namespace(self) -> str:
+        """This node's namespace.
+        """
         return self._namespace
 
     @property
     def fullname(self) -> str:
+        """The concatenation of this node's namespace and name.
+        """
         ns = self.namespace.strip("/")
         if not ns:
             return "/" + self.name
@@ -72,6 +104,8 @@ class AbstractNode:
 
     @property
     def params(self) -> dict[str, Any]:
+        """The ROS params that were passed to this node. If a string was passed it is assumed to be a filepath and will be loaded with :py:meth:`BetterLaunch.find`.
+        """
         if isinstance(self._params, str):
             from better_launch import BetterLaunch
 
@@ -85,13 +119,28 @@ class AbstractNode:
 
     @property
     def remaps(self) -> dict[str, str]:
+        """Any topic remaps that were passed to this node.
+        """
         return self._remaps
 
     @property
     def is_running(self) -> bool:
+        """True if the node is currently running.
+        """
         raise NotImplementedError
 
     def _ros_args(self) -> dict[str, str]:
+        """Returns this node's ROS args, e.g. remaps and special parameters like namespace and name.
+
+        .. seealso::
+
+            `Passing ROS arguments to nodes via the command-line <https://docs.ros.org/en/jazzy/How-To-Guides/Node-arguments.html>`_
+
+        Returns
+        -------
+        dict[str, str]
+            A dict containing the 
+        """
         ros_args = dict(self.remaps)
 
         # Why do I hear mad hatter music???
@@ -102,6 +151,18 @@ class AbstractNode:
         return ros_args
 
     def _flat_params(self) -> dict[str, str]:
+        """Flattens this node's ROS parameters so they conform to what ROS expects when passing them on the command line.
+
+        Returns
+        -------
+        dict[str, str]
+            A flattened dict containing param keys separated by '.'s and json-serialized values.
+
+        Raises
+        ------
+        ValueError
+            If any list inside the params contains a dict, although we don't recurse into lists. See `#152 <https://github.com/ros2/design/pull/152>`_ for further details.
+        """
         ret = {}
 
         def delve(data: dict[str, Any], path: str):
@@ -124,12 +185,38 @@ class AbstractNode:
         return ret
 
     def start(self) -> None:
+        """Start this node. Once this succeeds, :py:meth:`is_running` will return True.
+        """
         raise NotImplementedError
 
     def shutdown(self, reason: str, signum: int = signal.SIGTERM) -> None:
+        """Shutdown this node. Once this succeeds, :py:meth:`is_running` will return False.
+
+        Parameters
+        ----------
+        reason : str
+            A human-readable string describing why this node is being shutdown.
+        signum : int, optional
+            The signal that should be send to the node (if supported).
+        """
         raise NotImplementedError
 
     def check_ros2_connected(self, timeout: float = None) -> bool:
+        """Check whether this node has started and is registered within ROS.
+
+        Parameters
+        ----------
+        timeout : float, optional
+            How long to wait if the node is not yet connected.
+
+        Returns
+        -------
+        bool
+            True if the node can be discovered by ROS, False otherwise.
+        """
+        if not self.is_running:
+            return False
+
         from better_launch import BetterLaunch
 
         bl = BetterLaunch.instance()
@@ -158,6 +245,15 @@ class AbstractNode:
 
     @property
     def is_lifecycle_node(self) -> bool:
+        """Checks if this is a lifecycle node.
+
+        Whether a node supports lifecycle management can only be known from outside once its process is started and it has registered with ROS. When this is called while the node is alive and it supports lifecycle management, a :py:class:`LifecycleManager` object will be initialized for it. This will persist even if the node is shutdown, but will obviously no longer provide useful functionality. 
+
+        Returns
+        -------
+        bool
+            True if the node supports lifecycle management, False otherwise.
+        """
         if self._is_lifecycle is None:
             self._is_lifecycle = LifecycleManager.is_lifecycle(self)
 
@@ -168,6 +264,17 @@ class AbstractNode:
 
     @property
     def lifecycle(self) -> LifecycleManager:
+        """Returns this node's :py:class:`LifecyceManager`, if supported. 
+
+        .. seealso::
+
+            :py:meth:`is_lifecycle_node`
+
+        Returns
+        -------
+        LifecycleManager
+            The object used for managing this node's lifecycle, or None if not supported.
+        """
         # Returning the _lifecycle_manager would be fine, but this way it will be instantiated 
         # if supported and not yet done before
         if self.is_lifecycle_node:
@@ -175,6 +282,13 @@ class AbstractNode:
         return None
 
     def get_info_sheet(self) -> str:
+        """Returns a summary of this node's information for display in a terminal.
+
+        Returns
+        -------
+        str
+            A detailed description of this node.
+        """
         # ROS2 prints a lot of useless stuff and avoids the things that are interesting most of
         # the time, like who is actually subscribed where. Let's fix this!
         return "\n".join([
