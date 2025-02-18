@@ -17,9 +17,9 @@ class Component(AbstractNode):
         name: str,
         *,
         remaps: dict[str, str] = None,
-        node_args: list[str] = None,
+        params: str | dict[str, Any] = None,
     ):
-        super().__init__(package, plugin, name, composer.namespace, remaps, node_args)
+        super().__init__(package, plugin, name, composer.namespace, remaps, params)
         self._component_id: int = None
         self._composer = composer
 
@@ -82,7 +82,7 @@ class Composer(Node):
         *,
         component_remaps: dict[str, str] = None,
         composer_remaps: dict[str, str] = None,
-        node_args: str | dict[str, Any] = None,
+        params: str | dict[str, Any] = None,
         cmd_args: list[str] = None,
         env: dict[str, str] = None,
         isolate_env: bool = False,
@@ -116,7 +116,7 @@ class Composer(Node):
             name,
             namespace,
             remaps=composer_remaps,
-            node_args=node_args,
+            params=params,
             cmd_args=cmd_args,
             env=env,
             isolate_env=isolate_env,
@@ -202,12 +202,12 @@ class Composer(Node):
         req.parameters.extend(
             [
                 Parameter(name=k, value=v).to_parameter_msg()
-                for k, v in component.node_args.items()
+                for k, v in component._flat_params()
             ]
         )
 
-        remaps = component.remaps
-        remaps.update(self._component_remaps)
+        remaps = dict(self._component_remaps)
+        remaps.update(component.remaps)
         req.remap_rules = [f"{src}:={dst}" for src, dst in remaps.items()]
 
         composer_args = {}

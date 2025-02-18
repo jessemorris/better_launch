@@ -114,7 +114,7 @@ class Ros2LaunchWrapper(AbstractNode):
             name,
             "/",
             remaps=None,
-            node_args=None,
+            params=None,
         )
 
         self.output_config = output_config

@@ -33,7 +33,7 @@ class Node(AbstractNode):
         namespace: str,
         *,
         remaps: dict[str, str] = None,
-        node_args: str | dict[str, Any] = None,
+        params: str | dict[str, Any] = None,
         cmd_args: list[str] = None,
         env: dict[str, str] = None,
         isolate_env: bool = False,
@@ -45,7 +45,7 @@ class Node(AbstractNode):
         respawn_delay: float = 0.0,
         use_shell: bool = False,
     ):
-        super().__init__(package, executable, name, namespace, remaps, node_args)
+        super().__init__(package, executable, name, namespace, remaps, params)
 
         self.env = env or {}
         self.isolate_env = isolate_env
@@ -112,13 +112,13 @@ class Node(AbstractNode):
             cmd = launcher.find(filename=self.executable, package=self.package)
             final_cmd = [cmd] + self.cmd_args + ["--ros-args"]
 
-            # Attach additional node args
-            for key, value in self.node_args.items():
+            # Attach node parameters
+            for key, value in self._flat_params():
                 final_cmd.extend(["-p", f"{key}:={value}"])
 
             # Remappings become part of the command's ros-args
             # launch_ros/actions/node.py:206
-            for src, dst in self.remaps.items():
+            for src, dst in self._ros_args():
                 # launch_ros/actions/node.py:481
                 final_cmd.extend(["-r", f"{src}:={dst}"])
 

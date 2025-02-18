@@ -1,5 +1,6 @@
 from typing import Any
 import signal
+import json
 
 import better_launch.ros.logging as roslog
 from .lifecycle_manager import LifecycleManager, LifecycleStage
@@ -16,7 +17,7 @@ class AbstractNode:
         name: str,
         namespace: str,
         remaps: dict[str, str] = None,
-        node_args: str | dict[str, Any] = None,
+        params: str | dict[str, Any] = None,
     ):
         if not name:
             raise ValueError("Name cannot be empty")
@@ -27,19 +28,8 @@ class AbstractNode:
         if remaps is None:
             remaps = {}
 
-        if not namespace and "__ns" not in remaps:
-            raise ValueError("Namespace not defined")
-
-        if namespace and "__ns" in remaps and remaps["__ns"] != namespace:
-            raise ValueError("Conflicting namespace definitions")
-
         if not namespace:
-            namespace = remaps["__ns"]
-
-        # Why do I hear mad hatter music???
-        # See launch_ros/actions/node.py:495
-        remaps["__ns"] = namespace
-        remaps["__node"] = name
+            namespace = "/"
 
         global _node_counter
         self.node_id = _node_counter
@@ -50,7 +40,7 @@ class AbstractNode:
         self._name = name
         self._namespace = namespace
         self._remaps = remaps
-        self._node_args = node_args or {}
+        self._params = params or {}
         self._is_lifecycle: bool = None
         self._lifecycle_manager: LifecycleManager = None
 
@@ -80,17 +70,17 @@ class AbstractNode:
         return "/" + ns + "/" + self.name
 
     @property
-    def node_args(self) -> dict[str, Any]:
-        if isinstance(self._node_args, str):
+    def params(self) -> dict[str, Any]:
+        if isinstance(self._params, str):
             from better_launch import BetterLaunch
 
             bl = BetterLaunch.instance()
             if not bl:
-                return self._node_args
+                return self._params
 
-            self._node_args = bl.load_params(self._node_args, self)
+            self._params = bl.load_params(self._params, self)
 
-        return self._node_args
+        return self._params
 
     @property
     def remaps(self) -> dict[str, str]:
@@ -118,6 +108,38 @@ class AbstractNode:
         except:
             # Cannot check if the shared node was shut down
             return None
+
+    def _ros_args(self) -> dict[str, str]:
+        ros_args = dict(self.remaps)
+
+        # Why do I hear mad hatter music???
+        # See launch_ros/actions/node.py:495
+        ros_args["__ns"] = self.namespace
+        ros_args["__node"] = self.name
+
+        return ros_args
+
+    def _flat_params(self) -> dict[str, str]:
+        ret = {}
+
+        def delve(data: dict[str, Any], path: str):
+            if isinstance(data, list):
+                for val in data:
+                    if isinstance(val, dict):
+                        # See the following links for more details:
+                        # https://github.com/ros2/launch_ros/blob/jazzy/launch_ros/launch_ros/utilities/normalize_parameters.py#L98
+                        # https://answers.ros.org/question/322445/
+                        raise ValueError("ROS2 does not support lists of dicts :(")
+            
+            if isinstance(data, dict):
+                for key, val in data.items():
+                    new_key = f"{path}.{key}" if path else key
+                    delve(val, new_key)
+            else:
+                ret[path] = json.dumps(data)
+
+        delve(self.params, "")
+        return ret
 
     def start(self, lifecycle_target: LifecycleStage = LifecycleStage.ACTIVE) -> None:
         if self.is_running:
@@ -175,7 +197,7 @@ class AbstractNode:
     def _get_info_section_config(self) -> str:
         return f"""\
 [bold]Config[/bold]
-  Node Args: {self.node_args}
+  Node Args: {self.params}
   Remaps:    {self.remaps}
 """
 
