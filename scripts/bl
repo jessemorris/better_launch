@@ -310,8 +310,7 @@ class ExecutableLaunchFile(LaunchFile):
         )
 
         # First argument becomes argv[0], so should be the program name
-        args = [self.launchfile]
-        args.extend(sys.argv[1:])
+        args = sys.argv[2:]
 
         # This does NOT return and will replace our executable with the new executable in the same process
         os.execvp(self.filepath, args)
