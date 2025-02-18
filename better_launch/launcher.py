@@ -416,14 +416,11 @@ Takeoff in 3... 2... 1...
         if not filename and not subdir:
             return base_path
 
-        targetpath = subdir if subdir else ""
-        if filename:
-            targetpath = os.path.join(targetpath, filename)
-        
+        targetpath = os.path.normpath(subdir) if subdir else ""
         for dirpath, _, files in os.walk(base_path, topdown=False):
-            path = os.path.join(base_path, dirpath)
-            if (not filename or filename in files) and path.endswith(targetpath):
-                return os.path.join(targetpath, filename)
+            path = os.path.normpath(os.path.join(base_path, dirpath))
+            if path.endswith(targetpath) and (not filename or filename in files):
+                return os.path.join(path, filename)
 
         raise ValueError(
             f"Could not find file or directory (filename={filename}, package={package}, subdir={subdir})"
@@ -818,7 +815,7 @@ Takeoff in 3... 2... 1...
         respawn_delay: float = 0.0,
         use_shell: bool = False,
         autostart_process: bool = True,
-        init_waittime: float = 5.0,
+        init_waittime: float = 3.0,
         lifecycle_target: LifecycleStage = LifecycleStage.ACTIVE,
     ) -> Node:
         """Create a new ROS2 node process. The bread and butter of every ROS setup!
@@ -950,7 +947,7 @@ Takeoff in 3... 2... 1...
         respawn_delay: float = 0.0,
         use_shell: bool = False,
         autostart_process: bool = True,
-        init_waittime: float = 5.0,
+        init_waittime: float = 3.0,
     ) -> Generator[Composer, None, None]:
         """Creates a composer node which can be used to load composable components.
 
@@ -1073,7 +1070,7 @@ Takeoff in 3... 2... 1...
         remaps: dict[str, str] = None,
         component_args: str | dict[str, Any] = None,
         use_intra_process_comms: bool = True,
-        init_waittime: float = 5.0,
+        init_waittime: float = 3.0,
         lifecycle_target: LifecycleStage = LifecycleStage.ACTIVE,
         **extra_composer_args: dict[str, Any],
     ) -> Component:

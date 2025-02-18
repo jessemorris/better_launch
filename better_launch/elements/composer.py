@@ -198,7 +198,7 @@ class Composer(Node):
         req.parameters.extend(
             [
                 Parameter(name=k, value=v).to_parameter_msg()
-                for k, v in component._flat_params()
+                for k, v in component._flat_params().items()
             ]
         )
 

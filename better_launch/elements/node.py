@@ -112,12 +112,12 @@ class Node(AbstractNode):
             final_cmd = [cmd] + self.cmd_args + ["--ros-args"]
 
             # Attach node parameters
-            for key, value in self._flat_params():
+            for key, value in self._flat_params().items():
                 final_cmd.extend(["-p", f"{key}:={value}"])
 
             # Remappings become part of the command's ros-args
             # launch_ros/actions/node.py:206
-            for src, dst in self._ros_args():
+            for src, dst in self._ros_args().items():
                 # launch_ros/actions/node.py:481
                 final_cmd.extend(["-r", f"{src}:={dst}"])
 

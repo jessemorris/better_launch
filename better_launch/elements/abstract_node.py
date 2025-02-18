@@ -201,7 +201,7 @@ class AbstractNode:
 """
 
     def _get_info_section_ros(self) -> str:
-        if self.check_ros2_connected:
+        if self.check_ros2_connected():
             from better_launch import BetterLaunch
 
             shared_node = BetterLaunch.instance().shared_node
