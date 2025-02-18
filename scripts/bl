@@ -342,7 +342,10 @@ class LaunchfileSelectionCLI(click.MultiCommand):
             )
             return None
 
-        launchfile = LaunchFile.from_file(self._package, candidates[0])
+        try:
+            launchfile = LaunchFile.from_file(self._package, candidates[0])
+        except ValueError:
+            return None
 
         # return a launchfile command with launch args as its Options
         ctx.obj = {
