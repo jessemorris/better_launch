@@ -3,7 +3,7 @@ project(better_launch)
 
 find_package(ament_cmake REQUIRED)
 
-install(DIRECTORY example
+install(DIRECTORY examples
         DESTINATION share/${PROJECT_NAME})
 
 # Install the bl script that should be used instead of "ros2 launch/run"
