@@ -31,10 +31,29 @@ class LogEntry(HorizontalGroup):
         self,
         record: logging.LogRecord,
     ):
+        """A textual representation of a single log message providing custom rendering for different attributes like severity and so on.
+
+        Parameters
+        ----------
+        record : logging.LogRecord
+            The log record that will be rendered.
+        """
         super().__init__()
         self.record = record
 
     def get_color_for_source(self, source: str) -> Color:
+        """Returns the color that should be used for highlighting parts of this message.
+
+        Parameters
+        ----------
+        source : str
+            Identifier of the entity that will use the color.
+
+        Returns
+        -------
+        Color
+            A color instance.
+        """
         if source not in LogEntry._source_colormap:
             LogEntry._source_colormap[source] = Color(*get_contrast_color())
         return LogEntry._source_colormap[source]

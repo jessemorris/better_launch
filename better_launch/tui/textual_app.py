@@ -72,6 +72,9 @@ class BetterUI(App):
 
     @classmethod
     def setup_logging(cls):
+        """Sets up a few things to make sure log messages can be parsed by the TUI.
+        """
+
         # Make sure all ros loggers follow a parsable format
         os.environ["RCUTILS_COLORIZED_OUTPUT"] = "0"
         os.environ["RCUTILS_CONSOLE_OUTPUT_FORMAT"] = "%%{severity}%%{time}%%{message}"
@@ -88,6 +91,19 @@ class BetterUI(App):
         disable_colors: bool = False,
         max_log_length: bool = 1000,
     ):
+        """Creates a new TUI instance. Only one of these should be created and started.
+
+        Since UIs (including TUIs) should usually run on the main thread, the passed in launch function will actually be run on a separate thread. 
+
+        Parameters
+        ----------
+        launch_func : Callable
+            The launch function of the launch file. Note that no arguments will be provided to this function - use `partial` or a wrapper with bound arguments for anything you need to pass to the function.
+        disable_colors : bool, optional
+            If True, the TUI will not render any colors (and hopefully nothing else will either). This will set the `NO_COLOR` environment variable.
+        max_log_length : bool, optional
+            How many log messages to keep in the buffer for scrolling.
+        """
         if disable_colors:
             os.environ["NO_COLOR"] = "1"
 
@@ -145,6 +161,8 @@ class BetterUI(App):
 
     @work(thread=True, exit_on_error=True, group="launch_func")
     def run_launch_function(self):
+        """Runs the launch function passed to the constructor and sets up the log capturing mechanism.
+        """
         def log_to_ui(record: logging.LogRecord):
             if self.is_running:
                 self.call_later(self.on_log_record, record)
@@ -165,6 +183,8 @@ class BetterUI(App):
         self.exit("BetterLaunch terminated")
 
     def add_nodes_to_sidebar(self):
+        """Populates the sidebar with node items.
+        """
         bl = BetterLaunch.wait_for_instance()
         for idx, n in enumerate(bl.all_nodes(include_components=True)):
             key = self._get_node_key(idx)
@@ -194,6 +214,13 @@ class BetterUI(App):
             self.sidebar.action_select_cursor()
 
     def on_log_record(self, record: logging.LogRecord):
+        """Adds a new log record to the log view.
+
+        Parameters
+        ----------
+        record : logging.LogRecord
+            The log record to render.
+        """
         # This will be called by our logging handler
         if self.mute:
             # Save the raw messages and add them once we get unmuted
@@ -216,12 +243,26 @@ class BetterUI(App):
             self.logview.scroll_end()
 
     def on_list_view_selected(self, selected: ListView.Selected):
+        """React to a list item being selected, either on the sidebar or log view.
+
+        Parameters
+        ----------
+        selected : ListView.Selected
+            The selected item.
+        """
         if selected.list_view == self.sidebar:
             self.open_menu_for_node(selected.item.get_child_by_type(NodeLabel))
         elif selected.list_view == self.logview:
             self.copy_log_entry(selected.item.get_child_by_type(LogEntry))
 
     def open_menu_for_node(self, label: NodeLabel):
+        """Opens an options menu for a node offering different actions to interact with it.
+
+        Parameters
+        ----------
+        label : NodeLabel
+            The node item to open the menu for.
+        """
         node = label.node
 
         def on_lifecycle_choice(choice: str):
@@ -262,6 +303,15 @@ class BetterUI(App):
         self.push_screen(ChoiceDialog(choices, title), on_node_menu_choice)
 
     def copy_log_entry(self, entry: LogEntry):
+        """Tries to copy a log entry to the clipboard.
+
+        Copying some text to the clipboard is surprisingly complex, involving different OS-dependent backends. This function uses `pyperclip <https://github.com/asweigart/pyperclip>`_ to handle the brunt work.
+
+        Parameters
+        ----------
+        entry : LogEntry
+            The log entry to copy to clipboard.
+        """
         if pyperclip.is_available():
             text = "[{created}] [{name}] {message}".format(**entry.record.__dict__)
             pyperclip.copy(text)
