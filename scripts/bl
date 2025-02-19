@@ -48,7 +48,28 @@ from better_launch.utils.introspection import get_launchfunc_signature_from_file
 class LaunchFile:
     @classmethod
     def from_file(cls, package: str, filepath: str) -> "LaunchFile":
-        for launch_cls in [BetterLaunchFile, Ros2LaunchFile, ExecutableLaunchFile]:
+        """Returns a LaunchFile subclass that can handle the provided launch file.
+
+        Parameters
+        ----------
+        package : str
+            The package the launch file lives in.
+        filepath : str
+            The path to the launch file.
+
+        Returns
+        -------
+        LaunchFile
+            An instance that can handle the provided launch file.
+
+        Raises
+        ------
+        ValueError
+            If no subclass could be found that can handle the provided launch file.
+        """
+        # Handles only immediate subclasses.
+        # NOTE: by using __subclasses__ the order subclasses are defined in actually matters
+        for launch_cls in LaunchFile.__subclasses__():
             try:
                 return launch_cls(package, filepath)
             except ValueError:
@@ -64,6 +85,21 @@ class LaunchFile:
         params: list[click.Option],
         doc: str,
     ):
+        """Create a representation describing the most important information about a launch file.
+
+        Parameters
+        ----------
+        package : str
+            The package the launch file lives in.
+        launchfile : str
+            The filename of the launch file.
+        filepath : str
+            The full path to the launch file.
+        params : list[click.Option]
+            ROS2 parameters that have been identified for the launch file, represented as click options.
+        doc : str
+            A docstring describing the launch file, if any.
+        """
         self.package = package
         self.launchfile = launchfile
         self.filepath = filepath
@@ -71,10 +107,15 @@ class LaunchFile:
         self.doc = doc or f"{package}/{os.path.basename(launchfile)}"
 
     def run(self, ctx: click.Context, **kwargs) -> None:
+        """Execute this launch file.
+        """
         raise NotImplementedError()
 
 
 class BetterLaunchFile(LaunchFile):
+    """This LaunchFile will handle better_launch launch files.
+    """
+
     @classmethod
     def _get_launch_params_and_doc_bl(
         cls, filepath: str
@@ -141,6 +182,9 @@ class BetterLaunchFile(LaunchFile):
 
 
 class Ros2LaunchFile(LaunchFile):
+    """A LaunchFile that can handle regular ROS2 launch files (python, XML, and YAML).
+    """
+
     @classmethod
     def _option_from_ros2_kwargs(cls, kwargs: dict[str, Any]) -> click.Option:
         def eval_arg(arg: Any) -> Any:
@@ -299,6 +343,9 @@ class Ros2LaunchFile(LaunchFile):
 
 
 class ExecutableLaunchFile(LaunchFile):
+    """A LaunchFile that handles executable files.
+    """
+
     def __init__(self, package, filepath):
         if not os.access(filepath, os.X_OK):
             raise ValueError("Not executable")
@@ -323,6 +370,13 @@ class ExecutableLaunchFile(LaunchFile):
 
 class LaunchfileSelectionCLI(click.MultiCommand):
     def __init__(self, package: str, **kwargs):
+        """This subcommand will handle selecting a launch file from the provided ROS package.
+
+        Parameters
+        ----------
+        package : str
+            The ROS package to search for launch files.
+        """
         super().__init__(**kwargs)
         self._package = package
         self._package_path = get_package_prefix(package)
@@ -398,6 +452,8 @@ class LaunchfileSelectionCLI(click.MultiCommand):
 
 class PackageSelectionCLI(click.MultiCommand):
     def __init__(self, **kwargs):
+        """This subcommand will help in selecting a ROS package.
+        """
         options = [
             click.Option(
                 ["-v", "--version"],
@@ -442,9 +498,10 @@ In contrast to ROS2 launch, it also generates useful shell completion suggestion
     def format_commands(
         self, ctx: click.Context, formatter: click.HelpFormatter
     ) -> None:
-        # Prevent listing all packages when calling without args
+        # Prevent listing ALL packages when calling without args
         pass
 
 
 if __name__ == "__main__":
+    # Start by selecting a package. Currently we don't provide a solution for directly executing a launch file by its path. This may be supported in the future though.
     PackageSelectionCLI().main()
