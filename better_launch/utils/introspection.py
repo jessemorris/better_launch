@@ -1,53 +1,55 @@
-from types import CodeType
-import os
+from typing import Callable, Any
 import ast
 import inspect
 
 
-def find_function_frame(func):
-    """Find the most recent stack frame this function is called in.
+def find_function_frame(func: Callable) -> inspect.FrameInfo:
+    """Find the most recent stack frame the specified function is called in.
+
+    Note that the function **must** be part of the current stack frame that led to the invocation of this function.
 
     Parameters
     ----------
-    func : _type_
-        _description_
+    func : Callable
+        A defined function. 
 
     Returns
     -------
-    _type_
-        _description_
+    inspect.FrameInfo
+        The frame the specified function was called from.
 
     Raises
     ------
     ValueError
-        _description_
+        If no such frame could be found.
     """
     for frame_info in inspect.stack():
-        print(frame_info.function)
         if frame_info.frame.f_code is func.__code__:
             return frame_info
 
     raise ValueError(f"Could not find frame of function {func}")
 
 
-def find_calling_frame(func):
+def find_calling_frame(func: Callable) -> inspect.FrameInfo:
     """Find the most recent stack frame the specified function is called in that is NOT in the same file as the
-    function's frame (e.g. a module importing and calling a function).
+    function. This is useful to e.g. identify the python file a function is imported from and called in.
+
+    Note that the function **must** be part of the current stack frame that led to the invocation of this function.
 
     Parameters
     ----------
-    func : _type_
-        _description_
+    func : Callable
+        A defined function.
 
     Returns
     -------
-    _type_
-        _description_
+    inspect.FrameInfo
+        A frame which called the provided function but lives in a different file than the function itself.
 
     Raises
     ------
     ValueError
-        _description_
+        If no such frame could be found.
     """
     func_frame = None
 
@@ -61,45 +63,60 @@ def find_calling_frame(func):
     raise ValueError(f"Could not find the module calling {func}")
 
 
-def get_bound_arguments(func) -> dict:
+def get_bound_arguments(func: Callable, with_defaults: bool = True) -> dict[str, Any]:
     """Retrieve the arguments that were passed to the specified function.
 
-    Parameters
-    ----------
-    func : _type_
-        _description_
-
-    Returns
-    -------
-    dict
-        _description_
-    """
-    frame_info = find_function_frame(func)
-    sig = inspect.signature(func)
-    relevant_keys = set(sig.parameters.keys())
-    kwargs = {k: v for k, v in frame_info.frame.f_locals.items() if k in relevant_keys}
-    bound_args = sig.bind(**kwargs)
-    bound_args.apply_defaults()
-    return dict(bound_args.arguments)
-
-
-def find_decorated_function_args(decorator_func) -> dict:
-    """Retrieve the arguments of the function that the decorator was wrapping.
+    Note that the function **must** be part of the current stack frame that led to the invocation of this function.
 
     Parameters
     ----------
-    decorator_func : _type_
-        _description_
+    func : Callable
+        A defined function.
+    with_defaults : bool
+        If True the returned dict will include defaults according to the function's signature for arguments that were not passed to it.
 
     Returns
     -------
-    dict
-        _description_
+    dict[str, Any]
+        The arguments that were used to invoke the function.
 
     Raises
     ------
-    RuntimeError
-        _description_
+    ValueError
+        If the function frame could not be identified.
+    """
+    frame_info = find_function_frame(func)
+    sig = inspect.signature(func)
+
+    relevant_keys = set(sig.parameters.keys())
+    kwargs = {k: v for k, v in frame_info.frame.f_locals.items() if k in relevant_keys}
+    bound_args = sig.bind(**kwargs)
+
+    if with_defaults:
+        bound_args.apply_defaults()
+    
+    return dict(bound_args.arguments)
+
+
+def find_decorated_function_args(decorator_func: Callable) -> dict[str, Any]:
+    """Retrieve the arguments of the function that the specified decorator is wrapping.
+
+    Note that the function **must** be part of the current stack frame that led to the invocation of this function.
+
+    Parameters
+    ----------
+    decorator_func : Callable
+        A decorator function.
+
+    Returns
+    -------
+    dict[str, Any]
+        The arguments that were used to invoke the function decorated by the provided decorator.
+
+    Raises
+    ------
+    ValueError
+        If the function could not be extracted from the decorator or the function frame could not be identified.
     """
 
     # Find a callable function in the decorator arguments
@@ -109,21 +126,21 @@ def find_decorated_function_args(decorator_func) -> dict:
         if inspect.isfunction(val):
             return get_bound_arguments(val)
 
-    raise RuntimeError("Could not determine the decorated function")
+    raise ValueError("Could not determine the decorated function")
 
 
 def find_launchthis_function(filepath: str) -> ast.FunctionDef:
-    """Parses a source file and searches for a function decorated by :py:meth:`better_launch.launch_this`.
+    """Parses a source file into an AST tree and searches for a function decorated by :py:meth:`better_launch.launch_this`.
 
     Parameters
     ----------
     filepath : str
-        _description_
+        Path to a python source file.
 
     Returns
     -------
     ast.FunctionDef
-        _description_
+        A representation of the function decorated by launch_this, or `None` if it could not be found.
     """
     try:
         with open(filepath, "r", encoding="utf-8") as f:
@@ -159,12 +176,12 @@ def get_launchfunc_signature_from_file(
     Parameters
     ----------
     filepath : str
-        _description_
+        Path to a python source file
 
     Returns
     -------
     tuple[str, inspect.Signature]
-        _description_
+        The name, signature and docstring of the function decorated by launch_this. If no docstring is defined for the function it will be `None`. Likewise, if no such function could be found all parts of the returned tuple will be `None`.
     """
     func_node = find_launchthis_function(filepath)
 

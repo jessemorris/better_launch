@@ -21,7 +21,7 @@ default_log_colormap = {
 
 # Taken from ROS2's logging.handlers. Since that module replaces itself this function is not 
 # accessible from the outside.
-def with_per_logger_formatting(cls):
+def _with_per_logger_formatting(cls):
     """Add per logger formatting capabilities to the given logging.Handler."""
     class _trait(cls):
         """A logging.Handler subclass to enable per logger formatting."""
@@ -61,24 +61,64 @@ class PrettyLogFormatter(logging.Formatter):
         format: str = default_screen_format,
         timestamp_format: str = "%Y-%m-%d %H:%M:%S.%f",
         *,
-        defaults: Any = None,
+        defaults: dict[str, Any] = None,
         roslog_pattern: str = r"%%(\w+)%%([\d.]+)%%(.*)",
         pattern_info: list[str] = ("levelname", "created", "msg"),
-        colormap: dict[int, str] = None,
+        level_colormap: dict[int, str] = None,
         color_per_source: bool = True,
         disable_colors: bool = False,
     ):
+        """A specialized formatter that will try to extract various details from messages logged by ROS2 nodes and reformat them.
+
+        The following additional keys can be used for formatting messages:
+        * {levelcolor}: colors subsequent characters based on the message's severity.
+        * {sourcecolor}: colors subsequent characters based on the message's source.
+        * {colorreset}: subsequent characters will use the default color again.
+
+        Parameters
+        ----------
+        format : str, optional
+            The format this instance will use when formatting messages.
+        timestamp_format : _type_, optional
+            The format to use for timestamps (we like human readable here).
+        defaults : dict[str, Any], optional
+            Defaults the formatter may use when formatting strings.
+        roslog_pattern : str, optional
+            The pattern used for matching incoming log messages. The pattern's regex groups will be associated with `pattern_info`.
+        pattern_info : list[str], optional
+            Formatting keys that can be extracted from incoming log messages using `roslog_pattern`, one for each regex group.
+        level_colormap : dict[int, str], optional
+            Color overrides for severity levels.
+        color_per_source : bool, optional
+            If True, every distinct log source (according to `LogRecord.name`) will be associated with a different color ({sourcecolor}). Otherwise the color will be chosen per formatter instance; that is, this formatter instance will always use the same color.
+        disable_colors : bool, optional
+            If True, no color codes will be inserted when formatting messages.
+        """
         super().__init__(format, timestamp_format, "{", True, defaults=defaults)
 
         self.converter = datetime.fromtimestamp
         self.roslog_pattern = re.compile(roslog_pattern)
         self.pattern_info = pattern_info
-        self.colormap = colormap if colormap is not None else dict(default_log_colormap)
+        self.level_colormap = default_log_colormap | level_colormap if level_colormap else {}
         self.color_per_source = color_per_source
         self.disable_colors = disable_colors
         self.registered_colors = {}
 
     def get_color(self, source: str) -> tuple[int, int, int]:
+        """Return the color associated with the provided source.
+
+        If `color_per_source` is True this will return an individual color for each source. Otherwise it will always return the same color.
+
+        Parameters
+        ----------
+        source : str
+            The name of the source.
+
+        Returns
+        -------
+        tuple[int, int, int]
+            An RGB color triplet.
+        """
         if not self.color_per_source:
             source = "self"
 
@@ -108,7 +148,7 @@ class PrettyLogFormatter(logging.Formatter):
         else:
             r, g, b = self.get_color(record.name)
             record.rgb = (r, g, b)
-            record.levelcolor = self.colormap.get(record.levelno, "")
+            record.levelcolor = self.level_colormap.get(record.levelno, "")
             record.sourcecolor = f"\x1b[38;2;{r};{g};{b}m"
             record.colorreset = "\x1b[0m"
 
@@ -126,6 +166,13 @@ class PrettyLogFormatter(logging.Formatter):
 
 class RecordForwarder(logging.Handler):
     def __init__(self, level: int = logging.INFO):
+        """A log handler that forwards any records it receives to callbacks.
+
+        Parameters
+        ----------
+        level : int, optional
+            The minimum logging level this handler accepts.
+        """
         super().__init__(level)
         self.formatter = PrettyLogFormatter(disable_colors=True)
         self.listeners = []
@@ -140,11 +187,20 @@ class RecordForwarder(logging.Handler):
             cb(record)
 
 
-RecordForwarder = with_per_logger_formatting(RecordForwarder)
+RecordForwarder = _with_per_logger_formatting(RecordForwarder)
 
 
 class StubbornHandler(logging.Handler):
-    def __init__(self, actual_handler, level: int = logging.INFO):
+    """This handler resists the common changes ROS2 attempts to make for its logging so that our formatters can work properly.
+    
+    The ROS2 launch system assigns the same formatter to many sources using special wrappers. However, we don't want our log forwarders and formatters to be replaced just like that. 
+
+    Parameters
+    ----------
+    actual_handler : logging.Handler
+        The handler which will actually handle any incoming log records.
+    """
+    def __init__(self, actual_handler: logging.Handler, level: int = logging.INFO):
         super().__init__(level)
         self.actual_handler = actual_handler
 

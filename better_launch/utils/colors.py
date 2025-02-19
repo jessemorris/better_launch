@@ -2,7 +2,7 @@ import colorsys
 
 
 class HighContrastColorGenerator:
-    """A generator class that produces high-contrast RGB colors readable on black."""
+    """Generates RGB colors with a certain distance apart so that subsequent colors are visually distinct."""
     
     def __init__(self):
         # Golden ratio conjugate, ensures well-spaced hues
@@ -25,3 +25,5 @@ class HighContrastColorGenerator:
 
 
 get_contrast_color = HighContrastColorGenerator()
+"""A global instance to generate sequences of visually distinct colors.
+"""
