@@ -19,24 +19,52 @@ class Component(AbstractNode):
         remaps: dict[str, str] = None,
         params: str | dict[str, Any] = None,
     ):
+        """Representation of a component, a composable object that can be loaded into a running process. Components will always use their composer's namespace.
+
+        Note that in ROS2 launch files you can reference existing composers by name when creating components. This is a clutch because you ROS2 you can never obtain a reference to a meaningful object to refer to. Since we have actual instances in better_launch, referring to composers by name is not supported. Use :py:meth:`BetterLaunch.component` or construct your own component and pass a :py:class:`Composer` instance.
+
+        .. seealso::
+
+            `ROS2 About Composition <https://docs.ros.org/en/jazzy/Concepts/Intermediate/About-Composition.html>`_
+
+        Parameters
+        ----------
+        composer : Composer
+            The composer this component will be associated with.
+        package : str
+            The package providing this component.
+        plugin : str
+            The special string that can be used for loading the component.
+        name : str
+            The name of the component in ROS.
+        remaps : dict[str, str], optional
+            Tells the node to replace any topics it wants to interact with according to the provided dict.
+        params : str | dict[str, Any], optional
+            Any arguments you want to provide to the node. These are the args you would typically have to declare in your launch file. A string will be interpreted as a path to a yaml file which will be lazy loaded using :py:meth:`BetterLaunch.load_params`.
+        """
         super().__init__(package, plugin, name, composer.namespace, remaps, params)
         self._component_id: int = None
         self._composer = composer
 
     @property
     def composer(self) -> "Composer":
+        """The composer this component is associated with.
+        """
         return self._composer
 
     @property
     def component_id(self) -> int:
+        """The ID this component got assigned when it was loaded into the composer. Will be None if the component is not loaded."""
         return self._component_id
 
     @property
     def is_loaded(self) -> bool:
+        """True if the component is loaded, False otherwise."""
         return self._component_id is not None
 
     @property
     def plugin(self) -> str:
+        """The special string that is used for loading the component. :py:meth:`executable` will return the same."""
         return self._exec
 
     @property
@@ -49,15 +77,36 @@ class Component(AbstractNode):
     def start(
         self,
         use_intra_process_comms: bool = True,
-        **composer_extra_args,
-    ):
+        **composer_extra_params,
+    ) -> None:
+        """Load this component into its composer.
+
+        Additional keyword arguments will be passed as ROS parameters to the component.
+
+        Parameters
+        ----------
+        use_intra_process_comms : bool, optional
+            If True, the component will use intra process communication for exchanging messages with other components within the same composer.
+        """
         self._component_id = self.composer.load_component(
             self,
             use_intra_process_comms=use_intra_process_comms,
-            **composer_extra_args
+            **composer_extra_params
         )
 
     def shutdown(self, reason: str, signum: int = signal.SIGTERM):
+        """Unload this component if it was loaded.
+
+        Parameters
+        ----------
+        reason : str
+            A human-readable string describing why the component is being unloaded.
+        signum : int, optional
+            Ignored for components.
+        """
+        if not self.is_loaded:
+            return
+        
         self.logger.warning(f"Unloading component {self.name}: {reason}")
         self.composer.unload_component(self)
         self._component_id = None
@@ -92,6 +141,58 @@ class Composer(Node):
         respawn_delay: float = 0.0,
         use_shell: bool = False,
     ):
+        """A composer is a special ROS2 node that can host other nodes (:py:class:`Component`s) within the same process, reducing overhead and enabling efficient intra process communication for message exchange.
+
+        .. seealso::
+
+            `ROS2 About Composition <https://docs.ros.org/en/foxy/Concepts/About-Composition.html>`_
+
+        Parameters
+        ----------
+        name : str
+            The name you want the composer to be known as.
+        namespace : str
+            The node's namespace.
+        language : str, optional
+            The programming language of the composer (and components) you want to use.
+        composer_mode : ComposerMode, optional
+            ROS2 provides special composers for components that need multithreading or should be isolated from the rest.
+        component_remaps : dict[str, str], optional
+            Any remaps you want to apply to all *components* loaded into this composer.
+        composer_remaps : dict[str, str], optional
+            Remaps you want to apply for the composer itself. Usually less useful (i.e. not at all).
+        params : str | dict[str, Any], optional
+            Any ROS parameters you want to pass to the composer itself. These are the args you would typically have to declare in your launch file. A string will be interpreted as a path to a yaml file which will be lazy loaded using :py:meth:`BetterLaunch.load_params`.
+        cmd_args : list[str], optional
+            Additional command line arguments to pass to the composer.
+        env : dict[str, str], optional
+            Additional environment variables to set for the composer's process.
+        isolate_env : bool, optional
+            If True, the composer process' env will not be inherited from the parent process. Be aware that this can result in many common things to not work anymore since e.g. keys like *PATH* will be missing.
+        log_level : int, optional
+            The minimum severity a logged message from this composer must have in order to be published.
+        output_config : Node.LogSink  |  dict[Node.LogSource, set[Node.LogSink]], optional
+            How log output from the node should be handled. Sources are `stdout`, `stderr` and `both`. Sinks are `screen`, `log`, `both`, `own_log`, and `full`. See :py:class:`Node` for more details.
+        reparse_logs : bool, optional
+            If True, *better_launch* will capture the composer's output and reformat it before publishing. 
+        anonymous : bool, optional
+            If True, the composer name will be appended with a unique suffix to avoid name conflicts.
+        hidden : bool, optional
+            If True, the composer name will be prepended with a "_", hiding it from common listings.
+        on_exit : Callable, optional
+            A function to call when the composer's process terminates (after any possible respawns).
+        max_respawns : int, optional
+            How often to restart the composer process if it terminates.
+        respawn_delay : float, optional
+            How long to wait before restarting the composer process after it terminates.
+        use_shell : bool, optional
+            If True, invoke the composer executable via the system shell. Use only if you know you need it.
+
+        Raises
+        ------
+        ValueError
+            _description_
+        """
         # NOTE: we don't support referencing an already existing composer. If you want to reuse
         # the container, just keep a reference to it.
 
@@ -134,14 +235,20 @@ class Composer(Node):
 
     @property
     def language(self) -> str:
+        """The programming language this composer (and its components) use.
+        """
         return self._language
 
     @property
     def loaded_components(self) -> list[Component]:
+        """The currently loaded components.
+        """
         return list(self._loaded_components.values())
 
     @property
     def is_lifecycle(self) -> bool:
+        """Composers are not lifecycle nodes.
+        """
         return False
 
     def start(self, lifecycle_target: LifecycleStage = LifecycleStage.ACTIVE) -> None:
@@ -177,6 +284,29 @@ class Composer(Node):
         use_intra_process_comms: bool = True,
         **composer_extra_args: dict,
     ) -> int:
+        """Load this component into its composer.
+
+        Additional keyword arguments will be passed as ROS parameters to the component. If the component is not associated with this composer yet, a warning will be logged and its association will be updated.
+
+        Parameters
+        ----------
+        component: Component
+            The component to load.
+        use_intra_process_comms : bool, optional
+            If True, the component will use intra process communication for exchanging messages with other components within the same composer.
+
+        Returns
+        -------
+        int
+            The ID the component got assigned by ROS.
+
+        Raises
+        ------
+        ValueError
+            If this composer is not running or if the component is already loaded.
+        RuntimeError
+            If loading the component failed.
+        """
         if not self.is_running:
             raise ValueError("Cannot load components into stopped composer")
 
@@ -237,6 +367,25 @@ class Composer(Node):
             raise RuntimeError(res.error_message)
 
     def unload_component(self, component: Component | int) -> bool:
+        """Unload the specified component, essentially stopping its node.
+
+        Note that an unload request will be issued even if the component reports it is not loaded.
+
+        Parameters
+        ----------
+        component : Component | int
+            The component or a component's ID to stop.
+
+        Returns
+        -------
+        bool
+            True if unloading the component succeeded, False otherwise.
+
+        Raises
+        ------
+        ValueError
+            If this composer is not running.
+        """
         if not self.is_running:
             raise ValueError("Cannot unload components from stopped composer")
 

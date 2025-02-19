@@ -835,7 +835,7 @@ Takeoff in 3... 2... 1...
         remaps : dict[str, str], optional
             Tells the node to replace any topics it wants to interact with according to the provided dict.
         params : str | dict[str, Any], optional
-            Any arguments you want to provide to the node. These are the args you would typically have to declare in your launch file.
+            Any ROS parameters you want to pass to the node. These are the args you would typically have to declare in your launch file. A string will be interpreted as a path to a yaml file which will be lazy loaded using :py:meth:`BetterLaunch.load_params`.
         cmd_args : list[str], optional
             Additional command line arguments to pass to the node.
         env : dict[str, str], optional
@@ -931,7 +931,7 @@ Takeoff in 3... 2... 1...
         *,
         component_remaps: dict[str, str] = None,
         composer_remaps: dict[str, str] = None,
-        node_args: str | dict[str, Any] = None,
+        params: str | dict[str, Any] = None,
         cmd_args: list[str] = None,
         env: dict[str, str] = None,
         isolate_env: bool = False,
@@ -962,43 +962,43 @@ Takeoff in 3... 2... 1...
         Parameters
         ----------
         name : str
-            The name you want the node to be known as.
+            The name you want the composer to be known as.
         language : str, optional
             The programming language of the composer (and components) you want to use.
         composer_mode : Composer.ComposerMode, optional
-            Use a special variant of the composer. Usually the standard one is sufficient.
+            ROS2 provides special composers for components that need multithreading or should be isolated from the rest.
         component_remaps : dict[str, str], optional
-            Any remaps you want to apply to all components loaded into this composer.
+            Any remaps you want to apply to all *components* loaded into this composer.
         composer_remaps : dict[str, str], optional
             Remaps you want to apply for the composer itself. Usually less useful (i.e. not at all).
-        node_args : str | dict[str, Any], optional
-            Any arguments you want to provide to the node. These are the args you would typically have to declare in your launch file.
+        params : str | dict[str, Any], optional
+            Any ROS parameters you want to pass to the composer itself. These are the args you would typically have to declare in your launch file. A string will be interpreted as a path to a yaml file which will be lazy loaded using :py:meth:`BetterLaunch.load_params`.
         cmd_args : list[str], optional
-            Additional command line arguments to pass to the node.
+            Additional command line arguments to pass to the composer.
         env : dict[str, str], optional
-            Additional environment variables to set for the node's process.
+            Additional environment variables to set for the composer's process.
         isolate_env : bool, optional
-            If True, the node process' env will not be inherited from the parent process. Be aware that this can result in many common things to not work anymore since e.g. keys like *PATH* will be missing.
+            If True, the composer process' env will not be inherited from the parent process. Be aware that this can result in many common things to not work anymore since e.g. keys like *PATH* will be missing.
         log_level : int, optional
-            The minimum severity a logged message from this node must have in order to be published.
+            The minimum severity a logged message from this composer must have in order to be published.
         output_config : Node.LogSink  |  dict[Node.LogSource, set[Node.LogSink]], optional
             How log output from the node should be handled. Sources are `stdout`, `stderr` and `both`. Sinks are `screen`, `log`, `both`, `own_log`, and `full`. See :py:class:`Node` for more details.
         reparse_logs : bool, optional
-            If True, *better_launch* will capture the node's output and reformat it before publishing. 
+            If True, *better_launch* will capture the composer's output and reformat it before publishing. 
         anonymous : bool, optional
-            If True, the node name will be appended with a unique suffix to avoid name conflicts.
+            If True, the composer name will be appended with a unique suffix to avoid name conflicts.
         hidden : bool, optional
-            If True, the node name will be prepended with a "_", hiding it from common listings.
+            If True, the composer name will be prepended with a "_", hiding it from common listings.
         on_exit : Callable, optional
-            A function to call when the node's process terminates (after any possible respawns).
+            A function to call when the composer's process terminates (after any possible respawns).
         max_respawns : int, optional
-            How often to restart the node process if it terminates.
+            How often to restart the composer process if it terminates.
         respawn_delay : float, optional
-            How long to wait before restarting the node process after it terminates.
+            How long to wait before restarting the composer process after it terminates.
         use_shell : bool, optional
-            If True, invoke the node executable via the system shell. Use only if you know you need it.
+            If True, invoke the composer executable via the system shell. Use only if you know you need it.
         autostart_process : bool, optional
-            If True, start the node process before returning from this function. Note that setting this to False for a composer will make it unusable as a context object, since you won't be able to load any components.
+            If True, start the composer process before returning from this function. Note that setting this to False for a composer will make it unusable as a context object, since you won't be able to load any components.
         init_waittime : float, optional
             If autostart_process is True, wait for this long for the composer to come up.
         
@@ -1036,7 +1036,7 @@ Takeoff in 3... 2... 1...
             composer_mode,
             component_remaps=remaps,
             composer_remaps=composer_remaps,
-            node_args=node_args,
+            params=params,
             cmd_args=cmd_args,
             env=env,
             isolate_env=isolate_env,
@@ -1068,7 +1068,7 @@ Takeoff in 3... 2... 1...
         name: str,
         *,
         remaps: dict[str, str] = None,
-        component_args: str | dict[str, Any] = None,
+        params: str | dict[str, Any] = None,
         use_intra_process_comms: bool = True,
         init_waittime: float = 3.0,
         lifecycle_target: LifecycleStage = LifecycleStage.ACTIVE,
@@ -1088,8 +1088,8 @@ Takeoff in 3... 2... 1...
             The name the instantiated component should be known as.
         remaps : dict[str, str], optional
             Tells the node to replace any topics it wants to interact with according to the provided dict.
-        component_args : str | dict[str, Any], optional
-            Node arguments you want to pass to the component. See :py:meth:`node` for details.
+        params : str | dict[str, Any], optional
+            Any ROS parameters you want to pass to the component. These are the args you would typically have to declare in your launch file. A string will be interpreted as a path to a yaml file which will be lazy loaded using :py:meth:`BetterLaunch.load_params`.
         use_intra_process_comms : bool, optional
             If True, ask the composer node to enable intra-process communication, i.e. share memory between components when passing messages instead of serializing and deserializing.
         init_waittime : bool, optional
@@ -1116,7 +1116,7 @@ Takeoff in 3... 2... 1...
             plugin,
             name,
             remaps=remaps,
-            node_args=component_args,
+            params=params,
         )
 
         # Equivalent to self._composition_node.load_component(comp)
