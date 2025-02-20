@@ -214,9 +214,7 @@ class AbstractNode:
         bool
             True if the node can be discovered by ROS, False otherwise.
         """
-        if not self.is_running:
-            return False
-
+        # Don't check is_running here as some implementations might use check_ros2_connected there
         from better_launch import BetterLaunch
 
         bl = BetterLaunch.instance()
