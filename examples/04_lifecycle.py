@@ -19,7 +19,7 @@ def test():
             lifecycle_target=LifecycleStage.PRISTINE
         )
         bl.node(
-            "lifeycle",
+            "lifecycle",
             "lifecycle_listener",
             "lc_listener",
         )

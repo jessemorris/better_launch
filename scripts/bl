@@ -178,7 +178,7 @@ class BetterLaunchFile(LaunchFile):
                 args.extend([f"--{key}", arg])
 
         # This does NOT return and will replace our executable with the new executable in the same process
-        os.execvp("python3", args)
+        os.execvp("python3", [str(a) for a in args])
 
 
 class Ros2LaunchFile(LaunchFile):
@@ -339,7 +339,7 @@ class Ros2LaunchFile(LaunchFile):
         args.extend([f"{key}:={arg}" for key, arg in kwargs.items()])
 
         # This does NOT return and will replace our executable with the new executable in the same process
-        os.execvp("ros2", args)
+        os.execvp("ros2", [str(a) for a in args])
 
 
 class ExecutableLaunchFile(LaunchFile):
@@ -365,7 +365,7 @@ class ExecutableLaunchFile(LaunchFile):
         args = sys.argv[2:]
 
         # This does NOT return and will replace our executable with the new executable in the same process
-        os.execvp(self.filepath, args)
+        os.execvp(self.filepath, [str(a) for a in args])
 
 
 class LaunchfileSelectionCLI(click.MultiCommand):

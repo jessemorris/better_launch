@@ -271,7 +271,8 @@ class Composer(Node):
             raise RuntimeError("Failed to connect to composer unload service")
 
     def shutdown(self, reason: str, signum: int = signal.SIGTERM) -> None:
-        for comp in self._loaded_components.values():
+        components = list(self._loaded_components.values())
+        for comp in components:
             try:
                 self.unload_component(comp)
             except:
