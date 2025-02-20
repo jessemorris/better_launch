@@ -182,10 +182,10 @@ def _launch_this_wrapper(
         else:
             roslog.launch_config.level = logging.INFO
             if "OVERRIDE_LAUNCH_SCREEN_FORMAT" not in os.environ:
-                colormap = dict(default_log_colormap)
-                colormap[logging.INFO] = "\x1b[32;20m"
+                level_colormap = dict(default_log_colormap)
+                level_colormap[logging.INFO] = "\x1b[32;20m"
                 roslog.launch_config.screen_formatter = PrettyLogFormatter(
-                    colormap=colormap
+                    level_colormap=level_colormap
                 )
 
         # Wrap the launch function so we can do some preparation and cleanup tasks
