@@ -1,6 +1,8 @@
 from typing import Any, Callable, Generator
+import sys
 import os
 import signal
+import inspect
 from concurrent.futures import Future
 from contextlib import contextmanager
 from collections import deque
@@ -134,6 +136,7 @@ class BetterLaunch(metaclass=_BetterLaunchMeta):
         self._ros2_launcher = None
 
         self._sigint_received = False
+        self._sigterm_received = False
         self._shutdown_future = Future()
         self._shutdown_callbacks = []
 
@@ -277,7 +280,7 @@ Takeoff in 3... 2... 1...
         """The most recent group."""
         return self._group_stack[-1]
 
-    def _on_sigint(self, sig, frame) -> None:
+    def _on_sigint(self, sig: int, frame: inspect.FrameInfo) -> None:
         if not self._sigint_received:
             self.logger.warning(f"Received (SIGINT), forwarding to child processes...")
             self.shutdown("user interrupt", signal.SIGINT)
@@ -286,8 +289,15 @@ Takeoff in 3... 2... 1...
             self.logger.warning(f"Received (SIGINT) again, escalating to sigterm")
             self._on_sigterm(sig, frame)
 
-    def _on_sigterm(self, sig, frame) -> None:
+    def _on_sigterm(self, sig: int, frame: inspect.FrameInfo) -> None:
+        if self._sigterm_received:
+            try:
+                self.logger.critical("(SIGTERM) received again, terminating process")
+            finally:
+                sys.exit(-1)
+
         self.logger.error(f"Using (SIGTERM) can result in orphaned processes!")
+        self._sigterm_received = True
 
         # Final chance for the processes to shut down, but we will no longer wait
         self.shutdown(f"received (SIGTERM)", signal.SIGTERM)
