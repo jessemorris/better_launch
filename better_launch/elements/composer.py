@@ -4,7 +4,8 @@ import logging
 from rclpy import Parameter
 from composition_interfaces.srv import LoadNode, UnloadNode
 
-from .abstract_node import AbstractNode, LifecycleStage
+from .abstract_node import AbstractNode
+from .lifecycle_manager import LifecycleStage
 from .node import Node
 
 

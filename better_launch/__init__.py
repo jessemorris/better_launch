@@ -2,7 +2,7 @@ __version__ = "0.9.0"
 
 from .launcher import BetterLaunch
 from .wrapper import launch_this
-from .elements.abstract_node import LifecycleStage
+from .elements.lifecycle_manager import LifecycleStage
 from .ros.logging import LaunchConfig as LogConfig
 from . import elements
 from . import utils
