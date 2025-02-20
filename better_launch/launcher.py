@@ -1,4 +1,5 @@
 from typing import Any, Callable, Generator, overload
+import importlib
 import sys
 import os
 import signal
@@ -535,8 +536,35 @@ Takeoff in 3... 2... 1...
 
         return params
 
+    def get_ros_message_type(self, message_string: str) -> type:
+        """Loads a ROS2 message type from a string representation.
+
+        Message representations must follow the pattern `<package>/<type>/<message>`, where
+        * <package> is the ROS2 package that defines the message.
+        * <type> is the type of message, typically one of `msg`, `srv` or `action`.
+        * <message> is the name of the message itself with proper capitalization.
+
+        Parameters
+        ----------
+        message_string : str
+            A message representation of the form `<package>/<type>/<message>`.
+
+        Returns
+        -------
+        type
+            The message class.
+
+        Raises
+        ------
+        ImportError
+            If the message type could not be imported.
+        """
+        module_name, message_name = message_string.rsplit("/", maxsplit=1)
+        module = importlib.import_module(module_name.replace("/", "."))
+        return getattr(module, message_name)
+
     def publisher(
-        self, topic: str, message_type: type, qos_profile: QoSProfile | int = 10
+        self, topic: str, message_type: str | type, qos_profile: QoSProfile | int = 10
     ) -> RosPublisher:
         """Create a ROS2 publisher using the :py:meth:`shared_node`.
 
@@ -544,8 +572,8 @@ Takeoff in 3... 2... 1...
         ----------
         topic : str
             The topic to publish messages on.
-        message_type : type
-            The message type that will be published.
+        message_type : str | type
+            The message type that will be published. Strings must follow the pattern `<package>/msg/<message>`.
         qos_profile : QoSProfile | int, optional
             A quality of service profile that changes how the publisher handles connections and retains data.
 
@@ -554,6 +582,9 @@ Takeoff in 3... 2... 1...
         RosPublisher
             The publisher object. Although not required for Jazzy and below, it is recommended to keep a reference.
         """
+        if isinstance(message_type, str):
+            message_type = self.get_ros_message_type(message_type)
+
         return self.shared_node.create_publisher(
             message_type,
             topic,
@@ -573,8 +604,8 @@ Takeoff in 3... 2... 1...
         ----------
         topic : str
             The topic to listen on for messages.
-        message_type : type
-            The type of the messages that will be received.
+        message_type : str | type
+            The type of the messages that will be received. Strings must follow the pattern `<package>/msg/<message>`.
         callback : Callable[[Any], Any]
             A function that will be called whenever a message is received.
         qos_profile : QoSProfile | int, optional
@@ -585,6 +616,9 @@ Takeoff in 3... 2... 1...
         RosSubscriber
             The subscriber object. Although not required for Jazzy and below, it is recommended to keep a reference.
         """
+        if isinstance(message_type, str):
+            message_type = self.get_ros_message_type(message_type)
+
         return self.shared_node.create_subscriber(
             message_type,
             topic,
@@ -595,7 +629,7 @@ Takeoff in 3... 2... 1...
     def service(
         self,
         topic: str,
-        service_type: type,
+        service_type: str | type,
         callback: Callable[[Any], Any],
         qos_profile: QoSProfile = None,
     ) -> RosServiceProvider:
@@ -605,8 +639,8 @@ Takeoff in 3... 2... 1...
         ----------
         topic : str
             The topic the service will live on.
-        service_type : type
-            The service's message type.
+        service_type : str | type
+            The service's message type. Strings must follow the pattern `<package>/srv/<message>`.
         callback : Callable[[Any], Any]
             The function that will handle any requests to the service. The type of the request will be of type `service_type.Request`.
         qos_profile : QoSProfile, optional
@@ -617,6 +651,9 @@ Takeoff in 3... 2... 1...
         RosServiceProvider
             The service object. Although not required for Jazzy and below, it is recommended to keep a reference.
         """
+        if isinstance(service_type, str):
+            service_type = self.get_ros_message_type(service_type)
+
         if not qos_profile:
             qos_profile = qos_profile_services_default
 
@@ -630,7 +667,7 @@ Takeoff in 3... 2... 1...
     def service_client(
         self,
         topic: str,
-        service_type: type,
+        service_type: str | type,
         timeout: float = 0.0,
         qos_profile: QoSProfile = None,
     ) -> RosServiceClient:
@@ -640,8 +677,8 @@ Takeoff in 3... 2... 1...
         ----------
         topic : str
             The service topic to post requests on.
-        service_type : type
-            The service's message type.
+        service_type : str | type
+            The service's message type. Strings must follow the pattern `<package>/srv/<message>`.
         timeout : float, optional
             Time to wait for the service to become available. Ignored if <= 0.
         qos_profile : QoSProfile, optional
@@ -657,6 +694,9 @@ Takeoff in 3... 2... 1...
         TimeoutError
             If the service did not become available within the specified timeout.
         """
+        if isinstance(service_type, str):
+            service_type = self.get_ros_message_type(service_type)
+
         if not qos_profile:
             qos_profile = qos_profile_services_default
 
@@ -673,7 +713,7 @@ Takeoff in 3... 2... 1...
     def action_server(
         self,
         topic: str,
-        action_type: type,
+        action_type: str | type,
         callback: Callable[[Any], Any],
         qos_profile: QoSProfile = None,
     ) -> RosActionServer:
@@ -683,8 +723,8 @@ Takeoff in 3... 2... 1...
         ----------
         topic : str
             The topic namespace to provide the action interface on.
-        action_type : type
-            The type of the actions to be handled.
+        action_type : str | type
+            The type of the actions to be handled. Strings must follow the pattern `<package>/action/<message>`.
         callback : Callable[[Any], Any]
             A function that will handle incoming action requests. The type of the requests will be of type :py:func:`rclpy.action.server.ServerGoalHandle` and contain an `action_type.Goal`.
         qos_profile : QoSProfile, optional
@@ -695,6 +735,9 @@ Takeoff in 3... 2... 1...
         RosActionServer
             The action server object. Although not required for Jazzy and below, it is recommended to keep a reference.
         """
+        if isinstance(action_type, str):
+            action_type = self.get_ros_message_type(action_type)
+
         if not qos_profile:
             qos_profile = qos_profile_services_default
 
@@ -711,7 +754,7 @@ Takeoff in 3... 2... 1...
     def action_client(
         self,
         topic: str,
-        action_type: type,
+        action_type: str | type,
         timeout: float = 0.0,
         qos_profile: QoSProfile = None,
     ) -> RosActionClient:
@@ -721,8 +764,8 @@ Takeoff in 3... 2... 1...
         ----------
         topic : str
             The topic namespace on which the action interface is provided.
-        action_type : type
-            The type of actions the action server handles.
+        action_type : str | type
+            The type of actions the action server handles. Strings must follow the pattern `<package>/action/<message>`.
         timeout : float, optional
             Time to wait for the action server to become available. Ignored if <= 0.
         qos_profile : QoSProfile, optional
@@ -738,6 +781,9 @@ Takeoff in 3... 2... 1...
         TimeoutError
             If the action server did not become available within the specified timeout.
         """
+        if isinstance(action_type, str):
+            action_type = self.get_ros_message_type(action_type)
+
         if not qos_profile:
             qos_profile = qos_profile_services_default
 
