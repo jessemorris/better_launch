@@ -217,7 +217,7 @@ class LifecycleManager:
         for transition in transition_path:
             if not self._do_transition(transition):
                 self._node.logger.error(
-                    f"Lifecycle transition {transition} for {self.node.name} towards stage {target_stage} failed"
+                    f"Lifecycle transition {transition} for {self._node.name} towards stage {target_stage} failed"
                 )
                 return False
 
