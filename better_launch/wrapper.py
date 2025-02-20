@@ -174,7 +174,8 @@ def _launch_this_wrapper(
         ),
     ])
 
-    def run(*args, **kwargs):
+    @click.pass_context
+    def run(ctx: click.Context, *args, **kwargs):
         # Logging setup
         if log_config:
             roslog.launch_config = log_config
@@ -190,6 +191,29 @@ def _launch_this_wrapper(
 
         # Wrap the launch function so we can do some preparation and cleanup tasks
         def launch_func_wrapper():
+            if launch_func_kwarg is not None:
+                # If the launch func defines a **kwarg we can pass all extra arguments to it, with
+                # the caveat that these extra arguments need to be defined as `-[-]<key> val` tuples.
+                assert len(ctx.args) % 2 == 0
+                extra_kwargs = {}
+
+                for i, in range(0, len(ctx.args), 2):
+                    key, = ctx.args[i]
+                    if not key.startswith("-"):
+                        raise ValueError("Extra argument keys must start with a dash")
+
+                    val = ctx.args[i+1]
+                    try:
+                        val = literal_eval(val)
+                    except:
+                        # Keep val as a string
+                        pass
+
+                    extra_kwargs[key.strip("-")] = val
+
+                kwargs[launch_func_kwarg] = extra_kwargs
+
+            # Execute the launch function!
             launch_func(*args, **kwargs)
 
             # Retrieve the BetterLaunch singleton
@@ -220,11 +244,15 @@ def _launch_this_wrapper(
     click_cmd = click.Command(
         BetterLaunch._launchfile, callback=run, params=options, help=launch_func_doc
     )
-    # TODO the launch function should be able to define kwargs and consume unspecified arguments
-    # Additoinal args will be passed to the launch function without checking if it can handle them. 
-    # This way a launch function can also specify e.g. **kwargs
-    #click_cmd.allow_extra_args = True
-    #click_cmd.ignore_unknown_options = True
+
+    # The launch function should be able to define kwargs and consume unspecified arguments
+    argspec = inspect.getfullargspec(launch_func)
+    launch_func_kwarg = argspec[2]
+
+    if launch_func_kwarg is not None:
+        click_cmd.allow_extra_args = True
+        click_cmd.ignore_unknown_options = True
+
     try:
         click_cmd.main()
     except SystemExit as e:
