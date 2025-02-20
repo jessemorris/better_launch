@@ -296,8 +296,8 @@ Takeoff in 3... 2... 1...
             finally:
                 sys.exit(-1)
 
-        self.logger.error(f"Using (SIGTERM) can result in orphaned processes!")
         self._sigterm_received = True
+        self.logger.error(f"Using (SIGTERM) can result in orphaned processes!")
 
         # Final chance for the processes to shut down, but we will no longer wait
         self.shutdown(f"received (SIGTERM)", signal.SIGTERM)
