@@ -26,10 +26,10 @@ def _silent_exec(cmd):
         return ""
 
 
-gz_launched_worlds = []
+gazebo_launched_worlds = []
 
 
-def gz_launch_setup(world_file, gz_args=None, show_args=False, launcher=None):
+def gazebo_launch_setup(world_file, gz_args=None, show_args=False, launcher=None):
     if launcher is None:
         raise ValueError("Launcher must be provided")
 
@@ -60,8 +60,8 @@ def gz_launch_setup(world_file, gz_args=None, show_args=False, launcher=None):
 
     # Display world information if valid and requested
     if valid_file:
-        if show_args and valid_file not in gz_launched_worlds:
-            gz_launched_worlds.append(valid_file)
+        if show_args and valid_file not in gazebo_launched_worlds:
+            gazebo_launched_worlds.append(valid_file)
             line = _silent_exec(f"grep 'world name' {valid_file}")
             world = line.split('"')[1] if line else None
             if world:

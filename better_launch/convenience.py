@@ -4,11 +4,11 @@ import threading
 import time
 from better_launch import BetterLaunch
 import subprocess
-from .gazebo import GazeboBridge, ros_gz_prefix, gz_launch_setup
+from .gazebo import GazeboBridge, get_gazebo_prefix, gazebo_launch_setup
 from tempfile import NamedTemporaryFile
 
 
-def joint_state_publisher(launcher, use_gui=True, **node_args):
+def joint_state_publisher(launcher: BetterLaunch, use_gui=True, **node_args):
     """
     Adds a joint_state_publisher or joint_state_publisher_gui with passed arguments as parameters.
     Assumes some robot_description topic is published inside the namespace.
@@ -153,7 +153,7 @@ def create_gazebo_bridge(
     if len(bridges) == 0:
         return
 
-    ros_gz = "ros_" + ros_gz_prefix()
+    ros_gz = "ros_" + get_gazebo_prefix()
 
     
     image_bridges = [bridge for bridge in bridges if bridge.is_image]
@@ -212,7 +212,7 @@ def spawn_gazebo_world_tf(launcher: BetterLaunch, world_frame=None):
         launcher.node(**node_args)
 
 
-def gz_launch(
+def gazebo_launch(
     launcher: BetterLaunch, world_file, gz_args=None, full_world=None, save_after=5.0
 ):
     """
@@ -227,16 +227,16 @@ def gz_launch(
     - An object or reference from the launcher.include call, typically used for further management.
     """
     if isinstance(full_world, str) and os.path.exists(full_world):
-        launch_file, launch_arguments = gz_launch_setup(full_world, gz_args)
+        launch_file, launch_arguments = gazebo_launch_setup(full_world, gz_args)
     else:
-        launch_file, launch_arguments = gz_launch_setup(world_file, gz_args)
+        launch_file, launch_arguments = gazebo_launch_setup(world_file, gz_args)
         if isinstance(full_world, str):
-            save_gz_world(launcher, full_world, save_after)
+            save_gazebo_world(launcher, full_world, save_after)
 
     return launcher.include(pkg=None, launch_file=launch_file)
 
 
-def save_gz_world(launcher: BetterLaunch, dst, after=5.0):
+def save_gazebo_world(launcher: BetterLaunch, dst, after=5.0):
     """
     Saves the current world under dst.
     Resolves any spawned URDF through their description parameter and converts to SDF.
@@ -252,7 +252,7 @@ def save_gz_world(launcher: BetterLaunch, dst, after=5.0):
     threading.Thread(target=delayed_launch).start()
 
 
-def spawn_gz_model(
+def spawn_gazebo_model(
     launcher: BetterLaunch,
     name,
     topic="robot_description",
@@ -272,5 +272,5 @@ def spawn_gz_model(
         spawn_args["file"] = model_file  
     else:
         spawn_args["topic"] = topic
-    pkg = "ros_ign_gazebo" if ros_gz_prefix() == "ign" else "ros_gz_sim"
+    pkg = "ros_ign_gazebo" if get_gazebo_prefix() == "ign" else "ros_gz_sim"
     launcher.node(package=pkg, executable="create", node_args=spawn_args)
