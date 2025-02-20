@@ -217,10 +217,14 @@ def _launch_this_wrapper(
         else:
             launch_func_wrapper()
 
-    # TODO add param to collect leftover kwargs, they might be relevant for includes
     click_cmd = click.Command(
-        "main", callback=run, params=options, help=launch_func_doc
+        BetterLaunch._launchfile, callback=run, params=options, help=launch_func_doc
     )
+    # TODO the launch function should be able to define kwargs and consume unspecified arguments
+    # Additoinal args will be passed to the launch function without checking if it can handle them. 
+    # This way a launch function can also specify e.g. **kwargs
+    #click_cmd.allow_extra_args = True
+    #click_cmd.ignore_unknown_options = True
     try:
         click_cmd.main()
     except SystemExit as e:

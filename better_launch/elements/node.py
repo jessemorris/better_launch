@@ -62,9 +62,9 @@ class Node(AbstractNode):
         cmd_args : list[str], optional
             Additional command line arguments to pass to the node.
         env : dict[str, str], optional
-            Additional environment variables to set for the node's process.
+            Additional environment variables to set for the node's process. The node process will merge these with the environment variables of the better_launch host process unless :py:meth:`isolate_env` is True.
         isolate_env : bool, optional
-            If True, the node process' env will not be inherited from the parent process. Be aware that this can result in many common things to not work anymore since e.g. keys like *PATH* will be missing.
+            If True, the node process' env will not be inherited from the parent process and only those passed via `env` will be used. Be aware that this can result in many common things to not work anymore since e.g. keys like *PATH* will be missing.
         log_level : int, optional
             The minimum severity a logged message from this node must have in order to be published.
         output_config : Node.LogSink  |  dict[Node.LogSource, set[Node.LogSink]], optional
@@ -82,7 +82,7 @@ class Node(AbstractNode):
         respawn_delay : float, optional
             How long to wait before restarting the node process after it terminates.
         use_shell : bool, optional
-            If True, invoke the node executable via the system shell. Use only if you know you need it.
+            If True, invoke the node executable via the system shell. While this gives access to the shell's builtins, this has the downside of running the node inside a "mystery program" which is platform and user dependent. Generally not advised.
 
         Returns
         -------
@@ -91,7 +91,6 @@ class Node(AbstractNode):
         """
         super().__init__(package, executable, name, namespace, remaps, params)
 
-        # TODO may want to wrap these in properties
         self.env = env or {}
         self.isolate_env = isolate_env
         self.cmd_args = ["--log-level", logging.getLevelName(log_level)]
@@ -100,19 +99,17 @@ class Node(AbstractNode):
 
         self.output_config = output_config or {}
         self.reparse_logs = reparse_logs
-        self._respawn_retries = 0
+        self.use_shell = use_shell
         self.max_respawns = max_respawns
         self.respawn_delay = respawn_delay
-        self.use_shell = use_shell
+        self._respawn_retries = 0
 
-        # NOTE don't rely on these being public, they might be abandoned in the future
-        self.completed_future = None
         self.shutdown_future = None
+        """Use this if you want to join the node process.
+        """
 
         self._process: subprocess.Popen = None
         self._on_exit_callback = on_exit
-        self._sigterm_timer = None
-        self._sigkill_timer = None
 
     @property
     def pid(self) -> int:
@@ -129,8 +126,6 @@ class Node(AbstractNode):
             and self._process.poll() is None
             and self.shutdown_future is not None
             and not self.shutdown_future.done()
-            and self.completed_future is not None
-            and not self.completed_future.done()
         )
 
     def start(self) -> None:
@@ -147,7 +142,6 @@ class Node(AbstractNode):
             self.logger.warning(f"Node {self} is already started")
             return
 
-        self.completed_future = Future()
         self.shutdown_future = Future()
 
         try:
@@ -287,7 +281,7 @@ class Node(AbstractNode):
 
             process.wait()
             self._on_shutdown()
-            self._cleanup()
+            self.shutdown_future.set_result(None)
 
     def _collect_output_bundled(
         self, source: io.IOBase, buffer: io.StringIO, logger: logging.Logger
@@ -342,6 +336,9 @@ class Node(AbstractNode):
         self._on_signal(signum)
 
     def _on_signal(self, signum) -> None:
+        if not self._process or self._process.poll() is not None:
+            return
+
         signame = signal.Signals(signum).name
 
         if not self.is_running:
@@ -378,22 +375,6 @@ class Node(AbstractNode):
             # Execution not started or already done, nothing to do.
             return
 
-        if self.completed_future is None:
-            # Execution not started so nothing to do, but self.shutdown_future should prevent
-            # execution from starting in the future.
-            self.shutdown_future.set_result(None)
-            return
-
-        if self.completed_future.done():
-            # Already done, then nothing to do
-            self.shutdown_future.set_result(None)
-            return
-
-        # NOTE ROS2 is also handling a case where the subprocess is only about to start
-        # see if we can live without that
-
-        self.shutdown_future.set_result(None)
-
         # Send SIGTERM and SIGKILL if not shutting down fast enough
         def escalate():
             try:
@@ -405,22 +386,6 @@ class Node(AbstractNode):
                 pass
 
         threading.Thread(target=escalate, daemon=True).start()
-
-    def _cleanup(self) -> None:
-        # Cancel any pending timers we started.
-        if self._sigterm_timer is not None:
-            self._sigterm_timer.cancel()
-        if self._sigkill_timer is not None:
-            self._sigkill_timer.cancel()
-
-        # Signal that we're done to the launch system.
-        if self.completed_future is not None:
-            try:
-                self.completed_future.set_result(None)
-            except:
-                self.completed_future.cancel()
-
-        self.my_task = None
 
     def _get_info_section_general(self):
         info = super()._get_info_section_general()
