@@ -1,7 +1,5 @@
 from better_launch import BetterLaunch, launch_this
 
-from turtlesim.srv import Spawn
-
 
 @launch_this(ui=True)
 def test(x: int = 2, y: int = 2, theta: float = 0.2):
@@ -14,6 +12,9 @@ def test(x: int = 2, y: int = 2, theta: float = 0.2):
 
     # If no package is given the current launch file's package is used!
     bl.include("ros2_turtlesim.launch.py", turtlesim_ns="my_turtlesim")
+
+    # Just for the sake of this tutorial, we could also import it as usual and get proper type hints
+    Spawn = bl.get_ros_message_type("turtlesim/srv/Spawn")
 
     # Since better_launch executes actions immediately, you can also interact with e.g. nodes immediately!
     client = bl.service_client(

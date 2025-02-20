@@ -6,6 +6,9 @@ from launch.conditions import IfCondition
 from launch.substitutions import LaunchConfiguration, PythonExpression
 
 
+"""This is an extra launch file used by some of the examples."""
+
+
 def generate_launch_description():
     turtlesim_ns = LaunchConfiguration('turtlesim_ns')
     use_provided_red = LaunchConfiguration('use_provided_red')

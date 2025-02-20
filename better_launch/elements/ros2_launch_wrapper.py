@@ -174,8 +174,7 @@ class Ros2LaunchWrapper(AbstractNode):
         """
         return self.is_running
 
-    @property
-    def is_lifecycle_node(self) -> bool:
+    def check_lifecycle_node(self, timeout: float = None) -> bool:
         """This is never a lifecycle node.
         """
         return False

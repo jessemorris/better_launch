@@ -44,7 +44,7 @@ class NodeLabel(HorizontalGroup):
         yield Static(f"[u]{self.keybind or ' '}[/u] ", id="keybind")
 
         suffix = ""
-        if self.node.is_lifecycle_node:
+        if self.node.check_lifecycle_node():
             suffix += "L"
         if isinstance(self.node, Composer):
             suffix += "O"
