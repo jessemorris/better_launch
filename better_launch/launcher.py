@@ -849,9 +849,9 @@ Takeoff in 3... 2... 1...
         cmd_args : list[str], optional
             Additional command line arguments to pass to the node.
         env : dict[str, str], optional
-            Additional environment variables to set for the node's process.
+            Additional environment variables to set for the node's process. The node process will merge these with the environment variables of the better_launch host process unless :py:meth:`isolate_env` is True.
         isolate_env : bool, optional
-            If True, the node process' env will not be inherited from the parent process. Be aware that this can result in many common things to not work anymore since e.g. keys like *PATH* will be missing.
+            If True, the node process' env will not be inherited from the parent process and only those passed via `env` will be used. Be aware that this can result in many common things to not work anymore since e.g. keys like *PATH* will be missing.
         log_level : int, optional
             The minimum severity a logged message from this node must have in order to be published.
         output_config : Node.LogSink  |  dict[Node.LogSource, set[Node.LogSink]], optional
@@ -869,7 +869,7 @@ Takeoff in 3... 2... 1...
         respawn_delay : float, optional
             How long to wait before restarting the node process after it terminates.
         use_shell : bool, optional
-            If True, invoke the node executable via the system shell. Use only if you know you need it.
+            If True, invoke the node executable via the system shell. While this gives access to the shell's builtins, this has the downside of running the node inside a "mystery program" which is platform and user dependent. Generally not advised.
         autostart_process : bool, optional
             If True, start the node process before returning from this function.
         init_waittime : float, optional
@@ -986,9 +986,9 @@ Takeoff in 3... 2... 1...
         cmd_args : list[str], optional
             Additional command line arguments to pass to the composer.
         env : dict[str, str], optional
-            Additional environment variables to set for the composer's process.
+            Additional environment variables to set for the composer's process. The composer process will merge these with the environment variables of the better_launch host process unless :py:meth:`isolate_env` is True.
         isolate_env : bool, optional
-            If True, the composer process' env will not be inherited from the parent process. Be aware that this can result in many common things to not work anymore since e.g. keys like *PATH* will be missing.
+            If True, the composer process' env will not be inherited from the parent process and only those passed via `env` will be used. Be aware that this can result in many common things to not work anymore since e.g. keys like *PATH* will be missing.
         log_level : int, optional
             The minimum severity a logged message from this composer must have in order to be published.
         output_config : Node.LogSink  |  dict[Node.LogSource, set[Node.LogSink]], optional
@@ -1006,7 +1006,7 @@ Takeoff in 3... 2... 1...
         respawn_delay : float, optional
             How long to wait before restarting the composer process after it terminates.
         use_shell : bool, optional
-            If True, invoke the composer executable via the system shell. Use only if you know you need it.
+            If True, invoke the composer executable via the system shell. While this gives access to the shell's builtins, this has the downside of running the node inside a "mystery program" which is platform and user dependent. Generally not advised.
         autostart_process : bool, optional
             If True, start the composer process before returning from this function. Note that setting this to False for a composer will make it unusable as a context object, since you won't be able to load any components.
         init_waittime : float, optional
