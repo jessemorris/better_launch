@@ -1,4 +1,4 @@
-from typing import Any, Callable, Generator
+from typing import Any, Callable, Generator, overload
 import sys
 import os
 import signal
@@ -1140,28 +1140,61 @@ Takeoff in 3... 2... 1...
 
         return comp
 
+    @overload
     def include(
         self,
         launchfile: str,
-        package: str = None,
+        *,
+        pass_launch_func_args: bool = True,
+        **kwargs
+    ) -> None:
+        ...
+
+    @overload
+    def include(
+        self,
+        package: str, 
+        launchfile: str,
+        *,
+        pass_launch_func_args: bool = True,
+        **kwargs
+    ) -> None:
+        ...
+
+    def include(
+        self,
+        *search_args: str, 
         pass_launch_func_args: bool = True,
         **kwargs,
     ) -> None:
-        """Include another launch file. The `launchfile` path is resolved using :py:meth:`find`. 
+        """Include another launch file, resolving its path using :py:meth:`find`. 
 
-        The file is first read into memory and checked. If it seems to be a *better_launch* launch file, it is executed immediately (using :py:func:`exec`). The BetterLaunch instance and global context will be shared. Any arguments to :py:deco:`launch_this` will be ignored (e.g. `ui`). 
+        The file is first read into memory and checked. If it seems to be a *better_launch* launch file, it is executed immediately (using :py:func:`exec`). The BetterLaunch instance and global context will be shared. Any arguments to :py:deco:`launch_this` in the included launch file will be ignored. 
 
         If the file does not appear to be a *better_launch* launch file, it is assumed to be a regular ROS2 launch file. In this case a :py:class:`launch.actions.IncludeLaunchDescription` instance is created and passed to :py:meth:`ros2_actions`.
 
         Parameters
         ----------
+        package : str
+            The package containing the specified launch file.
         launchfile : str
-            Path to the launch file to include.
-        package : str, optional
-            Name of a package to resolve the launch file path.
+            The name of a launch file to execute.
         pass_launch_func_args : bool, optional
             If True, all :py:meth:`launch_args` will be passed to the included launch file. Additional launch arguments can also be provided via the `kwargs`.
+
+        Raises
+        ------
+        ValueError
+            If the passed in `search_args` cannot be handled.
         """
+        if len(search_args) == 1:
+            package = None
+            launchfile = search_args[0]
+        elif len(search_args) == 2:
+            package, launchfile = search_args
+        else:
+            raise ValueError(f"Incorrect number of arguments: {search_args}")
+
         # Pass additional arguments, e.g. launch args
         include_args = {}
         if pass_launch_func_args:
