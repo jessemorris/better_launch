@@ -257,15 +257,15 @@ class Composer(Node):
 
         from better_launch import BetterLaunch
 
-        launcher = BetterLaunch.wait_for_instance(0.0)
+        launcher = BetterLaunch.instance()
         self._load_node_client = launcher.service_client(
-            f"{self.name}/_container/load_node", LoadNode
+            f"{self.fullname}/_container/load_node", LoadNode
         )
         if not self._load_node_client.wait_for_service(timeout_sec=5.0):
             raise RuntimeError("Failed to connect to composer load service")
 
         self._unload_node_client = launcher.service_client(
-            f"{self.name}/_container/unload_node", UnloadNode
+            f"{self.fullname}/_container/unload_node", UnloadNode
         )
         if not self._unload_node_client.wait_for_service(timeout_sec=5.0):
             raise RuntimeError("Failed to connect to composer unload service")
