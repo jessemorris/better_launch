@@ -1300,7 +1300,7 @@ Takeoff in 3... 2... 1...
     def ros2_launch_service(
         self,
         name: str = "LaunchService",
-        launch_args: list[str] = None,
+        launchservice_args: list[str] = None,
         start_immediately: bool = True,
     ) -> Ros2LaunchWrapper:
         """Create or retrieve a manager object that can be used for queueing ROS2 launch actions. 
@@ -1315,7 +1315,7 @@ Takeoff in 3... 2... 1...
         ----------
         name : str, optional
             The name used to identify the process and its logger.
-        launch_args : list[str], optional
+        launchservice_args : list[str], optional
             Additional launch arguments to pass to the ROS2 launch service. These will end up in :py:meth:`launch.LaunchContext.argv`.
         start_immediately : bool, optional
             If True, the ROS2 launch service process is started immediately.
@@ -1327,7 +1327,7 @@ Takeoff in 3... 2... 1...
         """
         if not self._ros2_launcher:
             self._ros2_launcher = Ros2LaunchWrapper(
-                name=name, launch_args=launch_args
+                name=name, launchservice_args=launchservice_args
             )
 
         if start_immediately:

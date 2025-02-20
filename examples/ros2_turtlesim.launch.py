@@ -76,7 +76,7 @@ def generate_launch_description():
         use_provided_red_launch_arg,
         new_background_r_launch_arg,
         turtlesim_node,
-        spawn_turtle,
+        #spawn_turtle,
         change_background_r,
         TimerAction(
             period=2.0,
