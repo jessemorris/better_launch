@@ -1,12 +1,10 @@
 # About
 Let's face it: ROS2 has been a severe downgrade in terms of usability compared to ROS1. While there are many considerable improvements, the current launch system is borderline unusable. I've listed my personal gripes below, but if you're here you likely feel the same. This is why I wrote ***better_launch***.
 
-
-# So what does it look like?
-Like this! 
+Instead of dozens of imports and class instances for even the most basic tasks, your launch files could look as simple and beautiful as this:
 
 ```python
-from better_launch import BetterLaunch, launch_this, LifecycleStage
+from better_launch import BetterLaunch, launch_this
 
 @launch_this
 def test(enable_x: bool):
@@ -31,65 +29,111 @@ def test(enable_x: bool):
         bl.include("my_other_launchfile.py", "my_other_package")
 ```
 
-And because I apparently have too much free time, there is also a terminal UI reminiscent of the much missed [rosmon](https://github.com/xqms/rosmon). But wait, there is more: because the UI is based on [textual](https://textual.textualize.io/) you can even serve it as an interactive website!
+```bash
+    bl my_package my_launch_file.py --enable_x True
+```
 
-![TUI](media/tui.svg)
-
-**TODO link to documentation**
+Do I have your attention? Read on to learn more!
 
 
 # Why not improve the existing ROS2 launch?
-Because I think it is beyond redemption and no amount of refactoring and REPs (ROS enhancement proposal) will turn the sails. Tools like the highly rated [simple_launch](https://github.com/oKermorgant/simple_launch) exist, but still use ROS2 launch under the hood and so inherit much of its clunkiness. Rather than fixing an inherently broken solution, I decided to make a RAP - a ROS abandonment proposal :)
+Because I think it is beyond redemption and no amount of refactoring and REPs (ROS enhancement proposals) will turn the sails. Tools like the highly rated [simple_launch](https://github.com/oKermorgant/simple_launch) exist, but still use ROS2 launch under the hood and so inherit much of its clunkiness. Rather than fixing an inherently broken solution, I decided to make a RAP - a ROS abandonment proposal :)
 
-Essentially, *better_launch* is what I wish ROS2 launch would be: comfortable to use, simple to understand, easy to remember. This is why *better_launch* is **not** yet another abstraction layer over ROS2 launch; it is a **full** replacement with no imports or dependencies on the existing launch system.
-
-
-# Okay, what are the differences?
-Because *better_launch* does not use the ROS2 launch system, some aspects work different from what you may be used to. 
+Essentially, *better_launch* is what I wish ROS2 launch would be: intuitive to use, simple to understand, easy to remember. This is why *better_launch* is **not** yet another abstraction layer over ROS2 launch; it is a **full** replacement with no required dependencies on the existing launch system.
 
 
-### Action immediacy
+# Okay, what can I do with it?
+![TUI](media/tui.svg)
+
+Everything you would expect and a little more! The `BetterLaunch` instance allows you to
+- create *subscribers*, *publishers*, *services*, *service clients*, *action servers* and *action clients* on the fly
+- start and stop *nodes*
+- start and stop *lifecycle nodes* and manage their lifecycle stage
+- start and stop *composers* and load *components* into them
+- organize your nodes in *groups*
+- define hasslefree *topic remaps* for nodes and groups
+- *pass any arguments* from the command line without having to declare them
+- easily *load parameters* from yaml files
+- *locate files* based on filenames and package names
+- use *string substitutions* to resolve e.g. paths
+- include other *better_launch launch files*
+- include other *ROS2 launch files*
+- let regular ROS2 launch files *include* your *better_launch* launch files
+- configure *logging* just as you would in ROS2, yet have much more readable output
+- manage your node using a nice *terminal UI* reminiscent of [rosmon](https://github.com/xqms/rosmon)
+- serve the terminal *UI as an interactive web page* courtesy of [textual](https://textual.textualize.io/) - how crazy is that?!
+
+See the [documentation](docs/build/html/index.html) (or [source code](better_launch/better_launch.py)) for details.
+
+> In the future, there will also be a `convenience` module that will help with e.g. setting up *Gazebo* environments.
+
+
+# What are the differences?
+Because *better_launch* does not use the ROS2 launch system, some aspects work differently from what you may be used to.
+
+
+## Launching launch files
+While you indeed *can* launch *better_launch* launch files via `ros2 launch`, this comes with the caveat that you now run one launch system from another. In the worst case, you have ros2launch -> better_launch -> ros2launch. However, *better_launch* comes with its own launch script called `bl`, which not only avoids the first launch system layer, but also provides help texts and shell completions for your launch files and their arguments. It is automatically installed and should be on your path as soon as you source your workspace!
+
+
+## Action immediacy
 In ROS2 launch, launch files create tasks that are then passed as a single batch to an asynchronous event loop. This makes e.g. having conditions on arguments so incredibly weird. In *better_launch* however, all actions are taken immediately: if you create a node, its process is started right away; if you include another *better_launch* launch file, its contents will be handled before the function returns. 
 
 The only exception to this is adding ROS2 actions like including regular ROS2 launch files. Since these still rely on the ROS2 launch system, they need to be turned into proper ROS2 tasks and passed to the asynchronous event loop. Usually a ROS2 launch service sub-process is started immediately the first time a ROS2 action is passed to *better_launch*. From then on this process will handle all ROS2 actions asynchronously in the background. 
 
-While the output of this process (and its nodes) is captures and formatted by *better_launch* just like for any other node, these cannot be managed individually.
+> While the output of the ROS2 launch service process (and its nodes) is captured and formatted by *better_launch* just like for all other nodes, these cannot be managed individually.
 
 
-### Lifecycle nodes
+## Lifecycle nodes
 Lifecycle nodes differ from regular nodes in that they don't become fully active after their process starts. Instead you have to call one of their lifecycle management services, usually via additional code in your launch file or the `ros2 lifecycle` CLI. However, in the end they are still just nodes.
 
 *better_launch* makes no distinction between regular and lifecycle nodes. Instead, all "lifecyclable" objects (e.g. nodes and components) provide a `LifecycleManager` object via their `lifecycle` member. This will be `None` if the object is not a lifecycle-thing - otherwise you can use it to manage the object's lifecycle. Additionally, all objects that turn out to be lifecyclable will transition to their *ACTIVE* state by default, unless you pass a different target state on instantiation.
 
 
-### Type checking
+## Type checking
 When passing arguments to a node in ROS2, in the end everything is passed as stringified command line arguments. So why bother with types? *better_launch* does not enforce overly strict type checking on you and will happily accept `int`, `string`, `float`, etc. for any given argument. In addition, sensible and *unsurprising* types have been chosen for all arguments you may provide (e.g. remaps are defined as a `dict[str, str]`).
 
 
-### Declaring launch arguments
-Simply put: you don't. *better_launch* will check the signature of your launch function and turn all arguments into launch arguments. For example, if your launch function has an `enable_x` argument, you will be able to pass it with `--enable_x` on the command line. Under the hood, *better_launch* is using [click](https://click.palletsprojects.com/), so every launch file you write comes with proper CLI support. 
+## Declaring launch arguments
+Simply put: you don't. *better_launch* will check the signature of your launch function and turn all arguments into launch arguments. For example, if your launch function has an `enable_x` argument, you will be able to pass it with `--enable_x` from the command line. Under the hood *better_launch* is using [click](https://click.palletsprojects.com/), so every launch file you write comes with proper CLI support. 
 
-Tip: add a docstring to your function and call your launch file with `--help`!
+> Tip: try adding a docstring to your launch function and call your launch file with `--help`!
 
 
-### Logging
+## Parameter files
+You do **not** have to put `ros__parameters` in your configs anymore. Hooray!
+
+
+## Logging
 Just like ROS2 launch, *better_launch* takes care of managing loggers and redirecting everything where it belongs (in fact that part is straight up copied from ROS2 launch). However, I also added a thin parsing and formatting layer so that colors and nicer screen output are possible. This can be turned off of course by setting the `reparse_logs` option when creating nodes.
 
 
-### Abandoned processes
+## Abandoned processes
 ROS2 launch has a bad reputation of leaving stale and abandoned processes behind after terminating. In my testing so far this has never been an issue with *better_launch* yet - except when you hard kill (-9) its process.
 
 
 # What doesn't work yet
 As of now *better_launch* supports the most important use cases, like starting nodes, proper (nicer!) logging, being awesome. However, there are still a couple of features that I have to work on to make it feature complete (roughly sorted by priority):
-- [ ] document public API
-- [ ] exception handling is barebones, so if something fails, everything fails
-- [ ] better yaml param loader (it's already nice, but could be nicer)
-- [ ] the TUI is fast, but could maybe be even faster
-- [ ] check how well it handles high-volume logging
-- [ ] check for edge cases
-- [ ] the TUI can miss some log messages and I'm not sure why. If in doubt, check without the TUI!
-- [ ] add launch_this overrides to click CLI handler
+- [ ] write more examples and guides
+- [ ] integrate convenience module once it's done
+- [ ] exception handling is barebones, so if something fails, everything fails (this is fine?)
+- [ ] see if we can make the TUI even faster
+- [ ] check how well the TUI handles high-volume logging
+
+
+# Installation
+*better_launch* is a regular ROS2 package, which means you can install it in your workspace and then use it in all launch files within that workspace.
+
+Unfortunately, the ROS foundation is adamant about maintaining their own python package list for `rosdep` instead of forwarding to e.g. `pip` to handle dependencies. Since *better_launch* uses a few python libraries that are not found in the official ROS package list, you will have to install them manually - a `requirements.txt` file is provided of course. In case you have setup a *venv* or *conda* environment for your workspace you should activate it first. 
+
+```bash
+rosdep install --from-paths path/to/better_launch
+pip install -r requirements.txt
+colcon build --packages-select better_launch
+```
+
+In addition, *better_launch* will make use of the following optional python libraries:
+- *wonderwords*: if installed, wonderwords will be used to generate unique suffixes for anonymous nodes. Otherwise UUIDs will be used.
 
 
 # What's so bad about ROS2 launch?
@@ -127,6 +171,6 @@ I think we can agree that this is not exactly elegant - including another launch
 - a weird fetish for import statements (see above)
 - unneccesarily strict type checking (why use python if I have to verify everything?)
 - nonsensical argument types (e.g. remaps are a *list of tuples* instead of simply a *dict*)
-- using asyncio may be slightly faster, but prevents using readily available launch arguments (ever wondered why there is no `if my_arg: launch_node()`?)
+- using asyncio may be slightly faster, but prevents using readily available launch arguments (ever wondered why you always see these weird Condition classes instead of `if my_arg:`?)
 - horrendous API for starting lifecycle nodes (also, why the hell are there two completely separate base interfaces?)
 - and the list goes on...

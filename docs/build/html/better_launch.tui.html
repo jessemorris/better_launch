@@ -1,0 +1,387 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>better_launch.tui package &mdash; better_launch 0.9.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
+
+  
+    <link rel="shortcut icon" href="_static/logo.svg"/>
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=39bb1c6d"></script>
+      <script src="_static/doctools.js?v=9bcbadda"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="better_launch.utils package" href="better_launch.utils.html" />
+    <link rel="prev" title="better_launch.ros package" href="better_launch.ros.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            better_launch
+              <img src="_static/logo.svg" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="modules.html">better_launch</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="better_launch.html">better_launch package</a><ul class="current">
+<li class="toctree-l3 current"><a class="reference internal" href="better_launch.html#subpackages">Subpackages</a><ul class="current">
+<li class="toctree-l4"><a class="reference internal" href="better_launch.elements.html">better_launch.elements package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="better_launch.ros.html">better_launch.ros package</a></li>
+<li class="toctree-l4 current"><a class="current reference internal" href="#">better_launch.tui package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="better_launch.utils.html">better_launch.utils package</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="better_launch.html#submodules">Submodules</a></li>
+<li class="toctree-l3"><a class="reference internal" href="better_launch.html#module-better_launch.launcher">better_launch.launcher module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="better_launch.html#module-better_launch">Module contents</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">better_launch</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="modules.html">better_launch</a></li>
+          <li class="breadcrumb-item"><a href="better_launch.html">better_launch package</a></li>
+      <li class="breadcrumb-item active">better_launch.tui package</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/better_launch.tui.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="better-launch-tui-package">
+<h1>better_launch.tui package<a class="headerlink" href="#better-launch-tui-package" title="Link to this heading"></a></h1>
+<section id="submodules">
+<h2>Submodules<a class="headerlink" href="#submodules" title="Link to this heading"></a></h2>
+</section>
+<section id="module-better_launch.tui.choice_dialog">
+<span id="better-launch-tui-choice-dialog-module"></span><h2>better_launch.tui.choice_dialog module<a class="headerlink" href="#module-better_launch.tui.choice_dialog" title="Link to this heading"></a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="better_launch.tui.choice_dialog.ChoiceDialog">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">better_launch.tui.choice_dialog.</span></span><span class="sig-name descname"><span class="pre">ChoiceDialog</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">choices</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">message</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">title</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">id</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">classes</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/better_launch/tui/choice_dialog.html#ChoiceDialog"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#better_launch.tui.choice_dialog.ChoiceDialog" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">ModalScreen</span></code></p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="better_launch.tui.choice_dialog.ChoiceDialog.BINDINGS">
+<span class="sig-name descname"><span class="pre">BINDINGS</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">ClassVar[list[BindingType]]</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">[Binding(key='escape',</span> <span class="pre">action='dismiss',</span> <span class="pre">description='',</span> <span class="pre">show=True,</span> <span class="pre">key_display=None,</span> <span class="pre">priority=False,</span> <span class="pre">tooltip='',</span> <span class="pre">id=None,</span> <span class="pre">system=False)]</span></em><a class="headerlink" href="#better_launch.tui.choice_dialog.ChoiceDialog.BINDINGS" title="Link to this definition"></a></dt>
+<dd><p>A list of key bindings.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="better_launch.tui.choice_dialog.ChoiceDialog.DEFAULT_CSS">
+<span class="sig-name descname"><span class="pre">DEFAULT_CSS</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">ClassVar[str]</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'\n</span>&#160;&#160;&#160; <span class="pre">ChoiceDialog</span> <span class="pre">{\n</span>&#160;&#160;&#160;&#160;&#160;&#160;&#160; <span class="pre">background:</span> <span class="pre">rgba(0,</span> <span class="pre">0,</span> <span class="pre">0,</span> <span class="pre">0.3);\n</span>&#160;&#160;&#160;&#160;&#160;&#160;&#160; <span class="pre">align:</span> <span class="pre">center</span> <span class="pre">middle;\n</span>&#160;&#160;&#160;&#160;&#160;&#160;&#160; <span class="pre">width:</span> <span class="pre">auto;\n</span>&#160;&#160;&#160;&#160;&#160;&#160;&#160; <span class="pre">height:</span> <span class="pre">auto;\n\n</span>&#160;&#160;&#160;&#160;&#160;&#160;&#160; <span class="pre">VerticalGroup</span> <span class="pre">{\n</span>&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160; <span class="pre">margin:</span> <span class="pre">1;\n</span>&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160; <span class="pre">width:</span> <span class="pre">100%;\n</span>&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160; <span class="pre">height:</span> <span class="pre">auto;\n</span>&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160; <span class="pre">max-width:</span> <span class="pre">40;\n</span>&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160; <span class="pre">content-align:</span> <span class="pre">center</span> <span class="pre">middle;\n\n</span>&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160; <span class="pre">#message</span> <span class="pre">{\n</span>&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160; <span class="pre">background:</span> <span class="pre">$panel;\n</span>&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160; <span class="pre">padding:</span> <span class="pre">1;\n</span>&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160; <span class="pre">}\n\n</span>&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160; <span class="pre">#choices</span> <span class="pre">{\n</span>&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160; <span class="pre">width:</span> <span class="pre">100%;\n</span>&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160; <span class="pre">height:</span> <span class="pre">auto;\n</span>&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160; <span class="pre">padding:</span> <span class="pre">1</span> <span class="pre">2</span>&#160;&#160;&#160; <span class="pre">;\n</span>&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160; <span class="pre">}\n</span>&#160;&#160;&#160;&#160;&#160;&#160;&#160; <span class="pre">}\n</span>&#160;&#160;&#160; <span class="pre">}\n</span>&#160;&#160;&#160; <span class="pre">'</span></em><a class="headerlink" href="#better_launch.tui.choice_dialog.ChoiceDialog.DEFAULT_CSS" title="Link to this definition"></a></dt>
+<dd><p>Default TCSS.</p>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="better_launch.tui.choice_dialog.ChoiceDialog.ChoiceItem">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">ChoiceItem</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">action</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/better_launch/tui/choice_dialog.html#ChoiceDialog.ChoiceItem"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#better_launch.tui.choice_dialog.ChoiceDialog.ChoiceItem" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">ListItem</span></code></p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="better_launch.tui.choice_dialog.ChoiceDialog.ChoiceItem.can_focus">
+<span class="sig-name descname"><span class="pre">can_focus</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">bool</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">False</span></em><a class="headerlink" href="#better_launch.tui.choice_dialog.ChoiceDialog.ChoiceItem.can_focus" title="Link to this definition"></a></dt>
+<dd><p>Widget may receive focus.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="better_launch.tui.choice_dialog.ChoiceDialog.ChoiceItem.can_focus_children">
+<span class="sig-name descname"><span class="pre">can_focus_children</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">bool</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">True</span></em><a class="headerlink" href="#better_launch.tui.choice_dialog.ChoiceDialog.ChoiceItem.can_focus_children" title="Link to this definition"></a></dt>
+<dd><p>Widget’s children may receive focus.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="better_launch.tui.choice_dialog.ChoiceDialog.compose">
+<span class="sig-name descname"><span class="pre">compose</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/better_launch/tui/choice_dialog.html#ChoiceDialog.compose"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#better_launch.tui.choice_dialog.ChoiceDialog.compose" title="Link to this definition"></a></dt>
+<dd><p>Called by Textual to create child widgets.</p>
+<p>This method is called when a widget is mounted or by setting <cite>recompose=True</cite> when
+calling [<cite>refresh()</cite>][textual.widget.Widget.refresh].</p>
+<p>Note that you don’t typically need to explicitly call this method.</p>
+<p class="rubric">Example</p>
+<p><a href="#id1"><span class="problematic" id="id2">``</span></a><a href="#id3"><span class="problematic" id="id4">`</span></a>python
+def compose(self) -&gt; ComposeResult:</p>
+<blockquote>
+<div><p>yield Header()
+yield Label(“Press the button below:”)
+yield Button()
+yield Footer()</p>
+</div></blockquote>
+<p><a href="#id5"><span class="problematic" id="id6">``</span></a><a href="#id7"><span class="problematic" id="id8">`</span></a></p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="better_launch.tui.choice_dialog.ChoiceDialog.on_list_view_selected">
+<span class="sig-name descname"><span class="pre">on_list_view_selected</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">event</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/better_launch/tui/choice_dialog.html#ChoiceDialog.on_list_view_selected"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#better_launch.tui.choice_dialog.ChoiceDialog.on_list_view_selected" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="better_launch.tui.choice_dialog.ChoiceDialog.can_focus">
+<span class="sig-name descname"><span class="pre">can_focus</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">bool</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">False</span></em><a class="headerlink" href="#better_launch.tui.choice_dialog.ChoiceDialog.can_focus" title="Link to this definition"></a></dt>
+<dd><p>Widget may receive focus.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="better_launch.tui.choice_dialog.ChoiceDialog.can_focus_children">
+<span class="sig-name descname"><span class="pre">can_focus_children</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">bool</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">True</span></em><a class="headerlink" href="#better_launch.tui.choice_dialog.ChoiceDialog.can_focus_children" title="Link to this definition"></a></dt>
+<dd><p>Widget’s children may receive focus.</p>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="module-better_launch.tui.log_entry">
+<span id="better-launch-tui-log-entry-module"></span><h2>better_launch.tui.log_entry module<a class="headerlink" href="#module-better_launch.tui.log_entry" title="Link to this heading"></a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="better_launch.tui.log_entry.LogEntry">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">better_launch.tui.log_entry.</span></span><span class="sig-name descname"><span class="pre">LogEntry</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">record</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/better_launch/tui/log_entry.html#LogEntry"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#better_launch.tui.log_entry.LogEntry" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">HorizontalGroup</span></code></p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="better_launch.tui.log_entry.LogEntry.colormap">
+<span class="sig-name descname"><span class="pre">colormap</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">{'CRITICAL':</span> <span class="pre">'rgb(214,33,255)',</span> <span class="pre">'DEBUG':</span> <span class="pre">'rgb(133,133,133)',</span> <span class="pre">'ERROR':</span> <span class="pre">'rgb(34,97,231)',</span> <span class="pre">'INFO':</span> <span class="pre">'rgb(42,110,255)',</span> <span class="pre">'WARNING':</span> <span class="pre">'rgb(255,209,102)'}</span></em><a class="headerlink" href="#better_launch.tui.log_entry.LogEntry.colormap" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="better_launch.tui.log_entry.LogEntry.iconmap">
+<span class="sig-name descname"><span class="pre">iconmap</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">{'CRITICAL':</span> <span class="pre">'</span> <span class="pre">🔥',</span> <span class="pre">'DEBUG':</span> <span class="pre">'⚑',</span> <span class="pre">'ERROR':</span> <span class="pre">'⨯',</span> <span class="pre">'INFO':</span> <span class="pre">'✓',</span> <span class="pre">'WARNING':</span> <span class="pre">'▲'}</span></em><a class="headerlink" href="#better_launch.tui.log_entry.LogEntry.iconmap" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="better_launch.tui.log_entry.LogEntry.get_color_for_source">
+<span class="sig-name descname"><span class="pre">get_color_for_source</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">source</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/better_launch/tui/log_entry.html#LogEntry.get_color_for_source"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#better_launch.tui.log_entry.LogEntry.get_color_for_source" title="Link to this definition"></a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">Color</span></code></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="better_launch.tui.log_entry.LogEntry.compose">
+<span class="sig-name descname"><span class="pre">compose</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/better_launch/tui/log_entry.html#LogEntry.compose"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#better_launch.tui.log_entry.LogEntry.compose" title="Link to this definition"></a></dt>
+<dd><p>Called by Textual to create child widgets.</p>
+<p>This method is called when a widget is mounted or by setting <cite>recompose=True</cite> when
+calling [<cite>refresh()</cite>][textual.widget.Widget.refresh].</p>
+<p>Note that you don’t typically need to explicitly call this method.</p>
+<p class="rubric">Example</p>
+<p><a href="#id9"><span class="problematic" id="id10">``</span></a><a href="#id11"><span class="problematic" id="id12">`</span></a>python
+def compose(self) -&gt; ComposeResult:</p>
+<blockquote>
+<div><p>yield Header()
+yield Label(“Press the button below:”)
+yield Button()
+yield Footer()</p>
+</div></blockquote>
+<p><a href="#id13"><span class="problematic" id="id14">``</span></a><a href="#id15"><span class="problematic" id="id16">`</span></a></p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="better_launch.tui.log_entry.LogEntry.can_focus">
+<span class="sig-name descname"><span class="pre">can_focus</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">bool</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">False</span></em><a class="headerlink" href="#better_launch.tui.log_entry.LogEntry.can_focus" title="Link to this definition"></a></dt>
+<dd><p>Widget may receive focus.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="better_launch.tui.log_entry.LogEntry.can_focus_children">
+<span class="sig-name descname"><span class="pre">can_focus_children</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">bool</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">True</span></em><a class="headerlink" href="#better_launch.tui.log_entry.LogEntry.can_focus_children" title="Link to this definition"></a></dt>
+<dd><p>Widget’s children may receive focus.</p>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="module-better_launch.tui.node_menu">
+<span id="better-launch-tui-node-menu-module"></span><h2>better_launch.tui.node_menu module<a class="headerlink" href="#module-better_launch.tui.node_menu" title="Link to this heading"></a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="better_launch.tui.node_menu.NodeLabel">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">better_launch.tui.node_menu.</span></span><span class="sig-name descname"><span class="pre">NodeLabel</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">node</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">keybind</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/better_launch/tui/node_menu.html#NodeLabel"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#better_launch.tui.node_menu.NodeLabel" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">HorizontalGroup</span></code></p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="better_launch.tui.node_menu.NodeLabel.DEFAULT_CSS">
+<span class="sig-name descname"><span class="pre">DEFAULT_CSS</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">ClassVar[str]</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'\n</span>&#160;&#160;&#160; <span class="pre">NodeLabel</span> <span class="pre">{\n</span>&#160;&#160;&#160;&#160;&#160;&#160;&#160; <span class="pre">width:</span> <span class="pre">100%;\n</span>&#160;&#160;&#160;&#160;&#160;&#160;&#160; <span class="pre">padding:</span> <span class="pre">0</span> <span class="pre">1;\n\n</span>&#160;&#160;&#160;&#160;&#160;&#160;&#160; <span class="pre">#keybind</span> <span class="pre">{\n</span>&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160; <span class="pre">color:</span> <span class="pre">orange;\n</span>&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160; <span class="pre">width:</span> <span class="pre">3;\n</span>&#160;&#160;&#160;&#160;&#160;&#160;&#160; <span class="pre">}\n\n</span>&#160;&#160;&#160;&#160;&#160;&#160;&#160; <span class="pre">#node</span> <span class="pre">{\n</span>&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160; <span class="pre">height:</span> <span class="pre">1;\n</span>&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160; <span class="pre">width:</span> <span class="pre">100%;\n</span>&#160;&#160;&#160;&#160;&#160;&#160;&#160; <span class="pre">}\n</span>&#160;&#160;&#160; <span class="pre">}\n</span>&#160;&#160;&#160; <span class="pre">'</span></em><a class="headerlink" href="#better_launch.tui.node_menu.NodeLabel.DEFAULT_CSS" title="Link to this definition"></a></dt>
+<dd><p>Default TCSS.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="better_launch.tui.node_menu.NodeLabel.compose">
+<span class="sig-name descname"><span class="pre">compose</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/better_launch/tui/node_menu.html#NodeLabel.compose"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#better_launch.tui.node_menu.NodeLabel.compose" title="Link to this definition"></a></dt>
+<dd><p>Called by Textual to create child widgets.</p>
+<p>This method is called when a widget is mounted or by setting <cite>recompose=True</cite> when
+calling [<cite>refresh()</cite>][textual.widget.Widget.refresh].</p>
+<p>Note that you don’t typically need to explicitly call this method.</p>
+<p class="rubric">Example</p>
+<p><a href="#id17"><span class="problematic" id="id18">``</span></a><a href="#id19"><span class="problematic" id="id20">`</span></a>python
+def compose(self) -&gt; ComposeResult:</p>
+<blockquote>
+<div><p>yield Header()
+yield Label(“Press the button below:”)
+yield Button()
+yield Footer()</p>
+</div></blockquote>
+<p><a href="#id21"><span class="problematic" id="id22">``</span></a><a href="#id23"><span class="problematic" id="id24">`</span></a></p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="better_launch.tui.node_menu.NodeLabel.on_mount">
+<span class="sig-name descname"><span class="pre">on_mount</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/better_launch/tui/node_menu.html#NodeLabel.on_mount"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#better_launch.tui.node_menu.NodeLabel.on_mount" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="better_launch.tui.node_menu.NodeLabel.update_node_state">
+<span class="sig-name descname"><span class="pre">update_node_state</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/better_launch/tui/node_menu.html#NodeLabel.update_node_state"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#better_launch.tui.node_menu.NodeLabel.update_node_state" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="better_launch.tui.node_menu.NodeLabel.can_focus">
+<span class="sig-name descname"><span class="pre">can_focus</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">bool</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">False</span></em><a class="headerlink" href="#better_launch.tui.node_menu.NodeLabel.can_focus" title="Link to this definition"></a></dt>
+<dd><p>Widget may receive focus.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="better_launch.tui.node_menu.NodeLabel.can_focus_children">
+<span class="sig-name descname"><span class="pre">can_focus_children</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">bool</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">True</span></em><a class="headerlink" href="#better_launch.tui.node_menu.NodeLabel.can_focus_children" title="Link to this definition"></a></dt>
+<dd><p>Widget’s children may receive focus.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="better_launch.tui.node_menu.NodeInfoScreen">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">better_launch.tui.node_menu.</span></span><span class="sig-name descname"><span class="pre">NodeInfoScreen</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">node</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/better_launch/tui/node_menu.html#NodeInfoScreen"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#better_launch.tui.node_menu.NodeInfoScreen" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">ModalScreen</span></code></p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="better_launch.tui.node_menu.NodeInfoScreen.BINDINGS">
+<span class="sig-name descname"><span class="pre">BINDINGS</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">ClassVar[list[BindingType]]</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">[Binding(key='escape',</span> <span class="pre">action='dismiss',</span> <span class="pre">description='',</span> <span class="pre">show=True,</span> <span class="pre">key_display=None,</span> <span class="pre">priority=False,</span> <span class="pre">tooltip='',</span> <span class="pre">id=None,</span> <span class="pre">system=False)]</span></em><a class="headerlink" href="#better_launch.tui.node_menu.NodeInfoScreen.BINDINGS" title="Link to this definition"></a></dt>
+<dd><p>A list of key bindings.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="better_launch.tui.node_menu.NodeInfoScreen.DEFAULT_CSS">
+<span class="sig-name descname"><span class="pre">DEFAULT_CSS</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">ClassVar[str]</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'\n</span>&#160;&#160;&#160; <span class="pre">NodeInfoScreen</span> <span class="pre">{\n</span>&#160;&#160;&#160;&#160;&#160;&#160;&#160; <span class="pre">background:</span> <span class="pre">rgba(0,</span> <span class="pre">0,</span> <span class="pre">0,</span> <span class="pre">127);\n</span>&#160;&#160;&#160;&#160;&#160;&#160;&#160; <span class="pre">align:</span> <span class="pre">center</span> <span class="pre">middle;\n</span>&#160;&#160;&#160;&#160;&#160;&#160;&#160; <span class="pre">padding:</span> <span class="pre">0;\n\n</span>&#160;&#160;&#160;&#160;&#160;&#160;&#160; <span class="pre">#info</span> <span class="pre">{\n</span>&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160; <span class="pre">width:</span> <span class="pre">100%;\n</span>&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160; <span class="pre">height:</span> <span class="pre">100%;\n</span>&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160; <span class="pre">margin:</span> <span class="pre">1;\n</span>&#160;&#160;&#160;&#160;&#160;&#160;&#160; <span class="pre">}\n\n</span>&#160;&#160;&#160;&#160;&#160;&#160;&#160; <span class="pre">#close</span> <span class="pre">{\n</span>&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160; <span class="pre">height:</span> <span class="pre">auto;\n</span>&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160; <span class="pre">width:</span> <span class="pre">100%;\n</span>&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160; <span class="pre">border:</span> <span class="pre">none;\n</span>&#160;&#160;&#160;&#160;&#160;&#160;&#160; <span class="pre">}\n</span>&#160;&#160;&#160; <span class="pre">}\n</span>&#160;&#160;&#160; <span class="pre">'</span></em><a class="headerlink" href="#better_launch.tui.node_menu.NodeInfoScreen.DEFAULT_CSS" title="Link to this definition"></a></dt>
+<dd><p>Default TCSS.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="better_launch.tui.node_menu.NodeInfoScreen.compose">
+<span class="sig-name descname"><span class="pre">compose</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/better_launch/tui/node_menu.html#NodeInfoScreen.compose"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#better_launch.tui.node_menu.NodeInfoScreen.compose" title="Link to this definition"></a></dt>
+<dd><p>Called by Textual to create child widgets.</p>
+<p>This method is called when a widget is mounted or by setting <cite>recompose=True</cite> when
+calling [<cite>refresh()</cite>][textual.widget.Widget.refresh].</p>
+<p>Note that you don’t typically need to explicitly call this method.</p>
+<p class="rubric">Example</p>
+<p><a href="#id25"><span class="problematic" id="id26">``</span></a><a href="#id27"><span class="problematic" id="id28">`</span></a>python
+def compose(self) -&gt; ComposeResult:</p>
+<blockquote>
+<div><p>yield Header()
+yield Label(“Press the button below:”)
+yield Button()
+yield Footer()</p>
+</div></blockquote>
+<p><a href="#id29"><span class="problematic" id="id30">``</span></a><a href="#id31"><span class="problematic" id="id32">`</span></a></p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="better_launch.tui.node_menu.NodeInfoScreen.on_mount">
+<span class="sig-name descname"><span class="pre">on_mount</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/better_launch/tui/node_menu.html#NodeInfoScreen.on_mount"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#better_launch.tui.node_menu.NodeInfoScreen.on_mount" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="better_launch.tui.node_menu.NodeInfoScreen.on_button_pressed">
+<span class="sig-name descname"><span class="pre">on_button_pressed</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">event</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/better_launch/tui/node_menu.html#NodeInfoScreen.on_button_pressed"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#better_launch.tui.node_menu.NodeInfoScreen.on_button_pressed" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="better_launch.tui.node_menu.NodeInfoScreen.can_focus">
+<span class="sig-name descname"><span class="pre">can_focus</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">bool</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">False</span></em><a class="headerlink" href="#better_launch.tui.node_menu.NodeInfoScreen.can_focus" title="Link to this definition"></a></dt>
+<dd><p>Widget may receive focus.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="better_launch.tui.node_menu.NodeInfoScreen.can_focus_children">
+<span class="sig-name descname"><span class="pre">can_focus_children</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">bool</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">True</span></em><a class="headerlink" href="#better_launch.tui.node_menu.NodeInfoScreen.can_focus_children" title="Link to this definition"></a></dt>
+<dd><p>Widget’s children may receive focus.</p>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="better-launch-tui-textual-app-module">
+<h2>better_launch.tui.textual_app module<a class="headerlink" href="#better-launch-tui-textual-app-module" title="Link to this heading"></a></h2>
+</section>
+<section id="module-better_launch.tui">
+<span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-better_launch.tui" title="Link to this heading"></a></h2>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="better_launch.ros.html" class="btn btn-neutral float-left" title="better_launch.ros package" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="better_launch.utils.html" class="btn btn-neutral float-right" title="better_launch.utils package" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Nikolas Dahn.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

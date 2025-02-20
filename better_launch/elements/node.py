@@ -15,9 +15,9 @@ from concurrent.futures import Future
 from pprint import pformat
 from textwrap import indent
 
+from better_launch.ros import logging as roslog
+from better_launch.utils.better_logging import PrettyLogFormatter
 from .abstract_node import AbstractNode
-from ros import logging as roslog
-from utils.better_logging import PrettyLogFormatter
 
 
 class Node(AbstractNode):
@@ -33,7 +33,7 @@ class Node(AbstractNode):
         namespace: str,
         *,
         remaps: dict[str, str] = None,
-        node_args: str | dict[str, Any] = None,
+        params: str | dict[str, Any] = None,
         cmd_args: list[str] = None,
         env: dict[str, str] = None,
         isolate_env: bool = False,
@@ -44,10 +44,54 @@ class Node(AbstractNode):
         max_respawns: int = 0,
         respawn_delay: float = 0.0,
         use_shell: bool = False,
-        emulate_tty: bool = False,
     ):
-        super().__init__(package, executable, name, namespace, remaps, node_args)
+        """An object used for starting a ROS node and capturing its output.
 
+        Parameters
+        ----------
+        package : str
+            The package providing the node.
+        executable : str
+            The executable that should be run.
+        name : str, optional
+            The name you want the node to be known as.
+        remaps : dict[str, str], optional
+            Tells the node to replace any topics it wants to interact with according to the provided dict.
+        params : str | dict[str, Any], optional
+            Any arguments you want to provide to the node. These are the args you would typically have to declare in your launch file. A string will be interpreted as a path to a yaml file which will be lazy loaded using :py:meth:`BetterLaunch.load_params`.
+        cmd_args : list[str], optional
+            Additional command line arguments to pass to the node.
+        env : dict[str, str], optional
+            Additional environment variables to set for the node's process.
+        isolate_env : bool, optional
+            If True, the node process' env will not be inherited from the parent process. Be aware that this can result in many common things to not work anymore since e.g. keys like *PATH* will be missing.
+        log_level : int, optional
+            The minimum severity a logged message from this node must have in order to be published.
+        output_config : Node.LogSink  |  dict[Node.LogSource, set[Node.LogSink]], optional
+            How log output from the node should be handled. Sources are `stdout`, `stderr` and `both`. Sinks are `screen`, `log`, `both`, `own_log`, and `full`.
+        reparse_logs : bool, optional
+            If True, *better_launch* will capture the node's output and reformat it before publishing. 
+        anonymous : bool, optional
+            If True, the node name will be appended with a unique suffix to avoid name conflicts.
+        hidden : bool, optional
+            If True, the node name will be prepended with a "_", hiding it from common listings.
+        on_exit : Callable, optional
+            A function to call when the node's process terminates (after any possible respawns).
+        max_respawns : int, optional
+            How often to restart the node process if it terminates.
+        respawn_delay : float, optional
+            How long to wait before restarting the node process after it terminates.
+        use_shell : bool, optional
+            If True, invoke the node executable via the system shell. Use only if you know you need it.
+
+        Returns
+        -------
+        Node
+            The node object wrapping the node process.
+        """
+        super().__init__(package, executable, name, namespace, remaps, params)
+
+        # TODO may want to wrap these in properties
         self.env = env or {}
         self.isolate_env = isolate_env
         self.cmd_args = ["--log-level", logging.getLevelName(log_level)]
@@ -56,22 +100,24 @@ class Node(AbstractNode):
 
         self.output_config = output_config or {}
         self.reparse_logs = reparse_logs
+        self._respawn_retries = 0
+        self.max_respawns = max_respawns
+        self.respawn_delay = respawn_delay
+        self.use_shell = use_shell
 
+        # NOTE don't rely on these being public, they might be abandoned in the future
         self.completed_future = None
         self.shutdown_future = None
+
         self._process: subprocess.Popen = None
         self._on_exit_callback = on_exit
         self._sigterm_timer = None
         self._sigkill_timer = None
 
-        self._respawn_retries = 0
-        self.max_respawns = max_respawns
-        self.respawn_delay = respawn_delay
-        self.use_shell = use_shell
-        self.emulate_tty = emulate_tty
-
     @property
     def pid(self) -> int:
+        """The process ID of the node process. Will be -1 if the process is not running.
+        """
         if not self.is_running:
             return -1
         return self._process.pid
@@ -87,7 +133,7 @@ class Node(AbstractNode):
             and not self.completed_future.done()
         )
 
-    def _do_start(self) -> None:
+    def start(self) -> None:
         from better_launch import BetterLaunch
 
         launcher = BetterLaunch.instance()
@@ -98,7 +144,6 @@ class Node(AbstractNode):
             return
 
         if self.is_running:
-            # Already started
             self.logger.warning(f"Node {self} is already started")
             return
 
@@ -111,16 +156,16 @@ class Node(AbstractNode):
                 f"{self.name}-{self.node_id}", self.output_config
             )
 
-            cmd = launcher.find(self.package, self.executable)
+            cmd = launcher.find(filename=self.executable, package=self.package)
             final_cmd = [cmd] + self.cmd_args + ["--ros-args"]
 
-            # Attach additional node args
-            for key, value in self.node_args.items():
+            # Attach node parameters
+            for key, value in self._flat_params().items():
                 final_cmd.extend(["-p", f"{key}:={value}"])
 
             # Remappings become part of the command's ros-args
             # launch_ros/actions/node.py:206
-            for src, dst in self.remaps.items():
+            for src, dst in self._ros_args().items():
                 # launch_ros/actions/node.py:481
                 final_cmd.extend(["-r", f"{src}:={dst}"])
 

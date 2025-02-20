@@ -1,4 +1,3 @@
-import os
 from better_launch import BetterLaunch, launch_this, LifecycleStage
 
 
@@ -35,5 +34,5 @@ def test(enable_x: bool):
             lifecycle_target=LifecycleStage.PRISTINE,
         )
 
-        # Include another BetterLaunch file
-        bl.include(os.path.dirname(__file__) + "/example2.py")
+        # Include another BetterLaunch file within this group
+        bl.include("example2.py", "better_launch")

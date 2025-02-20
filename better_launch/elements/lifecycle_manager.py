@@ -7,6 +7,9 @@ from lifecycle_msgs.srv import ChangeState as ChangeLifecycleState
 
 
 class LifecycleStage(IntEnum):
+    """Represents the main stages of nodes that support lifecycle management. 
+    """
+    #There is usually little reason to be exposed to all the intermediate stages and transitions ROS defines.
     PRISTINE = 0
     CONFIGURED = 1
     ACTIVE = 2
@@ -50,9 +53,23 @@ class AbstractNode:
 class LifecycleManager:
     @classmethod
     def is_lifecycle(cls, node: AbstractNode) -> bool:
+        """Checks whether a node supports lifecycle management. 
+
+        For a node to support lifecycle management, it must be running, be registered with ROS and offer the ROS lifecycle management services.
+
+        Parameters
+        ----------
+        node : AbstractNode
+            The node object to check for lifecycle support.
+
+        Returns
+        -------
+        bool
+            True if the node supports lifecycle management, False otherwise.
+        """
         # Whether a node supports lifecycle management can only be seen once the process has
         # started by checking the services it provides.
-        if not node.is_ros2_connected:
+        if not node.check_ros2_connected():
             return None
 
         from better_launch import BetterLaunch
@@ -76,6 +93,22 @@ class LifecycleManager:
 
     @classmethod
     def find_transition_path(cls, start_ros_state: int, goal_ros_state: int) -> list[int]:
+        """Finds a sequence of transitions that will bring a node from an initial lifecycle state (the ROS state, not our LifecycleStage enum) to a target lifecycle state. 
+
+        This is fairly low level and probably never needed.
+
+        Parameters
+        ----------
+        start_ros_state : int
+            The initial ROS lifecycle state.
+        goal_ros_state : int
+            The final ROS lifecycle state.
+
+        Returns
+        -------
+        list[int]
+            A sequence of ROS lifecycle transitions that form a path from the start state to the goal state.
+        """
         if start_ros_state == goal_ros_state:
             return []
 
@@ -103,6 +136,18 @@ class LifecycleManager:
         return []
 
     def __init__(self, node: AbstractNode):
+        """Offers additional functionality to manage a node's lifecycle. Verification whether a node supports lifecycle management should happen **before** this is instantiated.
+
+        Parameters
+        ----------
+        node : AbstractNode
+            The node who's lifecycle should be managed.
+
+        Raises
+        ------
+        RuntimeError
+            If the transition service failed to connect.
+        """
         self._current_stage = LifecycleStage.PRISTINE
         self._current_ros_state: int = State.PRIMARY_STATE_UNCONFIGURED
         self._node = node
@@ -125,13 +170,36 @@ class LifecycleManager:
 
     @property
     def current_stage(self) -> LifecycleStage:
+        """The node's current (that is, last known) lifecycle stage.
+        """
         return self._current_stage
 
     @property
     def ros_state(self) -> int:
+        """The node's current (that is, last known) ROS lifecycle state ID.
+        """
         return self._current_ros_state
 
     def transition(self, target_stage: LifecycleStage) -> bool:
+        """Transition the managed node into the target lifecycle stage. Does nothing if the node is already in the desired stage. 
+        
+        Note that you **don't** have to do step-by-step transitions - simply specify the stage you want the node to end up in and it will go through all the intermediate steps (assuming a path exists).
+
+        Parameters
+        ----------
+        target_stage : LifecycleStage
+            The lifecycle stage you want the node to end up in.
+
+        Returns
+        -------
+        bool
+            True if the transition sequence succeeded, False if one of the steps failed.
+
+        Raises
+        ------
+        ValueError
+            If no path to the target stage could be found.
+        """
         if target_stage == self.current_stage:
             return True
 
@@ -157,6 +225,8 @@ class LifecycleManager:
         return True
 
     def _on_transition_event(self, evt: TransitionEvent) -> None:
+        """Update the current state ID and stage.
+        """
         self._current_ros_state = evt.goal_state.id
         for key, val in _stage_to_ros_state.items():
             if val == evt.goal_state.id:
@@ -166,6 +236,8 @@ class LifecycleManager:
             self._current_stage = -1
 
     def _do_transition(self, transition_id: int) -> bool:
+        """Issue a transition service request.
+        """
         req = ChangeLifecycleState.Request()
         req.transition.id = transition_id
 

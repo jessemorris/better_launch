@@ -1,0 +1,281 @@
+from typing import Any, Callable
+import os
+import platform
+from ast import literal_eval
+import signal
+import inspect
+import logging
+import click
+from docstring_parser import parse as parse_docstring
+
+from better_launch.launcher import BetterLaunch, _bl_singleton_instance, _bl_include_args
+from better_launch.utils.better_logging import default_log_colormap, PrettyLogFormatter
+from better_launch.utils.introspection import find_calling_frame
+from better_launch.ros import logging as roslog
+from better_launch.ros.logging import LaunchConfig as LogConfig
+
+
+_is_launcher_defined = "__better_launch_this_defined"
+
+
+def launch_this(
+    launch_func: Callable = None,
+    *,
+    ui: bool = False,
+    join: bool = True,
+    log_config: LogConfig = None,
+):
+    """Use this to decorate your launch function. The function will be run automatically. If you
+    are planning to use the UI the function must not block.
+
+    **NOTE:** this decorator cannot be used more than once per module.
+
+    Parameters
+    ----------
+    launch_func : Callable, optional
+        Your launch function, typically using BetterLaunch to start ROS2 nodes.
+    ui : bool, optional
+        Whether to start the better_launch terminal UI.
+    join : bool, optional
+        If True, join the better_launch process. Has no effect when ui == True.
+    log_config : LogConfig, optional
+        Allows to provide your own logging configuration. It's usually better to change settings per node.
+    """
+
+    def decoration_helper(func):
+        return _launch_this_wrapper(func, ui=ui, join=join, log_config=log_config)
+
+    return decoration_helper if launch_func is None else decoration_helper(launch_func)
+
+
+def _launch_this_wrapper(
+    launch_func: Callable,
+    ui: bool = False,
+    join: bool = True,
+    log_config: LogConfig = None,
+):
+    # Globals of the calling module
+    glob = find_calling_frame(_launch_this_wrapper).frame.f_globals
+
+    if _is_launcher_defined in glob and _bl_singleton_instance not in glob:
+        # Allow using launch_this only once unless we got included from another file
+        raise RuntimeError("Can only use one launch decorator")
+
+    glob[_is_launcher_defined] = True
+
+    # Get the filename of the original launchfile
+    # NOTE be careful not to instantiate BetterLaunch before launch_func has run
+    if not _bl_singleton_instance in glob:
+        BetterLaunch._launchfile = find_calling_frame(_launch_this_wrapper).filename
+        print(f"Starting launch file:\n{BetterLaunch._launchfile}\n")
+        print(f"Log files will be saved at\n{roslog.launch_config.log_dir}\n")
+        print("==================================================")
+    else:
+        # We have been included from another file, run the launch function and skip the remaining
+        # initialization as its already been taken care of
+        bl: BetterLaunch = glob[_bl_singleton_instance]
+
+        includefile = find_calling_frame(_launch_this_wrapper).filename
+        include_args = glob[_bl_include_args]
+        bl.logger.info(f"Including launch file: {includefile} (args={include_args})")
+
+        # No need to run the ROS2 launch service here, the main launchfile will handle it
+        launch_func(**include_args)
+        return
+
+    # Signal handlers have to be installed on the main thread. Since the BetterLaunch singleton
+    # could be instantiated first on a different thread we do it here where we can make stronger
+    # requirements.
+    def sigint_handler(sig, frame):
+        BetterLaunch()._on_sigint(sig, frame)
+
+    def sigterm_handler(sig, frame):
+        BetterLaunch()._on_sigint(sig, frame)
+
+    signal.signal(signal.SIGINT, sigint_handler)
+    signal.signal(signal.SIGTERM, sigterm_handler)
+
+    if platform.system() != "Windows":
+        signal.signal(signal.SIGQUIT, sigterm_handler)
+
+    # If we were started by ros launch (e.g. through 'ros2 launch <some-bl-launch-file>') we need
+    # to expose a "generate_launch_description" method instead of running by ourselves.
+    #
+    # Launch files in ROS2 are run by adding an IncludeLaunchDescription action to the
+    # LaunchService (both found in https://github.com/ros2/launch/). When the action is resolved,
+    # it ultimately leads to get_launch_description_from_python_launch_file, which imports the file
+    # and then checks for a generate_launch_description function.
+    #
+    # See the following links for details:
+    #
+    # https://github.com/ros2/launch_ros/blob/rolling/ros2launch/ros2launch/command/launch.py#L125
+    # https://github.com/ros2/launch_ros/blob/rolling/ros2launch/ros2launch/api/api.py#L141
+    # https://github.com/ros2/launch/blob/rolling/launch/launch/actions/include_launch_description.py#L148
+    # https://github.com/ros2/launch/blob/rolling/launch/launch/launch_description_sources/python_launch_file_utilities.py#L43
+    stack = inspect.stack()
+    for frame_info in stack:
+        frame_locals = frame_info.frame.f_locals
+        if "self" not in frame_locals:
+            continue
+        owner = frame_locals["self"]
+        if isinstance(owner, object) and getattr(owner, "__name__", None) == "IncludeLaunchDescription":
+            # We were included, expose the expected method in our caller's globals and return
+            _expose_ros2_launch_function(launch_func)
+            return
+
+    # If we get here we were not included by ROS2
+
+    # Expose launch_func args through click. This enables using launch files like other
+    # python files, e.g. './my_better_launchfile.py --help'
+    options = []
+    launch_func_sig = inspect.signature(launch_func)
+
+    # Extract more fine-grained information from the docstring
+    parsed_doc = parse_docstring(launch_func.__doc__)
+    launch_func_doc = parsed_doc.short_description
+    param_docstrings = {p.arg_name: p.description for p in parsed_doc.params}
+
+    # Create CLI options for click
+    for param in launch_func_sig.parameters.values():
+        default = None
+        if param.default is not param.empty:
+            default = param.default
+
+        ptype = None
+        if default is None and param.annotation is not param.empty:
+            ptype = param.annotation
+
+        options.append(
+            click.Option(
+                [f"--{param.name}"],
+                type=ptype,
+                default=default,
+                show_default=True,
+                help=param_docstrings.get(param.name, None),
+            )
+        )
+
+    # Additional overrides for launch arguments
+    def click_ui_override(ctx: click.Context, param: click.Parameter, value: Any):
+        if value != "unset":
+            nonlocal ui
+            ui = (value == "enable")
+        return value
+
+    options.extend([
+        click.Option(
+            ["--bl-ui-override"],
+            type=click.types.Choice(["enable", "disable", "unset"], case_sensitive=False),
+            show_choices=True,
+            default="unset",
+            help="Override to enable/disable the terminal UI",
+            expose_value=False,  # not passed to our run method
+            callback=click_ui_override,
+        ),
+    ])
+
+    def run(*args, **kwargs):
+        # Logging setup
+        if log_config:
+            roslog.launch_config = log_config
+            # roslog.reset()
+        else:
+            roslog.launch_config.level = logging.INFO
+            if "OVERRIDE_LAUNCH_SCREEN_FORMAT" not in os.environ:
+                level_colormap = dict(default_log_colormap)
+                level_colormap[logging.INFO] = "\x1b[32;20m"
+                roslog.launch_config.screen_formatter = PrettyLogFormatter(
+                    level_colormap=level_colormap
+                )
+
+        # Wrap the launch function so we can do some preparation and cleanup tasks
+        def launch_func_wrapper():
+            launch_func(*args, **kwargs)
+
+            # Retrieve the BetterLaunch singleton
+            bl = BetterLaunch()
+            if join and not ui:
+                bl.spin()
+
+        # By default BetterLaunch has access to all arguments from its launch function
+        bound_args = launch_func_sig.bind(*args, **kwargs)
+        bound_args.apply_defaults()
+        BetterLaunch._launch_func_args = dict(bound_args.arguments)
+
+        if ui:
+            # from tui.pyterm_app import BetterUI
+            #
+            # BetterUI.setup_logging()
+            # app = BetterUI()
+            # app.start(launch_func_wrapper)
+
+            from better_launch.tui.textual_app import BetterUI
+
+            BetterUI.setup_logging()
+            app = BetterUI(launch_func_wrapper)
+            app.run()
+        else:
+            launch_func_wrapper()
+
+    # TODO add param to collect leftover kwargs, they might be relevant for includes
+    click_cmd = click.Command(
+        "main", callback=run, params=options, help=launch_func_doc
+    )
+    try:
+        click_cmd.main()
+    except SystemExit as e:
+        if e.code != 0:
+            raise
+
+
+def _expose_ros2_launch_function(launch_func: Callable):
+    """Helper function that exposes a function decorated by launch_this so that it can be included by a regular ROS2 launch file. We achieve this by generating a `generate_launch_description` function and adding it to the module globals where the launch function is defined.
+
+    Parameters
+    ----------
+    launch_func : Callable
+        The launch function.
+    """
+
+    def generate_launch_description():
+        from launch import LaunchDescription, LaunchContext
+        from launch.actions import DeclareLaunchArgument, OpaqueFunction
+
+        ld = LaunchDescription()
+
+        # Declare launch arguments from the function signature
+        sig = inspect.signature(launch_func)
+        for param in sig.parameters.values():
+            default = param.default
+            if default is not inspect.Parameter.empty:
+                default = str(param.default)
+
+            ld.add_action(DeclareLaunchArgument(param.name, default_value=default))
+
+        def ros2_wrapper(context: LaunchContext, *args, **kwargs):
+            # args and kwargs are only used by OpaqueFunction when using it like partial
+            launch_args = {}
+            for k, v in context.launch_configurations.items():
+                try:
+                    launch_args[k] = literal_eval(v)
+                except ValueError:
+                    # Probably a string
+                    # NOTE this should also make passing args to ROS2 much easier
+                    launch_args[k] = v
+
+            # Call the launch function
+            launch_func(**launch_args)
+
+            # Retrieve the BetterLaunch singleton
+            bl = BetterLaunch()
+
+            # Opaque functions are allowed to return additional actions
+            return bl._ros2_actions
+
+        ld.add_action(OpaqueFunction(ros2_wrapper))
+        return ld
+
+    # Add our generate_launch_description function to the module launch_this was called from
+    launch_frame = find_calling_frame(_launch_this_wrapper)
+    caller_globals = launch_frame.frame.f_globals
+    caller_globals["generate_launch_description"] = generate_launch_description

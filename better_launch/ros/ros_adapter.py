@@ -3,9 +3,14 @@ import threading
 import rclpy
 from rclpy.executors import SingleThreadedExecutor
 
+"""
+Provides a shared node for interacting with ROS2. Taken from ROS2.
 
-# Taken from launch_ros
-# https://github.com/ros2/launch_ros/blob/rolling/launch_ros/launch_ros/ros_adapters.py
+.. seealso::
+    
+    `launch_ros/ros_adapters.py <https://github.com/ros2/launch_ros/blob/rolling/launch_ros/launch_ros/ros_adapters.py>`_
+"""
+
 class ROSAdapter:
     """Wraps rclpy API to ease ROS node usage in `launch_ros` actions."""
 

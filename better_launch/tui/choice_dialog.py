@@ -50,6 +50,23 @@ class ChoiceDialog(ModalScreen):
         id=None,
         classes=None
     ):
+        """A dialog where the user can select one of several choices.
+
+        Parameters
+        ----------
+        choices : list[str]
+            The choices to provide.
+        message : str, optional
+            A message to show above the choices.
+        title : str, optional
+            A title to render above the dialog.
+        name : _type_, optional
+            A name to pass to the underlying screen instance.
+        id : _type_, optional
+            A unique ID to identify this dialog by.
+        classes : _type_, optional
+            Additional CSS classes this dialog should have.
+        """
         super().__init__(name, id, classes)
         self.message = message
         self.choices = choices

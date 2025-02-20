@@ -12,10 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Module with handlers for launch specific logging."""
+"""Module with handlers for launch specific logging taken from ros2 launch.
 
-# Taken from ros2 launch
-# https://github.com/ros2/launch/blob/rolling/launch/launch/logging/handlers.py
+.. seealso::
+    
+    `ROS2 launch/handlers.py <https://github.com/ros2/launch/blob/rolling/launch/launch/logging/handlers.py>`_
+"""
 
 import sys
 import types

@@ -12,7 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Module for the launch specific logging."""
+"""Module for the launch specific logging taken from ROS2.
+
+.. seealso::
+
+    `ROS2 rclpy/logging.py <https://github.com/ros2/launch/blob/rolling/launch/launch/logging/logging.py>`_
+
+"""
 
 import codecs
 import datetime

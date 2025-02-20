@@ -5,8 +5,7 @@ from textual.widgets import Label, Static, Button
 from textual.containers import VerticalScroll, HorizontalGroup
 from textual.screen import ModalScreen
 
-from better_launch import BetterLaunch
-from elements import AbstractNode, Node, Composer, Component
+from better_launch.elements import AbstractNode, Composer, Component
 
 
 class NodeLabel(HorizontalGroup):
@@ -28,12 +27,21 @@ class NodeLabel(HorizontalGroup):
     """
 
     def __init__(self, node: AbstractNode, keybind: str, **kwargs):
+        """A label showing a node's name and whether it is alive. The "aliveness" of the node will be updated in regular intervals as part of textual's asyncio loop.
+
+        Parameters
+        ----------
+        node : AbstractNode
+            The node this label represents.
+        keybind : str
+            A keybind that is associated with this label.
+        """
         super().__init__(**kwargs)
         self.node = node
         self.keybind = keybind
 
     def compose(self):
-        yield Static(f"[u]{self.keybind}[/u] ", id="keybind")
+        yield Static(f"[u]{self.keybind or ' '}[/u] ", id="keybind")
 
         suffix = ""
         if self.node.is_lifecycle_node:
@@ -53,6 +61,8 @@ class NodeLabel(HorizontalGroup):
 
     @work
     async def update_node_state(self):
+        """Worker to check whether the underlying :py:class:`AbstractNode` is still alive.
+        """
         while True:
             label = self.query_one("#node")
             if self.node.is_running:
@@ -89,6 +99,13 @@ class NodeInfoScreen(ModalScreen):
     """
 
     def __init__(self, node: AbstractNode, **kwargs):
+        """Shows a summary of a node's most important information (according to the node).
+
+        Parameters
+        ----------
+        node : AbstractNode
+            The node whos information should be shown.
+        """
         self.node = node
         super().__init__(**kwargs)
 

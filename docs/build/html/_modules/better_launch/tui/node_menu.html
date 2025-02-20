@@ -1,0 +1,230 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>better_launch.tui.node_menu &mdash; better_launch 0.9.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=e59714d7" />
+
+  
+    <link rel="shortcut icon" href="../../../_static/logo.svg"/>
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=39bb1c6d"></script>
+      <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            better_launch
+              <img src="../../../_static/logo.svg" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../modules.html">better_launch</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">better_launch</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">better_launch.tui.node_menu</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for better_launch.tui.node_menu</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">asyncio</span>
+<span class="kn">from</span> <span class="nn">textual</span> <span class="kn">import</span> <span class="n">work</span>
+<span class="kn">from</span> <span class="nn">textual.binding</span> <span class="kn">import</span> <span class="n">Binding</span>
+<span class="kn">from</span> <span class="nn">textual.widgets</span> <span class="kn">import</span> <span class="n">Label</span><span class="p">,</span> <span class="n">Static</span><span class="p">,</span> <span class="n">Button</span>
+<span class="kn">from</span> <span class="nn">textual.containers</span> <span class="kn">import</span> <span class="n">VerticalScroll</span><span class="p">,</span> <span class="n">HorizontalGroup</span>
+<span class="kn">from</span> <span class="nn">textual.screen</span> <span class="kn">import</span> <span class="n">ModalScreen</span>
+
+<span class="kn">from</span> <span class="nn">better_launch.elements</span> <span class="kn">import</span> <span class="n">AbstractNode</span><span class="p">,</span> <span class="n">Composer</span><span class="p">,</span> <span class="n">Component</span>
+
+
+<div class="viewcode-block" id="NodeLabel">
+<a class="viewcode-back" href="../../../better_launch.tui.html#better_launch.tui.node_menu.NodeLabel">[docs]</a>
+<span class="k">class</span> <span class="nc">NodeLabel</span><span class="p">(</span><span class="n">HorizontalGroup</span><span class="p">):</span>
+    <span class="n">DEFAULT_CSS</span> <span class="o">=</span> <span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">    NodeLabel {</span>
+<span class="s2">        width: 100%;</span>
+<span class="s2">        padding: 0 1;</span>
+
+<span class="s2">        #keybind {</span>
+<span class="s2">            color: orange;</span>
+<span class="s2">            width: 3;</span>
+<span class="s2">        }</span>
+
+<span class="s2">        #node {</span>
+<span class="s2">            height: 1;</span>
+<span class="s2">            width: 100%;</span>
+<span class="s2">        }</span>
+<span class="s2">    }</span>
+<span class="s2">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">node</span><span class="p">:</span> <span class="n">AbstractNode</span><span class="p">,</span> <span class="n">keybind</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">node</span> <span class="o">=</span> <span class="n">node</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">keybind</span> <span class="o">=</span> <span class="n">keybind</span>
+
+<div class="viewcode-block" id="NodeLabel.compose">
+<a class="viewcode-back" href="../../../better_launch.tui.html#better_launch.tui.node_menu.NodeLabel.compose">[docs]</a>
+    <span class="k">def</span> <span class="nf">compose</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">yield</span> <span class="n">Static</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;[u]</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">keybind</span><span class="si">}</span><span class="s2">[/u] &quot;</span><span class="p">,</span> <span class="nb">id</span><span class="o">=</span><span class="s2">&quot;keybind&quot;</span><span class="p">)</span>
+
+        <span class="n">suffix</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">node</span><span class="o">.</span><span class="n">is_lifecycle_node</span><span class="p">:</span>
+            <span class="n">suffix</span> <span class="o">+=</span> <span class="s2">&quot;L&quot;</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">node</span><span class="p">,</span> <span class="n">Composer</span><span class="p">):</span>
+            <span class="n">suffix</span> <span class="o">+=</span> <span class="s2">&quot;O&quot;</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">node</span><span class="p">,</span> <span class="n">Component</span><span class="p">):</span>
+            <span class="n">suffix</span> <span class="o">+=</span> <span class="s2">&quot;C&quot;</span>
+
+        <span class="k">if</span> <span class="n">suffix</span><span class="p">:</span>
+            <span class="n">suffix</span> <span class="o">=</span> <span class="s2">&quot; (&quot;</span> <span class="o">+</span> <span class="n">suffix</span> <span class="o">+</span> <span class="s2">&quot;)&quot;</span>
+
+        <span class="k">yield</span> <span class="n">Label</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">node</span><span class="o">.</span><span class="n">name</span><span class="si">}{</span><span class="n">suffix</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="nb">id</span><span class="o">=</span><span class="s2">&quot;node&quot;</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="NodeLabel.on_mount">
+<a class="viewcode-back" href="../../../better_launch.tui.html#better_launch.tui.node_menu.NodeLabel.on_mount">[docs]</a>
+    <span class="k">def</span> <span class="nf">on_mount</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">update_node_state</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="NodeLabel.update_node_state">
+<a class="viewcode-back" href="../../../better_launch.tui.html#better_launch.tui.node_menu.NodeLabel.update_node_state">[docs]</a>
+    <span class="nd">@work</span>
+    <span class="k">async</span> <span class="k">def</span> <span class="nf">update_node_state</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+            <span class="n">label</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">query_one</span><span class="p">(</span><span class="s2">&quot;#node&quot;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">node</span><span class="o">.</span><span class="n">is_running</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">styles</span><span class="o">.</span><span class="n">background</span> <span class="o">=</span> <span class="s2">&quot;green&quot;</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">styles</span><span class="o">.</span><span class="n">background</span> <span class="o">=</span> <span class="s2">&quot;red&quot;</span>
+
+            <span class="k">await</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mf">0.5</span><span class="p">)</span>            </div>
+</div>
+
+
+
+<div class="viewcode-block" id="NodeInfoScreen">
+<a class="viewcode-back" href="../../../better_launch.tui.html#better_launch.tui.node_menu.NodeInfoScreen">[docs]</a>
+<span class="k">class</span> <span class="nc">NodeInfoScreen</span><span class="p">(</span><span class="n">ModalScreen</span><span class="p">):</span>
+    <span class="n">BINDINGS</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="n">Binding</span><span class="p">(</span><span class="s2">&quot;escape&quot;</span><span class="p">,</span> <span class="s2">&quot;dismiss&quot;</span><span class="p">)</span>
+    <span class="p">]</span>
+
+    <span class="n">DEFAULT_CSS</span> <span class="o">=</span> <span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">    NodeInfoScreen {</span>
+<span class="s2">        background: rgba(0, 0, 0, 127);</span>
+<span class="s2">        align: center middle;</span>
+<span class="s2">        padding: 0;</span>
+
+<span class="s2">        #info {</span>
+<span class="s2">            width: 100%;</span>
+<span class="s2">            height: 100%;</span>
+<span class="s2">            margin: 1;</span>
+<span class="s2">        }</span>
+
+<span class="s2">        #close {</span>
+<span class="s2">            height: auto;</span>
+<span class="s2">            width: 100%;</span>
+<span class="s2">            border: none;</span>
+<span class="s2">        }</span>
+<span class="s2">    }</span>
+<span class="s2">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">node</span><span class="p">:</span> <span class="n">AbstractNode</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">node</span> <span class="o">=</span> <span class="n">node</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+<div class="viewcode-block" id="NodeInfoScreen.compose">
+<a class="viewcode-back" href="../../../better_launch.tui.html#better_launch.tui.node_menu.NodeInfoScreen.compose">[docs]</a>
+    <span class="k">def</span> <span class="nf">compose</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">info_text</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">node</span><span class="o">.</span><span class="n">get_info_sheet</span><span class="p">()</span>
+        <span class="k">yield</span><span class="p">(</span><span class="n">VerticalScroll</span><span class="p">(</span><span class="n">Static</span><span class="p">(</span><span class="n">info_text</span><span class="p">),</span> <span class="nb">id</span><span class="o">=</span><span class="s2">&quot;info&quot;</span><span class="p">))</span>
+        <span class="k">yield</span><span class="p">(</span><span class="n">Button</span><span class="p">(</span><span class="s2">&quot;Close&quot;</span><span class="p">,</span> <span class="n">variant</span><span class="o">=</span><span class="s2">&quot;primary&quot;</span><span class="p">,</span> <span class="nb">id</span><span class="o">=</span><span class="s2">&quot;close&quot;</span><span class="p">))</span></div>
+
+
+<div class="viewcode-block" id="NodeInfoScreen.on_mount">
+<a class="viewcode-back" href="../../../better_launch.tui.html#better_launch.tui.node_menu.NodeInfoScreen.on_mount">[docs]</a>
+    <span class="k">def</span> <span class="nf">on_mount</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">query_one</span><span class="p">(</span><span class="s2">&quot;#close&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">focus</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="NodeInfoScreen.on_button_pressed">
+<a class="viewcode-back" href="../../../better_launch.tui.html#better_launch.tui.node_menu.NodeInfoScreen.on_button_pressed">[docs]</a>
+    <span class="k">def</span> <span class="nf">on_button_pressed</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">event</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dismiss</span><span class="p">()</span></div>
+</div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Nikolas Dahn.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

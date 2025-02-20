@@ -1,0 +1,465 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>better_launch.gazebo &mdash; better_launch 0.9.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=e59714d7" />
+
+  
+    <link rel="shortcut icon" href="../../_static/logo.svg"/>
+      <script src="../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../_static/documentation_options.js?v=39bb1c6d"></script>
+      <script src="../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            better_launch
+              <img src="../../_static/logo.svg" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../modules.html">better_launch</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">better_launch</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">better_launch.gazebo</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for better_launch.gazebo</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span> <span class="nn">ament_index_python.packages</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="n">get_package_share_directory</span><span class="p">,</span>
+    <span class="n">PackageNotFoundError</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span> <span class="nn">os.path</span> <span class="kn">import</span> <span class="n">join</span><span class="p">,</span> <span class="n">exists</span>
+<span class="kn">import</span> <span class="nn">logging</span>
+<span class="kn">from</span> <span class="nn">os</span> <span class="kn">import</span> <span class="n">environ</span>
+<span class="kn">from</span> <span class="nn">shlex</span> <span class="kn">import</span> <span class="n">split</span>
+
+
+<span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">_silent_exec</span><span class="p">(</span><span class="n">cmd</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Executes the given command and returns the output</span>
+<span class="sd">    Returns an empty list if any error</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="kn">from</span> <span class="nn">subprocess</span> <span class="kn">import</span> <span class="n">check_output</span><span class="p">,</span> <span class="n">STDOUT</span>
+
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">cmd</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+        <span class="n">cmd</span> <span class="o">=</span> <span class="n">split</span><span class="p">(</span><span class="n">cmd</span><span class="p">)</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">check_output</span><span class="p">(</span><span class="n">cmd</span><span class="p">,</span> <span class="n">stderr</span><span class="o">=</span><span class="n">STDOUT</span><span class="p">)</span><span class="o">.</span><span class="n">decode</span><span class="p">()</span>
+    <span class="k">except</span><span class="p">:</span>
+        <span class="k">return</span> <span class="s2">&quot;&quot;</span>
+
+
+<span class="n">gz_launched_worlds</span> <span class="o">=</span> <span class="p">[]</span>
+
+
+<div class="viewcode-block" id="gz_launch_setup">
+<a class="viewcode-back" href="../../better_launch.html#better_launch.gazebo.gz_launch_setup">[docs]</a>
+<span class="k">def</span> <span class="nf">gz_launch_setup</span><span class="p">(</span><span class="n">world_file</span><span class="p">,</span> <span class="n">gz_args</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">show_args</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">launcher</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">launcher</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Launcher must be provided&quot;</span><span class="p">)</span>
+
+    <span class="n">logger</span> <span class="o">=</span> <span class="n">launcher</span><span class="o">.</span><span class="n">get_logger</span><span class="p">()</span>  
+
+    <span class="n">full_args</span> <span class="o">=</span> <span class="n">world_file</span> <span class="o">+</span> <span class="p">(</span><span class="s2">&quot; &quot;</span> <span class="o">+</span> <span class="n">gz_args</span> <span class="k">if</span> <span class="n">gz_args</span> <span class="k">else</span> <span class="s2">&quot;&quot;</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">get_gazebo_prefix</span><span class="p">()</span> <span class="o">==</span> <span class="s2">&quot;gz&quot;</span><span class="p">:</span>
+        <span class="n">launch_file</span> <span class="o">=</span> <span class="n">join</span><span class="p">(</span>
+            <span class="n">get_package_share_directory</span><span class="p">(</span><span class="s2">&quot;ros_gz_sim&quot;</span><span class="p">),</span> <span class="s2">&quot;launch&quot;</span><span class="p">,</span> <span class="s2">&quot;gz_sim.launch.py&quot;</span>
+        <span class="p">)</span>
+        <span class="n">launch_arguments</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;gz_args&quot;</span><span class="p">:</span> <span class="n">full_args</span><span class="p">}</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">launch_file</span> <span class="o">=</span> <span class="n">join</span><span class="p">(</span>
+            <span class="n">get_package_share_directory</span><span class="p">(</span><span class="s2">&quot;ros_ign_gazebo&quot;</span><span class="p">),</span>
+            <span class="s2">&quot;launch&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;ign_gazebo.launch.py&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">launch_arguments</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;ign_args&quot;</span><span class="p">:</span> <span class="n">full_args</span><span class="p">}</span>
+
+    <span class="c1"># Validate the existence of the world file in the arguments</span>
+    <span class="n">valid_file</span> <span class="o">=</span> <span class="n">world_file</span> <span class="k">if</span> <span class="n">exists</span><span class="p">(</span><span class="n">world_file</span><span class="p">)</span> <span class="k">else</span> <span class="kc">None</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">valid_file</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">arg</span> <span class="ow">in</span> <span class="n">full_args</span><span class="o">.</span><span class="n">split</span><span class="p">():</span>
+            <span class="k">if</span> <span class="n">exists</span><span class="p">(</span><span class="n">arg</span><span class="p">):</span>
+                <span class="n">valid_file</span> <span class="o">=</span> <span class="n">arg</span>
+                <span class="k">break</span>
+
+    <span class="c1"># Display world information if valid and requested</span>
+    <span class="k">if</span> <span class="n">valid_file</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">show_args</span> <span class="ow">and</span> <span class="n">valid_file</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">gz_launched_worlds</span><span class="p">:</span>
+            <span class="n">gz_launched_worlds</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">valid_file</span><span class="p">)</span>
+            <span class="n">line</span> <span class="o">=</span> <span class="n">_silent_exec</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;grep &#39;world name&#39; </span><span class="si">{</span><span class="n">valid_file</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="n">world</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;&quot;&#39;</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span> <span class="k">if</span> <span class="n">line</span> <span class="k">else</span> <span class="kc">None</span>
+            <span class="k">if</span> <span class="n">world</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Gazebo world &quot;</span><span class="si">{</span><span class="n">world</span><span class="si">}</span><span class="s1">&quot; found @ </span><span class="si">{</span><span class="n">valid_file</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
+                <span class="n">GazeboBridge</span><span class="o">.</span><span class="n">set_world_name</span><span class="p">(</span><span class="n">world</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Could not get the name of Gazebo world </span><span class="si">{</span><span class="n">valid_file</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Could not read Gazebo world @ &quot;</span><span class="si">{</span><span class="n">world_file</span><span class="si">}</span><span class="s1">&quot;&#39;</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">launch_file</span><span class="p">,</span> <span class="n">launch_arguments</span></div>
+
+
+
+<div class="viewcode-block" id="get_gazebo_prefix">
+<a class="viewcode-back" href="../../better_launch.html#better_launch.gazebo.get_gazebo_prefix">[docs]</a>
+<span class="k">def</span> <span class="nf">get_gazebo_prefix</span><span class="p">():</span>
+
+    <span class="k">for</span> <span class="n">env</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;IGN_VERSION&quot;</span><span class="p">,</span> <span class="s2">&quot;GZ_VERSION&quot;</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">env</span> <span class="ow">in</span> <span class="n">environ</span><span class="p">:</span>
+            <span class="k">return</span> <span class="s2">&quot;ign&quot;</span> <span class="k">if</span> <span class="n">environ</span><span class="p">[</span><span class="n">env</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;fortress&quot;</span> <span class="k">else</span> <span class="s2">&quot;gz&quot;</span>
+
+    <span class="c1"># guess from installed packages</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">get_package_share_directory</span><span class="p">(</span><span class="s2">&quot;ros_gz&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="s2">&quot;gz&quot;</span>
+    <span class="k">except</span> <span class="n">PackageNotFoundError</span><span class="p">:</span>
+        <span class="k">return</span> <span class="s2">&quot;ign&quot;</span></div>
+
+
+
+<div class="viewcode-block" id="GazeboBridge">
+<a class="viewcode-back" href="../../better_launch.html#better_launch.gazebo.GazeboBridge">[docs]</a>
+<span class="k">class</span> <span class="nc">GazeboBridge</span><span class="p">:</span>
+    <span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="s2">&quot;GazeboBridge&quot;</span><span class="p">)</span>
+
+    <span class="n">gz2ros</span> <span class="o">=</span> <span class="s2">&quot;[&quot;</span>
+    <span class="n">ros2gz</span> <span class="o">=</span> <span class="s2">&quot;]&quot;</span>
+    <span class="n">bidirectional</span> <span class="o">=</span> <span class="s2">&quot;@&quot;</span>
+    <span class="n">_world_name</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">_gz_exec</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="c1"># ros &lt;-&gt; gz mapping</span>
+    <span class="c1"># from https://github.com/gazebosim/ros_gz/tree/ros2/ros_gz_bridge</span>
+
+<div class="viewcode-block" id="GazeboBridge.generate_msg_map">
+<a class="viewcode-back" href="../../better_launch.html#better_launch.gazebo.GazeboBridge.generate_msg_map">[docs]</a>
+    <span class="k">def</span> <span class="nf">generate_msg_map</span><span class="p">(</span><span class="n">ros_gz_bridge_readme</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        function to regenerate known messages from readme</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">out</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;    msg_map = {&quot;</span><span class="p">]</span>
+
+        <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">ros_gz_bridge_readme</span><span class="o">.</span><span class="n">splitlines</span><span class="p">():</span>
+            <span class="k">if</span> <span class="s2">&quot;|&quot;</span> <span class="ow">in</span> <span class="n">line</span> <span class="ow">and</span> <span class="s2">&quot;/msg/&quot;</span> <span class="ow">in</span> <span class="n">line</span> <span class="ow">and</span> <span class="s2">&quot;gz.msgs&quot;</span> <span class="ow">in</span> <span class="n">line</span><span class="p">:</span>
+                <span class="n">_</span><span class="p">,</span> <span class="n">ros</span><span class="p">,</span> <span class="n">gz</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;|&quot;</span><span class="p">)</span>
+                <span class="n">out</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;    &#39;</span><span class="si">{</span><span class="n">ros</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="si">}</span><span class="s2">&#39;: &#39;</span><span class="si">{</span><span class="n">gz</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="si">}</span><span class="s2">&#39;,&quot;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">out</span><span class="p">)[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="s2">&quot;}&quot;</span><span class="p">)</span></div>
+
+
+    <span class="n">msg_map</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s2">&quot;actuator_msgs/msg/Actuators&quot;</span><span class="p">:</span> <span class="s2">&quot;gz.msgs.Actuators&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;builtin_interfaces/msg/Time&quot;</span><span class="p">:</span> <span class="s2">&quot;gz.msgs.Time&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;geometry_msgs/msg/Point&quot;</span><span class="p">:</span> <span class="s2">&quot;gz.msgs.Vector3d&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;geometry_msgs/msg/Pose&quot;</span><span class="p">:</span> <span class="s2">&quot;gz.msgs.Pose&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;geometry_msgs/msg/PoseArray&quot;</span><span class="p">:</span> <span class="s2">&quot;gz.msgs.Pose_V&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;geometry_msgs/msg/PoseStamped&quot;</span><span class="p">:</span> <span class="s2">&quot;gz.msgs.Pose&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;geometry_msgs/msg/PoseWithCovariance&quot;</span><span class="p">:</span> <span class="s2">&quot;gz.msgs.PoseWithCovariance&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;geometry_msgs/msg/PoseWithCovarianceStamped&quot;</span><span class="p">:</span> <span class="s2">&quot;gz.msgs.PoseWithCovariance&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;geometry_msgs/msg/Quaternion&quot;</span><span class="p">:</span> <span class="s2">&quot;gz.msgs.Quaternion&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;geometry_msgs/msg/Transform&quot;</span><span class="p">:</span> <span class="s2">&quot;gz.msgs.Pose&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;geometry_msgs/msg/TransformStamped&quot;</span><span class="p">:</span> <span class="s2">&quot;gz.msgs.Pose&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;geometry_msgs/msg/Twist&quot;</span><span class="p">:</span> <span class="s2">&quot;gz.msgs.Twist&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;geometry_msgs/msg/TwistStamped&quot;</span><span class="p">:</span> <span class="s2">&quot;gz.msgs.Twist&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;geometry_msgs/msg/TwistWithCovariance&quot;</span><span class="p">:</span> <span class="s2">&quot;gz.msgs.TwistWithCovariance&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;geometry_msgs/msg/TwistWithCovarianceStamped&quot;</span><span class="p">:</span> <span class="s2">&quot;gz.msgs.TwistWithCovariance&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;geometry_msgs/msg/Vector3&quot;</span><span class="p">:</span> <span class="s2">&quot;gz.msgs.Vector3d&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;geometry_msgs/msg/Wrench&quot;</span><span class="p">:</span> <span class="s2">&quot;gz.msgs.Wrench&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;geometry_msgs/msg/WrenchStamped&quot;</span><span class="p">:</span> <span class="s2">&quot;gz.msgs.Wrench&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;gps_msgs/msg/GPSFix&quot;</span><span class="p">:</span> <span class="s2">&quot;gz.msgs.NavSat&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;nav_msgs/msg/Odometry&quot;</span><span class="p">:</span> <span class="s2">&quot;gz.msgs.OdometryWithCovariance&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;rcl_interfaces/msg/ParameterValue&quot;</span><span class="p">:</span> <span class="s2">&quot;gz.msgs.Any&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;ros_gz_interfaces/msg/Altimeter&quot;</span><span class="p">:</span> <span class="s2">&quot;gz.msgs.Altimeter&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;ros_gz_interfaces/msg/Contact&quot;</span><span class="p">:</span> <span class="s2">&quot;gz.msgs.Contact&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;ros_gz_interfaces/msg/Contacts&quot;</span><span class="p">:</span> <span class="s2">&quot;gz.msgs.Contacts&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;ros_gz_interfaces/msg/Dataframe&quot;</span><span class="p">:</span> <span class="s2">&quot;gz.msgs.Dataframe&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;ros_gz_interfaces/msg/Entity&quot;</span><span class="p">:</span> <span class="s2">&quot;gz.msgs.Entity&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;ros_gz_interfaces/msg/Float32Array&quot;</span><span class="p">:</span> <span class="s2">&quot;gz.msgs.Float_V&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;ros_gz_interfaces/msg/GuiCamera&quot;</span><span class="p">:</span> <span class="s2">&quot;gz.msgs.GUICamera&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;ros_gz_interfaces/msg/JointWrench&quot;</span><span class="p">:</span> <span class="s2">&quot;gz.msgs.JointWrench&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;ros_gz_interfaces/msg/Light&quot;</span><span class="p">:</span> <span class="s2">&quot;gz.msgs.Light&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;ros_gz_interfaces/msg/ParamVec&quot;</span><span class="p">:</span> <span class="s2">&quot;gz.msgs.Param&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;ros_gz_interfaces/msg/SensorNoise&quot;</span><span class="p">:</span> <span class="s2">&quot;gz.msgs.SensorNoise&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;ros_gz_interfaces/msg/StringVec&quot;</span><span class="p">:</span> <span class="s2">&quot;gz.msgs.StringMsg_V&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;ros_gz_interfaces/msg/TrackVisual&quot;</span><span class="p">:</span> <span class="s2">&quot;gz.msgs.TrackVisual&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;ros_gz_interfaces/msg/VideoRecord&quot;</span><span class="p">:</span> <span class="s2">&quot;gz.msgs.VideoRecord&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;rosgraph_msgs/msg/Clock&quot;</span><span class="p">:</span> <span class="s2">&quot;gz.msgs.Clock&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;sensor_msgs/msg/BatteryState&quot;</span><span class="p">:</span> <span class="s2">&quot;gz.msgs.BatteryState&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;sensor_msgs/msg/CameraInfo&quot;</span><span class="p">:</span> <span class="s2">&quot;gz.msgs.CameraInfo&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;sensor_msgs/msg/FluidPressure&quot;</span><span class="p">:</span> <span class="s2">&quot;gz.msgs.FluidPressure&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;sensor_msgs/msg/Image&quot;</span><span class="p">:</span> <span class="s2">&quot;gz.msgs.Image&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;sensor_msgs/msg/Imu&quot;</span><span class="p">:</span> <span class="s2">&quot;gz.msgs.IMU&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;sensor_msgs/msg/JointState&quot;</span><span class="p">:</span> <span class="s2">&quot;gz.msgs.Model&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;sensor_msgs/msg/Joy&quot;</span><span class="p">:</span> <span class="s2">&quot;gz.msgs.Joy&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;sensor_msgs/msg/LaserScan&quot;</span><span class="p">:</span> <span class="s2">&quot;gz.msgs.LaserScan&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;sensor_msgs/msg/MagneticField&quot;</span><span class="p">:</span> <span class="s2">&quot;gz.msgs.Magnetometer&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;sensor_msgs/msg/NavSatFix&quot;</span><span class="p">:</span> <span class="s2">&quot;gz.msgs.NavSat&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;sensor_msgs/msg/PointCloud2&quot;</span><span class="p">:</span> <span class="s2">&quot;gz.msgs.PointCloudPacked&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;std_msgs/msg/Bool&quot;</span><span class="p">:</span> <span class="s2">&quot;gz.msgs.Boolean&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;std_msgs/msg/ColorRGBA&quot;</span><span class="p">:</span> <span class="s2">&quot;gz.msgs.Color&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;std_msgs/msg/Empty&quot;</span><span class="p">:</span> <span class="s2">&quot;gz.msgs.Empty&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;std_msgs/msg/Float32&quot;</span><span class="p">:</span> <span class="s2">&quot;gz.msgs.Float&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;std_msgs/msg/Float64&quot;</span><span class="p">:</span> <span class="s2">&quot;gz.msgs.Double&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;std_msgs/msg/Header&quot;</span><span class="p">:</span> <span class="s2">&quot;gz.msgs.Header&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;std_msgs/msg/Int32&quot;</span><span class="p">:</span> <span class="s2">&quot;gz.msgs.Int32&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;std_msgs/msg/String&quot;</span><span class="p">:</span> <span class="s2">&quot;gz.msgs.StringMsg&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;std_msgs/msg/UInt32&quot;</span><span class="p">:</span> <span class="s2">&quot;gz.msgs.UInt32&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;tf2_msgs/msg/TFMessage&quot;</span><span class="p">:</span> <span class="s2">&quot;gz.msgs.Pose_V&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;trajectory_msgs/msg/JointTrajectory&quot;</span><span class="p">:</span> <span class="s2">&quot;gz.msgs.JointTrajectory&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;vision_msgs/msg/Detection2D&quot;</span><span class="p">:</span> <span class="s2">&quot;gz.msgs.AnnotatedAxisAligned2DBox&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;vision_msgs/msg/Detection2DArray&quot;</span><span class="p">:</span> <span class="s2">&quot;gz.msgs.AnnotatedAxisAligned2DBox_V&quot;</span><span class="p">,</span>
+    <span class="p">}</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">gz_topic</span><span class="p">,</span> <span class="n">ros_topic</span><span class="p">,</span> <span class="n">ros_msg</span><span class="p">,</span> <span class="n">direction</span><span class="p">,</span> <span class="n">gz_msg</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+
+        <span class="k">if</span> <span class="s2">&quot;/msg/&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">ros_msg</span><span class="p">:</span>
+            <span class="n">ros_msg</span> <span class="o">=</span> <span class="n">ros_msg</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;/&quot;</span><span class="p">,</span> <span class="s2">&quot;/msg/&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">gz_msg</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">gz_msg</span> <span class="o">=</span> <span class="n">gz_msg</span>
+        <span class="k">elif</span> <span class="n">ros_msg</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">msg_map</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s1">&#39;Cannot build a ros &lt;-&gt; gz bridge for message &quot;</span><span class="si">{</span><span class="n">ros_msg</span><span class="si">}</span><span class="s1">&quot;: unknown type or give explicit gz_msg&#39;</span>
+            <span class="p">)</span>
+            <span class="k">return</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">gz_msg</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">msg_map</span><span class="p">[</span><span class="n">ros_msg</span><span class="p">]</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">GazeboBridge</span><span class="o">.</span><span class="n">valid</span><span class="p">(</span><span class="n">direction</span><span class="p">):</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s1">&#39;Cannot build ros &lt;-&gt; gz bridge with direction &quot;</span><span class="si">{</span><span class="n">direction</span><span class="si">}</span><span class="s1">&quot;: use GazeboBrige.</span><span class="se">{{</span><span class="s1">gz2ros,ros2gz,bidirectional</span><span class="se">}}</span><span class="s1">&#39;</span>
+            <span class="p">)</span>
+            <span class="k">return</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">gz_topic</span> <span class="o">=</span> <span class="n">gz_topic</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ros_topic</span> <span class="o">=</span> <span class="n">ros_topic</span>
+
+        <span class="c1"># Images with gz2ros use ros_gz_image bridge</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">is_image</span> <span class="o">=</span> <span class="n">ros_msg</span> <span class="o">==</span> <span class="s2">&quot;sensor_msgs/msg/Image&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">direction</span> <span class="o">=</span> <span class="n">direction</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ros_msg</span> <span class="o">=</span> <span class="n">ros_msg</span>
+
+<div class="viewcode-block" id="GazeboBridge.yaml">
+<a class="viewcode-back" href="../../better_launch.html#better_launch.gazebo.GazeboBridge.yaml">[docs]</a>
+    <span class="k">def</span> <span class="nf">yaml</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        use YAML-based config for other bridges</span>
+<span class="sd">        - topic_name: &quot;chatter&quot;</span>
+<span class="sd">            ign_topic_name: &quot;ign_chatter&quot;</span>
+<span class="sd">            ros_type_name: &quot;std_msgs/msg/String&quot;</span>
+<span class="sd">            ign_type_name: &quot;ignition.msgs.StringMsg&quot;</span>
+<span class="sd">            direction: BIDIRECTIONAL  # Default &quot;BIDIRECTIONAL&quot; - Bridge both directions</span>
+<span class="sd">                                    # &quot;IGN_TO_ROS&quot; - Bridge Ignition topic to ROS</span>
+<span class="sd">                                    # &quot;ROS_TO_IGN&quot; - Bridge ROS topic</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="n">GazeboBridge</span><span class="o">.</span><span class="n">_gz_exec</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">GazeboBridge</span><span class="o">.</span><span class="n">_gz_exec</span> <span class="o">=</span> <span class="n">get_gazebo_prefix</span><span class="p">()</span>
+
+        <span class="n">direction</span> <span class="o">=</span> <span class="s2">&quot;BIDIRECTIONAL&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">direction</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">gz2ros</span><span class="p">:</span>
+            <span class="n">direction</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">GazeboBridge</span><span class="o">.</span><span class="n">_gz_exec</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span><span class="si">}</span><span class="s2">_TO_ROS&quot;</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">direction</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">ros2gz</span><span class="p">:</span>
+            <span class="n">direction</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;ROS_TO_</span><span class="si">{</span><span class="n">GazeboBridge</span><span class="o">.</span><span class="n">_gz_exec</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span><span class="si">}</span><span class="s2">&quot;</span>
+
+        <span class="k">if</span> <span class="n">GazeboBridge</span><span class="o">.</span><span class="n">_gz_exec</span> <span class="o">==</span> <span class="s2">&quot;ign&quot;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">gz_msg</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">gz_msg</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;gz.&quot;</span><span class="p">,</span> <span class="s2">&quot;ignition.&quot;</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;- </span><span class="si">{</span><span class="n">GazeboBridge</span><span class="o">.</span><span class="n">_gz_exec</span><span class="si">}</span><span class="s2">_topic_name: &quot;</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">gz_topic</span><span class="p">,</span>
+            <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+            <span class="sa">f</span><span class="s2">&quot;  </span><span class="si">{</span><span class="n">GazeboBridge</span><span class="o">.</span><span class="n">_gz_exec</span><span class="si">}</span><span class="s2">_type_name: &quot;</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">gz_msg</span><span class="p">,</span>
+            <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;  ros_topic_name: &quot;</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">ros_topic</span><span class="p">,</span>
+            <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;  ros_type_name: &quot;</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">ros_msg</span><span class="p">,</span>
+            <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;  direction: &quot;</span><span class="p">,</span>
+            <span class="n">direction</span><span class="p">,</span>
+            <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+        <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="GazeboBridge.valid">
+<a class="viewcode-back" href="../../better_launch.html#better_launch.gazebo.GazeboBridge.valid">[docs]</a>
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">valid</span><span class="p">(</span><span class="n">direction</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">direction</span> <span class="ow">in</span> <span class="p">(</span>
+            <span class="n">GazeboBridge</span><span class="o">.</span><span class="n">gz2ros</span><span class="p">,</span>
+            <span class="n">GazeboBridge</span><span class="o">.</span><span class="n">ros2gz</span><span class="p">,</span>
+            <span class="n">GazeboBridge</span><span class="o">.</span><span class="n">bidirectional</span><span class="p">,</span>
+        <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="GazeboBridge.set_world_name">
+<a class="viewcode-back" href="../../better_launch.html#better_launch.gazebo.GazeboBridge.set_world_name">[docs]</a>
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">set_world_name</span><span class="p">(</span><span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Overwrite world name in order to avoid communicating with Gazebo</span>
+<span class="sd">        Useful when Gazebo is launched in an included file, where the world name cannot be guessed</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">GazeboBridge</span><span class="o">.</span><span class="n">_world_name</span> <span class="o">=</span> <span class="n">name</span></div>
+
+
+<div class="viewcode-block" id="GazeboBridge.world">
+<a class="viewcode-back" href="../../better_launch.html#better_launch.gazebo.GazeboBridge.world">[docs]</a>
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">world</span><span class="p">(</span><span class="n">show_args</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">GazeboBridge</span><span class="o">.</span><span class="n">_world_name</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">GazeboBridge</span><span class="o">.</span><span class="n">_world_name</span>
+
+        <span class="k">if</span> <span class="n">show_args</span><span class="p">:</span>
+            <span class="c1"># set a dummy world model, we are not running anyway</span>
+            <span class="n">GazeboBridge</span><span class="o">.</span><span class="n">_world_name</span> <span class="o">=</span> <span class="s2">&quot;dummy&quot;</span>  <span class="c1"># silent future calls</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
+                <span class="s2">&quot;This launch file will request information on a running Gazebo instance at the time of the launch&quot;</span>
+            <span class="p">)</span>
+            <span class="k">return</span> <span class="n">GazeboBridge</span><span class="o">.</span><span class="n">_world_name</span>
+
+        <span class="n">candidates</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;gz&quot;</span><span class="p">,</span> <span class="s2">&quot;ign&quot;</span><span class="p">]</span>
+        <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;GZ_VERSION&quot;</span><span class="p">,</span> <span class="s2">&quot;IGNITION_VERSION&quot;</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">environ</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">environ</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;fortress&quot;</span><span class="p">:</span>
+                    <span class="n">candidates</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;ign&quot;</span><span class="p">]</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">candidates</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;gz&quot;</span><span class="p">]</span>
+                <span class="k">break</span>
+
+        <span class="k">for</span> <span class="n">GazeboBridge</span><span class="o">.</span><span class="n">_gz_exec</span> <span class="ow">in</span> <span class="n">candidates</span><span class="p">:</span>
+            <span class="n">out</span> <span class="o">=</span> <span class="n">_silent_exec</span><span class="p">([</span><span class="n">GazeboBridge</span><span class="o">.</span><span class="n">_gz_exec</span><span class="p">,</span> <span class="s2">&quot;model&quot;</span><span class="p">,</span> <span class="s2">&quot;--list&quot;</span><span class="p">])</span>
+            <span class="k">if</span> <span class="n">out</span> <span class="o">==</span> <span class="s2">&quot;&quot;</span> <span class="ow">or</span> <span class="s2">&quot;timed out&quot;</span> <span class="ow">in</span> <span class="n">out</span><span class="p">:</span>
+                <span class="k">continue</span>
+            <span class="n">GazeboBridge</span><span class="o">.</span><span class="n">_world_name</span> <span class="o">=</span> <span class="n">out</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;]&quot;</span><span class="p">,</span> <span class="s2">&quot;[&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;[&quot;</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span>
+            <span class="k">break</span>
+
+        <span class="k">if</span> <span class="n">GazeboBridge</span><span class="o">.</span><span class="n">_world_name</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s1">&#39;GazeboBridge: could not find any Gazebo instance (tried </span><span class="si">{</span><span class="s2">&quot; and &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">candidates</span><span class="p">)</span><span class="si">}</span><span class="s1">), run Gazebo before this launch file.&#39;</span>
+            <span class="p">)</span>
+            <span class="k">return</span>
+
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;GazeboBridge: found world &quot;</span><span class="si">{</span><span class="n">GazeboBridge</span><span class="o">.</span><span class="n">_world_name</span><span class="si">}</span><span class="s1">&quot;&#39;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">GazeboBridge</span><span class="o">.</span><span class="n">_world_name</span></div>
+
+
+<div class="viewcode-block" id="GazeboBridge.model_prefix">
+<a class="viewcode-back" href="../../better_launch.html#better_launch.gazebo.GazeboBridge.model_prefix">[docs]</a>
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">model_prefix</span><span class="p">(</span><span class="n">model</span><span class="p">):</span>
+        <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;/world/</span><span class="si">{</span><span class="n">GazeboBridge</span><span class="o">.</span><span class="n">world</span><span class="p">()</span><span class="si">}</span><span class="s2">/model/&quot;</span> <span class="o">+</span> <span class="n">model</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+            <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;/world/</span><span class="si">{</span><span class="n">GazeboBridge</span><span class="o">.</span><span class="n">world</span><span class="p">()</span><span class="si">}</span><span class="s2">/model/</span><span class="si">{</span><span class="n">model</span><span class="si">}</span><span class="s2">&quot;</span>
+        <span class="k">return</span> <span class="p">(</span><span class="sa">f</span><span class="s2">&quot;/world/</span><span class="si">{</span><span class="n">GazeboBridge</span><span class="o">.</span><span class="n">world</span><span class="p">()</span><span class="si">}</span><span class="s2">/model/&quot;</span><span class="p">,</span> <span class="n">model</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="GazeboBridge.model_topic">
+<a class="viewcode-back" href="../../better_launch.html#better_launch.gazebo.GazeboBridge.model_topic">[docs]</a>
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">model_topic</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">topic</span><span class="p">):</span>
+        <span class="k">return</span> <span class="p">(</span><span class="s2">&quot;/model/&quot;</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="s2">&quot;/&quot;</span><span class="p">,</span> <span class="n">topic</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="GazeboBridge.clock">
+<a class="viewcode-back" href="../../better_launch.html#better_launch.gazebo.GazeboBridge.clock">[docs]</a>
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">clock</span><span class="p">():</span>
+        <span class="k">return</span> <span class="n">GazeboBridge</span><span class="p">(</span>
+            <span class="s2">&quot;/clock&quot;</span><span class="p">,</span> <span class="s2">&quot;/clock&quot;</span><span class="p">,</span> <span class="s2">&quot;rosgraph_msgs/msg/Clock&quot;</span><span class="p">,</span> <span class="n">GazeboBridge</span><span class="o">.</span><span class="n">gz2ros</span>
+        <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="GazeboBridge.joint_states_bridge">
+<a class="viewcode-back" href="../../better_launch.html#better_launch.gazebo.GazeboBridge.joint_states_bridge">[docs]</a>
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">joint_states_bridge</span><span class="p">(</span><span class="n">model</span><span class="p">):</span>
+        <span class="n">js_gz_topic</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;/world/</span><span class="si">{</span><span class="n">GazeboBridge</span><span class="o">.</span><span class="n">world</span><span class="p">()</span><span class="si">}</span><span class="s2">/model/&quot;</span> <span class="o">+</span> <span class="n">model</span> <span class="o">+</span> <span class="s2">&quot;/joint_state&quot;</span>
+        <span class="k">return</span> <span class="n">GazeboBridge</span><span class="p">(</span>
+            <span class="n">js_gz_topic</span><span class="p">,</span> <span class="s2">&quot;joint_states&quot;</span><span class="p">,</span> <span class="s2">&quot;sensor_msgs/JointState&quot;</span><span class="p">,</span> <span class="n">GazeboBridge</span><span class="o">.</span><span class="n">gz2ros</span>
+        <span class="p">)</span></div>
+</div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Nikolas Dahn.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

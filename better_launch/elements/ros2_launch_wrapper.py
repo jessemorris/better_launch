@@ -6,27 +6,25 @@ import asyncio
 import threading
 from multiprocessing import Process, Queue
 import osrf_pycommon.process_utils
+from setproctitle import setproctitle, getproctitle
 
-import ros.logging as roslog
-from utils.better_logging import PrettyLogFormatter, RecordForwarder, StubbornHandler
-from utils.colors import get_contrast_color
+import better_launch.ros.logging as roslog
+from better_launch.utils.better_logging import PrettyLogFormatter, RecordForwarder, StubbornHandler
+from better_launch.utils.colors import get_contrast_color
 from .abstract_node import AbstractNode
 from .node import Node
 
 
 def _launchservice_worker(
     name: str,
-    launch_args: list[Any],
+    launchservice_args: list[Any],
     launch_action_queue: Queue,
     log_queue: Queue,
 ) -> None:
-    try:
-        from setproctitle import setproctitle, getproctitle
-
-        # Makes it easier to tell what's going on in the process table
-        setproctitle(f"{getproctitle()} ({name})")
-    except ImportError:
-        pass
+    """This function will run in a child process and will not have access to any objects already in memory UNLESS they are passed to it as arguments. See the comments for further details.
+    """
+    # Makes it easier to tell what's going on in the process table
+    setproctitle(f"{getproctitle()} ({name})")
 
     # Late import to avoid adding ROS2 launch as a dependency - we are committed here!
     import launch
@@ -60,7 +58,7 @@ def _launchservice_worker(
     launch.logging.launch_config.screen_handler = StubbornHandler(std_handler)
     logger = launch.logging.get_logger(name)
 
-    launch_service = launch.LaunchService(argv=launch_args, noninteractive=True)
+    launch_service = launch.LaunchService(argv=launchservice_args, noninteractive=True)
     
     # This feels highly illegal and I love it! :>
     setattr(
@@ -106,23 +104,42 @@ def _launchservice_worker(
 class Ros2LaunchWrapper(AbstractNode):
     def __init__(
         self,
-        process_name: str = "LaunchService",
-        launch_args: list[str] = None,
+        name: str = "LaunchService",
+        launchservice_args: list[str] = None,
         output_config: (
             Node.LogSink | dict[Node.LogSource, set[Node.LogSink]]
         ) = "screen",
     ):
+        """Hosts a separate process running a ROS2 `LaunchService` instance (the main entrypoint of the ROS2 launch system). 
+        
+        Note that although the ROS2 launch service may start an arbitrary number of nodes they will not be accessible for interaction beyond showing log output. Output on stdout and stderr from the process (and its nodes) will be captured, reformatted and separated by source.
+        
+        While this is a node-like object, it does not represent a node in ROS. This was done so that e.g. the TUI can be used to interact with the ROS2 launch system to e.g. include regular ROS2 launch files. Running a full process and a separate launch system is fairly resource heavy, however, `LaunchService` insists on running on the main thread.
+
+        .. seealso::
+
+            `ROS2 LaunchService <https://github.com/ros2/launch/blob/rolling/launch/launch/launch_service.py>`_
+
+        Parameters
+        ----------
+        name : str, optional
+            The name that will be used for the logger and the child process.
+        launchservice_args : list[str], optional
+            Additional arguments to pass to the ROS2 launch service. These will show up in the ROS2 `LaunchContext`.
+        output_config : Node.LogSink  |  dict[Node.LogSource, set[Node.LogSink]], optional
+            How log output from the launch service should be handled. Sources are `stdout`, `stderr` and `both`. Sinks are `screen`, `log`, `both`, `own_log`, and `full`.
+        """
         super().__init__(
             "ros2/launch",
             "launch_service.py",
-            process_name,
+            name,
             "/",
             remaps=None,
-            node_args=None,
+            params=None,
         )
 
         self.output_config = output_config
-        self._launch_args = launch_args
+        self._launchservice_args = launchservice_args
 
         self._process: Process = None
         self._launch_action_queue = Queue()
@@ -132,13 +149,17 @@ class Ros2LaunchWrapper(AbstractNode):
 
     @property
     def pid(self) -> int:
+        """The process ID of the node process. Will be -1 if the process is not running.
+        """
         if self._process:
             return self._process.pid
         return -1
 
     @property
-    def launch_args(self) -> list[str]:
-        return self._launch_args
+    def launchservice_args(self) -> list[str]:
+        """Additional arguments that are passed to the launch service.
+        """
+        return self._launchservice_args
 
     @property
     def is_running(self) -> bool:
@@ -148,22 +169,31 @@ class Ros2LaunchWrapper(AbstractNode):
             # For some reason we can't call is_alive when the process was closed
             return False
 
-    @property
-    def is_ros2_connected(self) -> bool:
+    def check_ros2_connected(self, timeout: float = None) -> bool:
+        """Equal to :py:meth:`is_running` for this class.
+        """
         return self.is_running
 
     @property
     def is_lifecycle_node(self) -> bool:
+        """This is never a lifecycle node.
+        """
         return False
 
     def queue_ros2_actions(self, *actions) -> None:
+        """Add ROS2 actions that will be loaded asynchronously by the launch service once it is running. Actions are bundled as a `LaunchDescription` before sending them off.
+        """
         import launch
 
         ld = launch.LaunchDescription(list(actions))
         self._launch_action_queue.put(ld)
         self._loaded_launch_descriptions.append(ld)
 
-    def _do_start(self) -> None:
+    def start(self) -> None:
+        if self.is_running:
+            self.logger.warning(f"LaunchService {self.name} is alrady running")
+            return
+
         logout, logerr = roslog.get_output_loggers(self.name, self.output_config)
 
         # Note that passing loggers will not work for the TUI, as they would have to communicate
@@ -173,7 +203,7 @@ class Ros2LaunchWrapper(AbstractNode):
             target=_launchservice_worker,
             args=(
                 self.name,
-                self.launch_args,
+                self.launchservice_args,
                 self._launch_action_queue,
                 self._process_log_queue,
             ),
@@ -211,6 +241,7 @@ class Ros2LaunchWrapper(AbstractNode):
 
         try:
             if self._terminate_requested or signum == signal.SIGKILL:
+                # TODO seems to always happen, at least with the TUI?
                 self.logger.warning(
                     f"({reason}), but {self.name} was asked to terminate before -> escalating to SIGKILL. Killing ROS2 launch service may leave stale processes behind!"
                 )
@@ -234,13 +265,21 @@ class Ros2LaunchWrapper(AbstractNode):
         )
 
     def _get_info_section_ros(self) -> str:
-        ld_info = "\n".join(self.describe_launch_actions())
         return f"""\
 [bold]Loaded Actions[/bold]
-{ld_info}
+{self.describe_launch_actions()}
 """
 
-    def describe_launch_actions(self) -> list[str]:
+    def describe_launch_actions(self) -> str:
+        """Returns a best-effort summary of all `LaunchDescription`s that have been loaded so far.
+
+        Since ROS2 does not provide a way to serialize its slew of launch actions (beyond *maybe* pickle), it is not possible to create a full representation without special handlers. However, *most* launch actions expose their relevant data as properties. This function will look for these and recurse into them if they return launch actions.
+
+        Returns
+        -------
+        str
+            A formatted and indented representation of the launch descriptions scheduled for loading thus far.
+        """
         descriptions = []
 
         for idx, ld in enumerate(self._loaded_launch_descriptions):
@@ -251,7 +290,7 @@ class Ros2LaunchWrapper(AbstractNode):
 
             descriptions.append(info)
 
-        return descriptions
+        return "\n".join(descriptions)
 
     def _format_properties(self, entity, depth: int = 0):
         indent = "    "
