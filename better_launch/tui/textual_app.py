@@ -291,14 +291,15 @@ class BetterUI(App):
                     on_kill_choice,
                 )
 
-        if node.is_lifecycle_node:
+        is_lifecycle = node.check_lifecycle_node()
+        if is_lifecycle:
             choices = ["info", "lifecycle", "kill"]
         elif isinstance(node, Component):
             choices = ["info", "unload"]
         else:
             choices = ["info", "kill"]
 
-        lifecycle = "LC " if node.is_lifecycle_node else ""
+        lifecycle = "LC " if is_lifecycle else ""
         title = f"{node.name} ({lifecycle}{node.__class__.__name__})"
         self.push_screen(ChoiceDialog(choices, title), on_node_menu_choice)
 

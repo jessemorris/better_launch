@@ -871,7 +871,8 @@ Takeoff in 3... 2... 1...
         respawn_delay: float = 0.0,
         use_shell: bool = False,
         autostart_process: bool = True,
-        init_waittime: float = 3.0,
+        ros_waittime: float = 3.0,
+        lifecycle_waittime: float = 0.01,
         lifecycle_target: LifecycleStage = LifecycleStage.ACTIVE,
     ) -> Node:
         """Create a new ROS2 node process. The bread and butter of every ROS setup!
@@ -918,10 +919,12 @@ Takeoff in 3... 2... 1...
             If True, invoke the node executable via the system shell. While this gives access to the shell's builtins, this has the downside of running the node inside a "mystery program" which is platform and user dependent. Generally not advised.
         autostart_process : bool, optional
             If True, start the node process before returning from this function.
-        init_waittime : float, optional
-            If autostart_process is True, wait for this amount of time for the node to come up. If it came up and is a lifecylce node, its lifecycle target will be applied. Set to -1 to wait indefinitely.
+        ros_waittime : float, optional
+            How long to wait for the node to register with ROS. This should cover the time between the process starting and the node initializing itself. Set negative to wait indefinitely. Will do nothing if `autostart_process` is False.
+        lifecycle_waittime : float, optional
+            How long to wait for the node's lifecycle management to come up. This should cover the time between the node initializing itself (see `ros_waittime`) and creating its additional topics and services. While neglible on modern computers, slower devices and embedded systems may experience a noticable delay here. Set negative to wait indefinitely. Will do nothing if `autostart_process` is False.
         lifecycle_target : LifecycleStage, optional
-            The lifecycle stage to bring the node into after starting. Has no effect if `autostart_process == False` or the node turns out not to be a lifecycle node.
+            The lifecycle stage to bring the node into after starting. Has no effect if `autostart_process` is False or if the node does not appear to be a lifecycle node after waiting `ros_waittime + lifecycle_waittime`.
 
         Returns
         -------
@@ -973,8 +976,9 @@ Takeoff in 3... 2... 1...
         if autostart_process:
             node.start()
             
-            if node.check_ros2_connected(init_waittime) and node.is_lifecycle_node:
-                node.lifecycle.transition(lifecycle_target)
+            if node.check_ros2_connected(ros_waittime):
+                if node.check_lifecycle_node(lifecycle_waittime):
+                    node.lifecycle.transition(lifecycle_target)
 
         return node
 
@@ -1003,7 +1007,7 @@ Takeoff in 3... 2... 1...
         respawn_delay: float = 0.0,
         use_shell: bool = False,
         autostart_process: bool = True,
-        init_waittime: float = 3.0,
+        ros_waittime: float = 3.0,
     ) -> Generator[Composer, None, None]:
         """Creates a composer node which can be used to load composable components.
 
@@ -1038,7 +1042,7 @@ Takeoff in 3... 2... 1...
         log_level : int, optional
             The minimum severity a logged message from this composer must have in order to be published.
         output_config : Node.LogSink  |  dict[Node.LogSource, set[Node.LogSink]], optional
-            How log output from the node should be handled. Sources are `stdout`, `stderr` and `both`. Sinks are `screen`, `log`, `both`, `own_log`, and `full`. See :py:class:`Node` for more details.
+            How log output from the composer should be handled. Sources are `stdout`, `stderr` and `both`. Sinks are `screen`, `log`, `both`, `own_log`, and `full`. See :py:class:`Node` for more details.
         reparse_logs : bool, optional
             If True, *better_launch* will capture the composer's output and reformat it before publishing. 
         anonymous : bool, optional
@@ -1052,11 +1056,11 @@ Takeoff in 3... 2... 1...
         respawn_delay : float, optional
             How long to wait before restarting the composer process after it terminates.
         use_shell : bool, optional
-            If True, invoke the composer executable via the system shell. While this gives access to the shell's builtins, this has the downside of running the node inside a "mystery program" which is platform and user dependent. Generally not advised.
+            If True, invoke the composer executable via the system shell. While this gives access to the shell's builtins, this has the downside of running the composer inside a "mystery program" which is platform and user dependent. Generally not advised.
         autostart_process : bool, optional
             If True, start the composer process before returning from this function. Note that setting this to False for a composer will make it unusable as a context object, since you won't be able to load any components.
-        init_waittime : float, optional
-            If autostart_process is True, wait for this long for the composer to come up.
+        ros_waittime : float, optional
+            How long to wait for the composer to register with ROS. This should cover the time between the process starting and the composer initializing itself. Set negative to wait indefinitely. Will do nothing if `autostart_process` is False.
         
         Yields
         ------
@@ -1110,7 +1114,7 @@ Takeoff in 3... 2... 1...
 
             if autostart_process:
                 comp.start()
-                comp.check_ros2_connected(init_waittime)
+                comp.check_ros2_connected(ros_waittime)
             
             self._composition_node = comp
             yield comp
@@ -1126,7 +1130,8 @@ Takeoff in 3... 2... 1...
         remaps: dict[str, str] = None,
         params: str | dict[str, Any] = None,
         use_intra_process_comms: bool = True,
-        init_waittime: float = 3.0,
+        ros_waittime: float = 3.0,
+        lifecycle_waittime: float = 0.01,
         lifecycle_target: LifecycleStage = LifecycleStage.ACTIVE,
         **extra_composer_args: dict[str, Any],
     ) -> Component:
@@ -1148,10 +1153,12 @@ Takeoff in 3... 2... 1...
             Any ROS parameters you want to pass to the component. These are the args you would typically have to declare in your launch file. A string will be interpreted as a path to a yaml file which will be lazy loaded using :py:meth:`BetterLaunch.load_params`.
         use_intra_process_comms : bool, optional
             If True, ask the composer node to enable intra-process communication, i.e. share memory between components when passing messages instead of serializing and deserializing.
-        init_waittime : bool, optional
-            Wait for this long for the component to fully initialize. If it came up and is a lifecycle component, its lifecycle target will also be applied.
+        ros_waittime : float, optional
+            How long to wait for the component to register with ROS. This should cover the time between the process starting and the component initializing itself. Set negative to wait indefinitely. Will do nothing if `autostart_process` is False.
+        lifecycle_waittime : float, optional
+            How long to wait for the component's lifecycle management to come up. This should cover the time between the component initializing itself (see `ros_waittime`) and creating its additional topics and services. While neglible on modern computers, slower devices and embedded systems may experience a noticable delay here. Set negative to wait indefinitely. Will do nothing if `autostart_process` is False.
         lifecycle_target : LifecycleStage, optional
-            The lifecycle stage to bring the componment into after starting. Has no effect if the component turns out not to be a lifecycle component.
+            The lifecycle stage to bring the component into after starting. Has no effect if `autostart_process` is False or if the component does not appear to be a lifecycle component after waiting `ros_waittime + lifecycle_waittime`.
 
         Returns
         -------
@@ -1181,8 +1188,9 @@ Takeoff in 3... 2... 1...
             **extra_composer_args,
         )
 
-        if comp.check_ros2_connected(init_waittime) and comp.is_lifecycle_node:
-            comp.lifecycle.transition(lifecycle_target)
+        if comp.check_ros2_connected(ros_waittime):
+            if comp.check_lifecycle_node(lifecycle_waittime):
+                comp.lifecycle.transition(lifecycle_target)
 
         return comp
 

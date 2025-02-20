@@ -64,7 +64,6 @@ class AbstractNode:
         self._namespace = namespace
         self._remaps = remaps
         self._params = params or {}
-        self._is_lifecycle: bool = None
         self._lifecycle_manager: LifecycleManager = None
 
         self.logger = roslog.get_logger(self.fullname)
@@ -202,12 +201,12 @@ class AbstractNode:
         raise NotImplementedError
 
     def check_ros2_connected(self, timeout: float = None) -> bool:
-        """Check whether this node has started and is registered within ROS.
+        """Check whether this node is registered within ROS.
 
         Parameters
         ----------
         timeout : float, optional
-            How long to wait if the node is not yet connected.
+            How long to wait for the node to sign up with ROS. Wait forever if negative.
 
         Returns
         -------
@@ -241,43 +240,53 @@ class AbstractNode:
             # Cannot check if the shared node was shut down
             return None
 
-    @property
-    def is_lifecycle_node(self) -> bool:
-        """Checks if this is a lifecycle node.
+    def check_lifecycle_node(self, timeout: float = None) -> bool:
+        """Checks if this is a lifecycle node and initializes a : py:class:`LifecycleManager` if supported and not done so before.
+
+        Note that if you simply want to check whether this node supports lifecycle management right now, check whether :py:meth:`lifecycle` is None will be considerably cheaper.
 
         Whether a node supports lifecycle management can only be known from outside once its process is started and it has registered with ROS. When this is called while the node is alive and it supports lifecycle management, a :py:class:`LifecycleManager` object will be initialized for it. This will persist even if the node is shutdown, but will obviously no longer provide useful functionality. 
+
+        Note that at the time of writing (Jazzy), the ROS node registers with ROS before the lifecycle topics are created. This makes sense of course, but also means that there is a short window where the node is registered with ROS but not a lifecycle node yet. This can be a problem, especially on slower devices like a Raspberry Pi 3. In these cases I advise you follow this pattern:
+
+        .. code:: python
+
+            node = Node(...)
+            # Wait until the node is registered in ROS
+            if node.check_ros2_connected(timeout=5.0):
+                # Give the node some additional time to create its lifecycle topics
+                if node.check_lifecycle_node(timeout=0.1):
+                    # Now the node can be managed
+                    node.lifecycle.transition(...)
+
+        Parameters
+        ----------
+        timeout : float, optional
+            How long to wait for the node to reveal its lifecycle capabilities. Wait forever if negative.
 
         Returns
         -------
         bool
             True if the node supports lifecycle management, False otherwise.
         """
-        if self._is_lifecycle is None:
-            self._is_lifecycle = LifecycleManager.is_lifecycle(self)
-
-            if self._is_lifecycle:
+        if self._lifecycle_manager is None:
+            if LifecycleManager.is_lifecycle(self, timeout):
                 self._lifecycle_manager = LifecycleManager(self)
 
-        return self._is_lifecycle
+        return self._lifecycle_manager is not None
 
     @property
     def lifecycle(self) -> LifecycleManager:
-        """Returns this node's :py:class:`LifecyceManager`, if supported. 
-
-        .. seealso::
-
-            :py:meth:`is_lifecycle_node`
+        """Returns this node's :py:class:`LifecyceManager`. 
+        
+        **Note:** make sure to call :py:meth:`check_lifecycle_node` before retrieving this object!
 
         Returns
         -------
         LifecycleManager
-            The object used for managing this node's lifecycle, or None if not supported.
+            The object used for managing this node's lifecycle. Will be None if lifecycle management is not supported or `check_lifecycle_node` has not been called before.
         """
-        # Returning the _lifecycle_manager would be fine, but this way it will be instantiated 
-        # if supported and not yet done before
-        if self.is_lifecycle_node:
-            return self._lifecycle_manager
-        return None
+        return self._lifecycle_manager
 
     def get_info_sheet(self) -> str:
         """Returns a summary of this node's information for display in a terminal.
@@ -299,7 +308,7 @@ class AbstractNode:
         return f"""\
 [bold]{self.name} ({self.__class__.__name__})[/bold]
   Status:    {'[green]alive[/green]' if self.is_running else '[red]dead[/red]'}
-  Lifecycle: {self.lifecycle.current_stage.name if self.is_lifecycle_node else 'None'}
+  Lifecycle: {self.lifecycle.current_stage.name if self.lifecycle else 'None'}
   Package:   {self.package}
   Command:   {self.executable}
   Namespace: {self.namespace}
