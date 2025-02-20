@@ -409,12 +409,19 @@ class LaunchfileSelectionCLI(click.MultiCommand):
         ctx.obj = {
             "launchfile": launchfile,
         }
-        return click.Command(
+
+        cmd = click.Command(
             name,
             callback=click.pass_context(launchfile.run),
             params=launchfile.params,
             help=launchfile.doc,
         )
+
+        # In case the launch file accepts additional arguments. Unfortunately, in ROS2 this not only depends on the launch file, but also on the ROS2 node itself, specifically the allow_undeclared_parameters argument.
+        cmd.ignore_unknown_options = True
+        cmd.allow_extra_args = True
+
+        return cmd
 
     def _get_executables(self, include_launchfiles: bool = True) -> list[str]:
         # list executable files inside our package

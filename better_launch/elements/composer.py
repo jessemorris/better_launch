@@ -252,8 +252,8 @@ class Composer(Node):
         """
         return False
 
-    def start(self, lifecycle_target: LifecycleStage = LifecycleStage.ACTIVE) -> None:
-        super().start(lifecycle_target)
+    def start(self) -> None:
+        super().start()
 
         from better_launch import BetterLaunch
 
