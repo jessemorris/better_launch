@@ -1,11 +1,13 @@
 from typing import Any
 import sys
 import os
+import platform
 import signal
 import logging
 import asyncio
 import threading
 from multiprocessing import Process, Queue
+import subprocess
 import osrf_pycommon.process_utils
 from setproctitle import setproctitle, getproctitle
 
@@ -27,6 +29,12 @@ def _launchservice_worker(
     # Makes it easier to tell what's going on in the process table
     setproctitle(f"{getproctitle()} ({name})")
 
+    if platform.system() != "Windows":
+        # On unix-based systems this will make this process independent from the host process. This 
+        # way we can terminate it and its child processes without affecting the host process. Since
+        # it's not supported on windows, we handle this in our shutdown function instead.
+        os.setsid()
+
     # The child process will have clones of the host process' signal handlers installed (i.e. those 
     # defined in launch_this), so we should rewire these, otherwise we'll get parallel calls
     def _on_sigint(signum: int, frame):
@@ -35,6 +43,7 @@ def _launchservice_worker(
         if ret:
             # This way we suppress the "coroutine was never awaited" warning
             ret.close()
+        os._exit(os.EX_OK)
 
     def _on_sigterm(signum: int, frame):
         logger.info("RECEIVED SIGTERM")
@@ -266,23 +275,35 @@ class Ros2LaunchWrapper(AbstractNode):
                     f"({reason}), but {self.name} was asked to terminate before -> escalating to SIGKILL. Killing ROS2 launch service may leave stale processes behind!"
                 )
                 # Set the child process and all its children on fire
-                os.killpg(os.getpgid(self.pid), signal.SIGKILL)
+                self.send_signal(signal.SIGKILL)
             elif self._shutdown_requested:
                 self._terminate_requested = True
                 self.logger.info(
                     f"{self.name} is still runing, escalating to SIGTERM ({reason})"
                 )
                 # Rudely ask the child process and all its children to exit immediately
-                os.killpg(os.getpgid(self.pid), signal.SIGTERM)
+                self.send_signal(signal.SIGTERM)
             else:
                 self._shutdown_requested = True
                 self.logger.info(
                     f"Asking {self.name} to shutdown gracefully via SIGINT ({reason})"
                 )
                 # Gently suggest to the child process and all its children that they could exit now
-                os.killpg(os.getpgid(self.pid), signal.SIGINT)
+                self.send_signal(signal.SIGINT)
         except:
             pass
+
+    def send_signal(self, signum: int) -> None:
+        if not self.is_running:
+            return
+
+        if platform.system() == "Windows":
+            if signum == signal.SIGINT or signum == signal.SIGTERM:
+                subprocess.call(["taskkill", "/PID", str(self.pid), "/T"])
+            elif signum == signal.SIGKILL:
+                subprocess.call(["taskkill", "/F", "/T", "/PID", str(self.pid)])
+        else:
+            os.killpg(os.getpgid(self.pid), signum)
 
     def _get_info_section_general(self) -> str:
         return (
