@@ -2,7 +2,7 @@ from better_launch import BetterLaunch, launch_this
 
 
 @launch_this(ui=True)
-def test(x: float = 2.0, y: float = 2.0, theta: float = 0.2):
+def a_relic_of_the_past(x: float = 2.0, y: float = 2.0, theta: float = 0.2):
     """
     better_launch can include both its own launch files and ROS2 launch files (.py, .yaml, .xml). When including ROS2 launch actions, better_launch creates a child process which will run the ROS2 launch service instance which will handle the passed actions asynchronously in the background.
 
@@ -20,7 +20,7 @@ def test(x: float = 2.0, y: float = 2.0, theta: float = 0.2):
     client = bl.service_client(
         "/my_turtlesim/spawn",
         Spawn,
-        timeout=5.0
+        timeout=10.0
     )
 
     # ROS2 is still very picky about types (e.g. int vs. float), but that's difficult to improve from better_launch

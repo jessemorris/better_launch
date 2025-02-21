@@ -7,7 +7,7 @@ Instead of dozens of imports and class instances for even the most basic tasks, 
 from better_launch import BetterLaunch, launch_this
 
 @launch_this
-def test(enable_x: bool):
+def my_main(enable_x: bool):
     """
     This is how nice your launch files could be!
     """

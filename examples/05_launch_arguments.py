@@ -2,7 +2,7 @@ from better_launch import BetterLaunch, launch_this
 
 
 @launch_this
-def test(enable: bool = False):
+def handle_with_care(enable: bool = False):
     """
     When writing a better_launch launch file, every argument of your launch function will be exposed on the command line. When running the launch file either directly or via `bl` you can pass this argument as follows:
 
@@ -19,17 +19,19 @@ def test(enable: bool = False):
     """
     bl = BetterLaunch()
 
-    if enable:
-        with bl.group("test"):
-            bl.node(
-                "examples_rclpy_minimal_publisher",
-                "publisher_local_function",
-                "my_publisher",
-            )
+    if not enable:
+        print("This launch file must be run with `--enable True`!")
 
-            # Yay, no more clunky condition substitutions!
-            bl.node(
-                "examples_rclpy_minimal_subscriber",
-                "subscriber_member_function",
-                "my_listener",
-            )
+    if enable:
+        bl.node(
+            "examples_rclpy_minimal_publisher",
+            "publisher_local_function",
+            "my_publisher",
+        )
+
+        # Yay, no more clunky condition substitutions!
+        bl.node(
+            "examples_rclpy_minimal_subscriber",
+            "subscriber_member_function",
+            "my_listener",
+        )
