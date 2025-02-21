@@ -46,8 +46,14 @@ from better_launch.elements import (
     Ros2LaunchWrapper,
 )
 from better_launch.utils.better_logging import default_log_colormap, PrettyLogFormatter
-from better_launch.utils.substitutions import default_substitution_handlers, substitute_tokens
-from better_launch.utils.introspection import find_calling_frame, find_launchthis_function
+from better_launch.utils.substitutions import (
+    default_substitution_handlers,
+    substitute_tokens,
+)
+from better_launch.utils.introspection import (
+    find_calling_frame,
+    find_launchthis_function,
+)
 from better_launch.ros.ros_adapter import ROSAdapter
 from better_launch.ros import logging as roslog
 from better_launch.ros.logging import LaunchConfig as LogConfig
@@ -86,8 +92,7 @@ class _BetterLaunchMeta(type):
 
 
 class BetterLaunch(metaclass=_BetterLaunchMeta):
-    """This should be all you need to create beautiful, simple and convenient launch files!
-    """
+    """This should be all you need to create beautiful, simple and convenient launch files!"""
 
     _launchfile: str = None
     _launch_func_args: dict[str, Any] = {}
@@ -337,7 +342,9 @@ Takeoff in 3... 2... 1...
             try:
                 n.shutdown(reason, signum)
             except Exception as e:
-                self.logger.error(f"Node {n.name} raised an exception during shutdown: {e}")
+                self.logger.error(
+                    f"Node {n.name} raised an exception during shutdown: {e}"
+                )
 
         try:
             self.ros_adapter.shutdown()
@@ -349,7 +356,9 @@ Takeoff in 3... 2... 1...
             try:
                 self._ros2_launcher.shutdown(reason, signum)
             except Exception as e:
-                self.logger.error(f"ROS2 launch service raised an exception during shutdown: {e}")
+                self.logger.error(
+                    f"ROS2 launch service raised an exception during shutdown: {e}"
+                )
 
         try:
             self._shutdown_future.set_result(None)
@@ -378,10 +387,10 @@ Takeoff in 3... 2... 1...
 
         If the `filename` is absolute, all other arguments will be ignored and the filename will be returned.
 
-        If `package` is provided, the corresponding ROS2 package path will be used as the base path. Else we attempt to locate the current launch file's package by searching its directory and parent directories for a `package.xml`. If the package cannot be determined the current working dir is used as the base path. 
-        
-        If neither `subdir` nor `filename` are provided, the base path is returned. Otherwise, subdir and filename are concatenated to form a target path. The base path is then searched for any directory or file matching the target path. 
-        
+        If `package` is provided, the corresponding ROS2 package path will be used as the base path. Else we attempt to locate the current launch file's package by searching its directory and parent directories for a `package.xml`. If the package cannot be determined the current working dir is used as the base path.
+
+        If neither `subdir` nor `filename` are provided, the base path is returned. Otherwise, subdir and filename are concatenated to form a target path. The base path is then searched for any directory or file matching the target path.
+
         More specifically, if only `filename` is provided, a file with that name is located. If only `subdir` is provided, a matching path within the base path is located. If both `filename` and `subdir` are provided, a file within the specified path fragment is located.
 
         Parameters
@@ -913,7 +922,7 @@ Takeoff in 3... 2... 1...
         output_config : Node.LogSink  |  dict[Node.LogSource, set[Node.LogSink]], optional
             How log output from the node should be handled. Sources are `stdout`, `stderr` and `both`. Sinks are `screen`, `log`, `both`, `own_log`, and `full`. See :py:class:`Node` for more details.
         reparse_logs : bool, optional
-            If True, *better_launch* will capture the node's output and reformat it before publishing. 
+            If True, *better_launch* will capture the node's output and reformat it before publishing.
         anonymous : bool, optional
             If True, the node name will be appended with a unique suffix to avoid name conflicts.
         hidden : bool, optional
@@ -984,7 +993,7 @@ Takeoff in 3... 2... 1...
         g.add_node(node)
         if autostart_process:
             node.start()
-            
+
             if node.check_ros2_connected(ros_waittime):
                 if node.check_lifecycle_node(lifecycle_waittime):
                     node.lifecycle.transition(lifecycle_target)
@@ -1023,7 +1032,7 @@ Takeoff in 3... 2... 1...
         This can be used as a context object, e.g.
 
         .. code:: python
-        
+
             bl = BetterLaunch()
             with bl.compose("my-composer"):
                 bl.component("my_package", "mystuff:TheComponentOfDreams", "normal-component")
@@ -1053,7 +1062,7 @@ Takeoff in 3... 2... 1...
         output_config : Node.LogSink  |  dict[Node.LogSource, set[Node.LogSink]], optional
             How log output from the composer should be handled. Sources are `stdout`, `stderr` and `both`. Sinks are `screen`, `log`, `both`, `own_log`, and `full`. See :py:class:`Node` for more details.
         reparse_logs : bool, optional
-            If True, *better_launch* will capture the composer's output and reformat it before publishing. 
+            If True, *better_launch* will capture the composer's output and reformat it before publishing.
         anonymous : bool, optional
             If True, the composer name will be appended with a unique suffix to avoid name conflicts.
         hidden : bool, optional
@@ -1070,7 +1079,7 @@ Takeoff in 3... 2... 1...
             If True, start the composer process before returning from this function. Note that setting this to False for a composer will make it unusable as a context object, since you won't be able to load any components.
         ros_waittime : float, optional
             How long to wait for the composer to register with ROS. This should cover the time between the process starting and the composer initializing itself. Set negative to wait indefinitely. Will do nothing if `autostart_process` is False.
-        
+
         Yields
         ------
         Generator[Composer, None, None]
@@ -1124,7 +1133,7 @@ Takeoff in 3... 2... 1...
             if autostart_process:
                 comp.start()
                 comp.check_ros2_connected(ros_waittime)
-            
+
             self._composition_node = comp
             yield comp
         finally:
@@ -1205,34 +1214,28 @@ Takeoff in 3... 2... 1...
 
     @overload
     def include(
-        self,
-        launchfile: str,
-        *,
-        pass_launch_func_args: bool = True,
-        **kwargs
-    ) -> None:
-        ...
+        self, launchfile: str, *, pass_launch_func_args: bool = True, **kwargs
+    ) -> None: ...
 
     @overload
     def include(
         self,
-        package: str, 
+        package: str,
         launchfile: str,
         *,
         pass_launch_func_args: bool = True,
-        **kwargs
-    ) -> None:
-        ...
+        **kwargs,
+    ) -> None: ...
 
     def include(
         self,
-        *search_args: str, 
+        *search_args: str,
         pass_launch_func_args: bool = True,
         **kwargs,
     ) -> None:
-        """Include another launch file, resolving its path using :py:meth:`find`. 
+        """Include another launch file, resolving its path using :py:meth:`find`.
 
-        The file is first read into memory and checked. If it seems to be a *better_launch* launch file, it is executed immediately (using :py:func:`exec`). The BetterLaunch instance and global context will be shared. Any arguments to :py:deco:`launch_this` in the included launch file will be ignored. 
+        The file is first read into memory and checked. If it seems to be a *better_launch* launch file, it is executed immediately (using :py:func:`exec`). The BetterLaunch instance and global context will be shared. Any arguments to :py:deco:`launch_this` in the included launch file will be ignored.
 
         If the file does not appear to be a *better_launch* launch file, it is assumed to be a regular ROS2 launch file. In this case a :py:class:`launch.actions.IncludeLaunchDescription` instance is created and passed to :py:meth:`ros2_actions`.
 
@@ -1265,7 +1268,7 @@ Takeoff in 3... 2... 1...
         include_args.update(**kwargs)
 
         file_path = self.find(filename=launchfile, package=package)
-        
+
         if find_launchthis_function(file_path):
             try:
                 source = open(file_path).read()
@@ -1312,7 +1315,7 @@ Takeoff in 3... 2... 1...
         launchservice_args: list[str] = None,
         start_immediately: bool = True,
     ) -> Ros2LaunchWrapper:
-        """Create or retrieve a manager object that can be used for queueing ROS2 launch actions. 
+        """Create or retrieve a manager object that can be used for queueing ROS2 launch actions.
 
         Usually, calling :py:meth:`ros2_actions` is more convenient for queueing actions. However, calling this *first* allows to prevent starting the underlying :py:class:`launch.LaunchService` immediately, giving more control over when the actions are executed.
 
@@ -1345,8 +1348,8 @@ Takeoff in 3... 2... 1...
         return self._ros2_launcher
 
     def ros2_actions(self, *ros2_actions) -> None:
-        """Submit additional ROS2 launch actions for execution. 
-        
+        """Submit additional ROS2 launch actions for execution.
+
         If no :py:class:`launch.LaunchService` exists yet it will be created and started immediately.
         """
         self.ros2_launch_service().queue_ros2_actions(*ros2_actions)
