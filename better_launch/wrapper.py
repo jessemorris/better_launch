@@ -9,7 +9,11 @@ import click
 import threading
 from docstring_parser import parse as parse_docstring
 
-from better_launch.launcher import BetterLaunch, _bl_singleton_instance, _bl_include_args
+from better_launch.launcher import (
+    BetterLaunch,
+    _bl_singleton_instance,
+    _bl_include_args,
+)
 from better_launch.utils.better_logging import default_log_colormap, PrettyLogFormatter
 from better_launch.utils.introspection import find_calling_frame
 from better_launch.ros import logging as roslog
@@ -92,7 +96,7 @@ def _launch_this_wrapper(
     if threading.current_thread() != threading.main_thread():
         raise RuntimeError("launch_this must be used on the main thread")
 
-    # Some terminals will send SIGINT multiple times on ctrl-c    
+    # Some terminals will send SIGINT multiple times on ctrl-c
     handling_sigint = False
 
     def sigint_handler(sig, frame):
@@ -131,7 +135,10 @@ def _launch_this_wrapper(
         if "self" not in frame_locals:
             continue
         owner = frame_locals["self"]
-        if isinstance(owner, object) and getattr(owner, "__name__", None) == "IncludeLaunchDescription":
+        if (
+            isinstance(owner, object)
+            and getattr(owner, "__name__", None) == "IncludeLaunchDescription"
+        ):
             # We were included, expose the expected method in our caller's globals and return
             _expose_ros2_launch_function(launch_func)
             return
@@ -172,20 +179,24 @@ def _launch_this_wrapper(
     def click_ui_override(ctx: click.Context, param: click.Parameter, value: Any):
         if value != "unset":
             nonlocal ui
-            ui = (value == "enable")
+            ui = value == "enable"
         return value
 
-    options.extend([
-        click.Option(
-            ["--bl-ui-override"],
-            type=click.types.Choice(["enable", "disable", "unset"], case_sensitive=False),
-            show_choices=True,
-            default="unset",
-            help="Override to enable/disable the terminal UI",
-            expose_value=False,  # not passed to our run method
-            callback=click_ui_override,
-        ),
-    ])
+    options.extend(
+        [
+            click.Option(
+                ["--bl-ui-override"],
+                type=click.types.Choice(
+                    ["enable", "disable", "unset"], case_sensitive=False
+                ),
+                show_choices=True,
+                default="unset",
+                help="Override to enable/disable the terminal UI",
+                expose_value=False,  # not passed to our run method
+                callback=click_ui_override,
+            ),
+        ]
+    )
 
     @click.pass_context
     def run(ctx: click.Context, *args, **kwargs):
@@ -210,12 +221,12 @@ def _launch_this_wrapper(
                 assert len(ctx.args) % 2 == 0
                 extra_kwargs = {}
 
-                for i, in range(0, len(ctx.args), 2):
-                    key, = ctx.args[i]
+                for (i,) in range(0, len(ctx.args), 2):
+                    (key,) = ctx.args[i]
                     if not key.startswith("-"):
                         raise ValueError("Extra argument keys must start with a dash")
 
-                    val = ctx.args[i+1]
+                    val = ctx.args[i + 1]
                     try:
                         val = literal_eval(val)
                     except:
