@@ -246,11 +246,11 @@ class Ros2LaunchWrapper(AbstractNode):
                 )
                 self._process.kill()
             else:
+                self._terminate_requested = True
                 self.logger.info(
                     f"{self.name} was asked to terminate: {reason} (SIGTERM)"
                 )
                 self._process.terminate()
-                self._terminate_requested = True
         except:
             pass
 
