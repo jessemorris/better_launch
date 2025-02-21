@@ -63,7 +63,7 @@ Everything you would expect and a little more! The `BetterLaunch` instance allow
 - manage your node using a nice *terminal UI* reminiscent of [rosmon](https://github.com/xqms/rosmon)
 - serve the terminal *UI as an interactive web page* courtesy of [textual](https://textual.textualize.io/) - how crazy is that?!
 
-See the [documentation](docs/build/html/index.html) (or [source code](better_launch/better_launch.py)) for details.
+See the [examples](examples/) for what better_launch can do! 
 
 > In the future, there will also be a `convenience` module that will help with e.g. setting up *Gazebo* environments.
 
