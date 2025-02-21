@@ -142,21 +142,21 @@ class BetterUI(App):
         # This might be invoked more than once
         if not self.exit_reason:
             self.exit_reason = reason
+        
+        bl = BetterLaunch.instance()
+        if bl and not bl.is_shutdown:
+            bl.shutdown(self.exit_reason)
 
         super().exit()
 
-        bl = BetterLaunch.instance()
-        if bl and not bl.is_shutdown:
-            bl.shutdown(reason)
-
     async def _shutdown(self):
-        # Passing a message to super.exit will be treated as an error, so we instead handle any
-        # post-shutdown stuff here
         await super()._shutdown()
 
         if self.exit_reason:
             from rich.console import Console
 
+            # Passing a message to super.exit will be treated as an error, so we instead handle any
+            # post-shutdown stuff here
             Console().print(f"[bright_green]BetterUI exit: {self.exit_reason}[/bright_green]")
 
     @work(thread=True, exit_on_error=True, group="launch_func")

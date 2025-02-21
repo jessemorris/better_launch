@@ -1,4 +1,5 @@
 from typing import Any
+import sys
 import os
 import signal
 import logging
@@ -25,6 +26,22 @@ def _launchservice_worker(
     """
     # Makes it easier to tell what's going on in the process table
     setproctitle(f"{getproctitle()} ({name})")
+
+    # The child process will have clones of the host process' signal handlers installed (i.e. those 
+    # defined in launch_this), so we should rewire these, otherwise we'll get parallel calls
+    def _on_sigint(signum: int, frame):
+        logger.info("RECEIVED SIGINT")
+        ret = launch_service._shutdown(reason="SIGINT", due_to_sigint=True)
+        if ret:
+            # This way we suppress the "coroutine was never awaited" warning
+            ret.close()
+
+    def _on_sigterm(signum: int, frame):
+        logger.info("RECEIVED SIGTERM")
+        sys.exit()
+
+    signal.signal(signal.SIGINT, _on_sigint)
+    signal.signal(signal.SIGTERM, _on_sigterm)
 
     # Late import to avoid adding ROS2 launch as a dependency - we are committed here!
     import launch
@@ -77,6 +94,7 @@ def _launchservice_worker(
                 await asyncio.sleep(0.1)
             except Exception as e:
                 logger.error(f"Failed to add actions to ROS launch service: {e}")
+                raise
 
     async def wrapper():
         try:
@@ -99,6 +117,7 @@ def _launchservice_worker(
             loop.run_until_complete(task)
         except Exception as e:
             logger.warning(f"ROS2 launch service terminated: {e}")
+            raise
 
 
 class Ros2LaunchWrapper(AbstractNode):
@@ -145,6 +164,7 @@ class Ros2LaunchWrapper(AbstractNode):
         self._launch_action_queue = Queue()
         self._process_log_queue = Queue()
         self._loaded_launch_descriptions = []
+        self._shutdown_requested = False
         self._terminate_requested = False
 
     @property
@@ -229,28 +249,38 @@ class Ros2LaunchWrapper(AbstractNode):
         self._process.close()
 
     def shutdown(self, reason: str, signum: int = signal.SIGTERM) -> None:
+        if self._terminate_requested and self.is_running:
+            # Give the process a little bit of time to terminate
+            try:
+                self._process.join(0.5)
+            except:
+                # Might fail during shutdown
+                pass
+        
         if not self.is_running:
             return
 
-        if self._terminate_requested:
-            # Give the process a little bit of time to terminate
-            self._process.join(0.5)
-            if not self.is_running:
-                return
-
         try:
             if self._terminate_requested or signum == signal.SIGKILL:
-                # TODO seems to always happen, at least with the TUI?
                 self.logger.warning(
                     f"({reason}), but {self.name} was asked to terminate before -> escalating to SIGKILL. Killing ROS2 launch service may leave stale processes behind!"
                 )
-                self._process.kill()
-            else:
+                # Set the child process and all its children on fire
+                os.killpg(os.getpgid(self.pid), signal.SIGKILL)
+            elif self._shutdown_requested:
                 self._terminate_requested = True
                 self.logger.info(
-                    f"{self.name} was asked to terminate: {reason} (SIGTERM)"
+                    f"{self.name} is still runing, escalating to SIGTERM ({reason})"
                 )
-                self._process.terminate()
+                # Rudely ask the child process and all its children to exit immediately
+                os.killpg(os.getpgid(self.pid), signal.SIGTERM)
+            else:
+                self._shutdown_requested = True
+                self.logger.info(
+                    f"Asking {self.name} to shutdown gracefully via SIGINT ({reason})"
+                )
+                # Gently suggest to the child process and all its children that they could exit now
+                os.killpg(os.getpgid(self.pid), signal.SIGINT)
         except:
             pass
 

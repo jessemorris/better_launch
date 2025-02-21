@@ -23,6 +23,6 @@ def test(x: float = 2.0, y: float = 2.0, theta: float = 0.2):
         timeout=5.0
     )
 
-    # ROS2 is still very picky about types (e.g. int vs. float), but that's difficult to improve
+    # ROS2 is still very picky about types (e.g. int vs. float), but that's difficult to improve from better_launch
     req = Spawn.Request(x=x, y=y, theta=theta)
     client.call(req)

@@ -6,6 +6,7 @@ import signal
 import inspect
 import logging
 import click
+import threading
 from docstring_parser import parse as parse_docstring
 
 from better_launch.launcher import BetterLaunch, _bl_singleton_instance, _bl_include_args
@@ -83,14 +84,26 @@ def _launch_this_wrapper(
         launch_func(**include_args)
         return
 
+    # At this point we know that we are the main launch file
+
     # Signal handlers have to be installed on the main thread. Since the BetterLaunch singleton
     # could be instantiated first on a different thread we do it here where we can make stronger
     # requirements.
+    if threading.current_thread() != threading.main_thread():
+        raise RuntimeError("launch_this must be used on the main thread")
+
+    # Some terminals will send SIGINT multiple times on ctrl-c    
+    handling_sigint = False
+
     def sigint_handler(sig, frame):
-        BetterLaunch()._on_sigint(sig, frame)
+        nonlocal handling_sigint
+        if not handling_sigint:
+            handling_sigint = True
+            BetterLaunch()._on_sigint(sig, frame)
+            handling_sigint = False
 
     def sigterm_handler(sig, frame):
-        BetterLaunch()._on_sigint(sig, frame)
+        BetterLaunch()._on_sigterm(sig, frame)
 
     signal.signal(signal.SIGINT, sigint_handler)
     signal.signal(signal.SIGTERM, sigterm_handler)
