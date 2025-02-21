@@ -38,12 +38,14 @@ def _launchservice_worker(
     # The child process will have clones of the host process' signal handlers installed (i.e. those 
     # defined in launch_this), so we should rewire these, otherwise we'll get parallel calls
     def _on_sigint(signum: int, frame):
-        ret = launch_service._shutdown(reason="SIGINT", due_to_sigint=True)
-        if ret:
-            # This way we suppress the "coroutine was never awaited" warning
-            ret.close()
-        # Recommended to use this special _exit call in child processes
-        os._exit(os.EX_OK)
+        try:
+            ret = launch_service._shutdown(reason="SIGINT", due_to_sigint=True)
+            if ret:
+                # This way we suppress the "coroutine was never awaited" warning
+                ret.close()
+        finally:
+            # Recommended to use this special _exit call in child processes
+            os._exit(os.EX_OK)
 
     def _on_sigterm(signum: int, frame):
         # Recommended to use this special _exit call in child processes
