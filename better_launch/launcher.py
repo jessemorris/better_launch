@@ -284,8 +284,8 @@ Takeoff in 3... 2... 1...
     def _on_sigint(self, sig: int, frame: inspect.FrameInfo) -> None:
         if not self._sigint_received:
             self.logger.warning(f"Received (SIGINT), forwarding to child processes...")
-            self.shutdown("user interrupt", signal.SIGINT)
             self._sigint_received = True
+            self.shutdown("user interrupt", signal.SIGINT)
         else:
             self.logger.warning(f"Received (SIGINT) again, escalating to sigterm")
             self._on_sigterm(sig, frame)
@@ -334,13 +334,22 @@ Takeoff in 3... 2... 1...
         """
         # Tell all nodes to shut down
         for n in self.all_nodes():
-            n.shutdown(reason, signum)
+            try:
+                n.shutdown(reason, signum)
+            except Exception as e:
+                self.logger.error(f"Node {n.name} raised an exception during shutdown: {e}")
 
-        self.ros_adapter.shutdown()
+        try:
+            self.ros_adapter.shutdown()
+        except Exception as e:
+            self.logger.error(f"RosAdapter raised an exception during shutdown: {e}")
 
         # If we launched extra ROS2 actions tell the launch service to shut down, too
         if self._ros2_launcher is not None:
-            self._ros2_launcher.shutdown(reason, signum)
+            try:
+                self._ros2_launcher.shutdown(reason, signum)
+            except Exception as e:
+                self.logger.error(f"ROS2 launch service raised an exception during shutdown: {e}")
 
         try:
             self._shutdown_future.set_result(None)

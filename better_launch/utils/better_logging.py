@@ -132,7 +132,11 @@ class PrettyLogFormatter(logging.Formatter):
 
         if match:
             for idx, key in enumerate(self.pattern_info):
-                setattr(record, key, match.group(idx + 1))
+                 # If we replace an existing key, make sure the value type matches the original, 
+                # otherwise we will get some problems with formatting down the line
+                key_type = type(getattr(record, key, ""))
+                val = key_type(match.group(idx + 1))
+                setattr(record, key, val)
 
             if "levelname" in self.pattern_info and "levelno" not in self.pattern_info:
                 record.levelno = logging.getLevelName(record.levelname)
