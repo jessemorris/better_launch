@@ -96,15 +96,16 @@ def _launch_this_wrapper(
     if threading.current_thread() != threading.main_thread():
         raise RuntimeError("launch_this must be used on the main thread")
 
-    # Some terminals will send SIGINT multiple times on ctrl-c
-    handling_sigint = False
-
+    sigint_count = 0
     def sigint_handler(sig, frame):
-        nonlocal handling_sigint
-        if not handling_sigint:
-            handling_sigint = True
-            BetterLaunch()._on_sigint(sig, frame)
-            handling_sigint = False
+        nonlocal sigint_count
+        sigint_count += 1
+
+        # Some terminals will send SIGINT multiple times on ctrl-c, so we ignore the second one
+        if sigint_count == 1:
+            return
+
+        BetterLaunch()._on_sigint(sig, frame)
 
     def sigterm_handler(sig, frame):
         BetterLaunch()._on_sigterm(sig, frame)
