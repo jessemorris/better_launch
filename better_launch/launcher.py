@@ -590,10 +590,6 @@ Takeoff in 3... 2... 1...
         with open(path) as f:
             params = yaml.safe_load(f)
 
-        if "/**" in params:
-            # Wildcard for all namespaces and nodes
-            params = params["/**"]
-
         if "ros__parameters" in params:
             # Return the entire config if it doesn't contain sections for different nodes/namespaces
             return params["ros__parameters"]
@@ -603,25 +599,33 @@ Takeoff in 3... 2... 1...
             if isinstance(ns, Node):
                 ns = ns.fullname
 
-            # TODO needs to be rewritten to support https://github.com/ros2/rclcpp/issues/1265 
+            ns = ns.strip("/")
+
+            # See https://github.com/ros2/design/blob/gh-pages/articles/160_ros_command_line_arguments.md
+            def path_to_regex(path: str) -> str:
+                parts = path.strip("/").split("/")
+                regex_parts = []
+                
+                for part in parts:
+                    if part == "**":
+                        # Match any number of tokens
+                        regex_parts.append(r".*")
+                    elif part == "*":
+                        # Match a single token
+                        regex_parts.append(r"[^/]+")
+                    else:
+                        # Regular token
+                        regex_parts.append(part)
+                
+                # Does NOT start with a slash as only the node name could be specified
+                return "^" + "/".join(regex_parts) + "$"
+
+            for key in params.keys():
+                pattern = path_to_regex(key)
+                if regex.match(pattern, ns) is not None:
+                    params = params[key]
+                    break
             
-            # Root namespace is typically not part of param files, but we may have to adjust this
-            # Parameter files can use one or more elements from the namespace to define sections
-            parts = ns.strip("/").split("/")
-            idx = 0
-            while idx < len(parts):
-                key = parts[idx]
-
-                while key not in params and idx < len(parts):
-                    idx += 1
-                    key += "/" + parts[idx]
-
-                if key not in params:
-                    raise ValueError(f"Could not find parameter section for {ns}")
-
-                params = params[key]
-                idx += 1
-
         if "ros__parameters" in params:
             params = params["ros__parameters"]
 
