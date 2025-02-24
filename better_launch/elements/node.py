@@ -143,7 +143,7 @@ class Node(AbstractNode):
             and not self.shutdown_future.done()
         )
 
-    def list_params(self, *, timeout: float = 5.0) -> list[str]:
+    def list_live_params(self, *, timeout: float = 5.0) -> list[str]:
         """List the names of the ROS parameters this node has registered.
 
         Parameters
@@ -172,14 +172,14 @@ class Node(AbstractNode):
             )
 
         if not params:
-            params = self.list_params(timeout=timeout)
+            params = self.list_live_params(timeout=timeout)
 
         req = self._list_params_srv.srv_type.Request(names=params)
         res = self._list_params_srv.call(req)
 
         return res.result.names
 
-    def get_params(self, *params: str, timeout: float = 5.0) -> dict[str, Any]:
+    def get_live_params(self, *params: str, timeout: float = 5.0) -> dict[str, Any]:
         """Retrieves the values for the specified ROS parameters of this node. If no parameters are provided, all parameters will be listed.
 
         Parameters
@@ -210,7 +210,7 @@ class Node(AbstractNode):
             )
 
         if not params:
-            params = self.list_params(timeout=timeout)
+            params = self.list_live_params(timeout=timeout)
 
         req = self._get_params_srv.srv_type.Request(names=params)
         res = self._get_params_srv.call(req)
@@ -220,7 +220,7 @@ class Node(AbstractNode):
             for name, pval in zip(params, res.values)
         }
 
-    def set_params(
+    def set_live_params(
         self, params: dict[str, Any], *, timeout: float = 5.0
     ) -> dict[str, bool]:
         """Sets the specified ROS parameters on this node.
@@ -264,7 +264,7 @@ class Node(AbstractNode):
             param: item.successful for param, item in zip(params.keys(), res.result)
         }
 
-    def set_params_atomic(
+    def set_live_params_atomic(
         self, params: dict[str, Any], *, timeout: float = 5.0
     ) -> bool:
         """Sets the specified ROS parameters on this node. No updates will be performed if any of the operations fail.

@@ -241,7 +241,6 @@ ROS2 launch has a bad reputation of leaving stale and abandoned processes behind
 
 # What doesn't work yet
 As of now *better_launch* supports the most important use cases, like starting nodes, proper (nicer!) logging, being awesome. However, there are still a couple of features that I have to work on to make it feature complete (roughly sorted by priority):
-- [ ] handle wildcards in `load_params`
 - [ ] add list/get/set parameters to components (abstract class after AbstractNode?)
 - [ ] run some benchmarks
 - [ ] integrate convenience module once it's done
@@ -326,3 +325,7 @@ def main(
 
 Overall, ROS2 launch seems like a system architect's wet fever dream, and I don't enjoy it.
 
+
+# Contributors
+- Tom Creutz
+- Prithvi Sanghamreddy
