@@ -4,6 +4,7 @@ import sys
 import os
 import signal
 import inspect
+import regex
 from concurrent.futures import Future
 from contextlib import contextmanager
 from collections import deque
@@ -255,6 +256,72 @@ Takeoff in 3... 2... 1...
             nodes.append(self._ros2_launcher)
 
         return nodes
+
+    def query_node(
+        self,
+        name_regex: str,
+        *,
+        include_components: bool = True,
+        include_launch_service: bool = False,
+    ) -> AbstractNode:
+        """Retrieve the first node whos :py:meth:`AbstractNode.fullname` matches the provided regex.
+
+        Parameters
+        ----------
+        name_regex : str
+            The regex to match the nodes' full names against.
+        include_components : bool, optional
+            Whether to include components in the results, if any.
+        include_launch_service : bool, optional
+            Whether to include the ROS2 launch service in the result (if it exists).
+
+        Returns
+        -------
+        AbstractNode
+            The first node matching the provided regex, or None if none matched.
+        """
+        reg = regex.compile(name_regex)
+        for node in self.all_nodes(
+            include_components=include_components,
+            include_launch_service=include_launch_service,
+        ):
+            if reg.match(node.fullname):
+                return node
+        
+        return None
+
+    def query_nodes(
+        self,
+        name_regex: str,
+        *,
+        include_components: bool = True,
+        include_launch_service: bool = False,
+    ) -> list[AbstractNode]:
+        """Retrieve all nodes whos :py:meth:`AbstractNode.fullname` matches the provided regex.
+
+        Parameters
+        ----------
+        name_regex : str
+            The regex to match the nodes' full names against.
+        include_components : bool, optional
+            Whether to include components in the results, if any.
+        include_launch_service : bool, optional
+            Whether to include the ROS2 launch service in the result (if it exists).
+
+        Returns
+        -------
+        list[AbstractNode]
+            A list of all nodes matching the regex.
+        """
+        reg = regex.compile(name_regex)
+        return [
+            node 
+            for node in self.all_nodes(
+                include_components=include_components,
+                include_launch_service=include_launch_service,
+            )
+            if reg.match(node.fullname)
+        ]
 
     @staticmethod
     def ros_version() -> str:
@@ -536,6 +603,7 @@ Takeoff in 3... 2... 1...
             # Parameter files can use one or more elements from the namespace to define sections
             parts = ns.strip("/").split("/")
             idx = 0
+            # TODO handle wildcards
             while idx < len(parts):
                 key = parts[idx]
 
@@ -581,34 +649,6 @@ Takeoff in 3... 2... 1...
         module = importlib.import_module(module_name.replace("/", "."))
         return getattr(module, message_name)
 
-    def publisher(
-        self, topic: str, message_type: str | type, qos_profile: QoSProfile | int = 10
-    ) -> RosPublisher:
-        """Create a ROS2 publisher using the :py:meth:`shared_node`.
-
-        Parameters
-        ----------
-        topic : str
-            The topic to publish messages on.
-        message_type : str | type
-            The message type that will be published. Strings must follow the pattern `<package>/msg/<message>`.
-        qos_profile : QoSProfile | int, optional
-            A quality of service profile that changes how the publisher handles connections and retains data.
-
-        Returns
-        -------
-        RosPublisher
-            The publisher object. Although not required for Jazzy and below, it is recommended to keep a reference.
-        """
-        if isinstance(message_type, str):
-            message_type = self.get_ros_message_type(message_type)
-
-        return self.shared_node.create_publisher(
-            message_type,
-            topic,
-            qos_profile=qos_profile,
-        )
-
     def subscriber(
         self,
         topic: str,
@@ -643,6 +683,61 @@ Takeoff in 3... 2... 1...
             callback,
             qos_profile=qos_profile,
         )
+
+    def publisher(
+        self, topic: str, message_type: str | type, qos_profile: QoSProfile | int = 10
+    ) -> RosPublisher:
+        """Create a ROS2 publisher using the :py:meth:`shared_node`.
+
+        Parameters
+        ----------
+        topic : str
+            The topic to publish messages on.
+        message_type : str | type
+            The message type that will be published. Strings must follow the pattern `<package>/msg/<message>`.
+        qos_profile : QoSProfile | int, optional
+            A quality of service profile that changes how the publisher handles connections and retains data.
+
+        Returns
+        -------
+        RosPublisher
+            The publisher object. Although not required for Jazzy and below, it is recommended to keep a reference.
+        """
+        if isinstance(message_type, str):
+            message_type = self.get_ros_message_type(message_type)
+
+        return self.shared_node.create_publisher(
+            message_type,
+            topic,
+            qos_profile=qos_profile,
+        )
+
+    def publish_message(
+        self,
+        topic: str,
+        message_type: str | type,
+        message_args: dict[str, Any],
+        qos_profile: QoSProfile | int = 10,
+    ) -> None:
+        """Convenience method to publish a single message. If you plan to publish additional messages, use :py:meth:`publisher` instead and use the instance.
+
+        Parameters
+        ----------
+        topic : str
+            The topic to publish messages on.
+        message_type : str | type
+            The message type that will be published. Strings must follow the pattern `<package>/msg/<message>`.
+        message_args : dict[str, Any]
+            The keyword arguments from which the message will be constructed.
+        qos_profile : QoSProfile | int, optional
+            A quality of service profile that changes how the publisher handles connections and retains data.
+        """
+        if isinstance(message_type, str):
+            message_type: type = self.get_ros_message_type(message_type)
+
+        pub = self.publisher(topic, message_type, qos_profile)
+        msg = message_type(**message_args)
+        pub.publish(msg)
 
     def service(
         self,
@@ -686,7 +781,7 @@ Takeoff in 3... 2... 1...
         self,
         topic: str,
         service_type: str | type,
-        timeout: float = 0.0,
+        timeout: float = 5.0,
         qos_profile: QoSProfile = None,
     ) -> RosServiceClient:
         """Create a ROS2 service client that can be used to call a service.
@@ -727,6 +822,46 @@ Takeoff in 3... 2... 1...
                     f"Service client timed out ({topic}, {service_type})"
                 )
         return client
+
+    def call_service(
+        self,
+        topic: str,
+        service_type: str | type,
+        request_args: dict[str, Any],
+        timeout: float = 5.0,
+        qos_profile: QoSProfile = None,
+    ) -> Any:
+        """Makes a single service request and returns the result. If you plan to make additional requests, use :py:meth:`service_client` instead.
+
+        Parameters
+        ----------
+        topic : str
+            The service topic to post requests on.
+        service_type : str | type
+            The service's message type. Strings must follow the pattern `<package>/srv/<message>`.
+        request_args : dict[str, Any]
+            The keyword arguments from which the request message will be constructed.
+        timeout : float, optional
+            Time to wait for the service to become available. Ignored if <= 0.
+        qos_profile : QoSProfile, optional
+            A quality of service profile that changes how the service handles connections.
+
+        Returns
+        -------
+        Any
+            The result of the service call of type `service_type.Request`.
+
+        Raises
+        ------
+        TimeoutError
+            If the service did not become available within the specified timeout.
+        """
+        if isinstance(service_type, str):
+            service_type = self.get_ros_message_type(service_type)
+
+        srv = self.service_client(topic, service_type, timeout, qos_profile)
+        req = service_type.Request(**request_args)
+        return srv.call(req)
 
     def action_server(
         self,
@@ -773,7 +908,7 @@ Takeoff in 3... 2... 1...
         self,
         topic: str,
         action_type: str | type,
-        timeout: float = 0.0,
+        timeout: float = 5.0,
         qos_profile: QoSProfile = None,
     ) -> RosActionClient:
         """Create a ROS2 action client to execute long-running actions.
@@ -1347,9 +1482,10 @@ Takeoff in 3... 2... 1...
 
         return self._ros2_launcher
 
-    def ros2_actions(self, *ros2_actions) -> None:
+    def ros2_actions(self, *ros2_actions) -> Ros2LaunchWrapper:
         """Submit additional ROS2 launch actions for execution.
 
         If no :py:class:`launch.LaunchService` exists yet it will be created and started immediately.
         """
         self.ros2_launch_service().queue_ros2_actions(*ros2_actions)
+        return self._ros2_launcher
