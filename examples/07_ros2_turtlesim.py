@@ -5,7 +5,7 @@ import time
 from launch_ros.actions import Node
 from launch.actions import ExecuteProcess, TimerAction
 from launch.conditions import IfCondition
-from launch.substitutions import PythonExpression, TextSubstitution
+from launch.substitutions import PythonExpression
 
 
 @launch_this
@@ -76,7 +76,7 @@ def a_relic_of_the_past(
     ])
 
     # When running without the TUI, the launch function will run on the main thread. In the TUI however, the launch function will be executed on a separate thread, so this will still be okay
-    bl.logger.info("Waiting for 10s before shutting down turtlesim")
+    bl.logger.info(f"Waiting for {kill_after}s before shutting down turtlesim")
     time.sleep(kill_after)
 
     # Let's tear down this mess. The next example will show how to do better

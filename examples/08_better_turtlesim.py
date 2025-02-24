@@ -37,7 +37,7 @@ def great_atuin(
         if use_provided_red:
             def update_background():
                 bl.logger.info("Updating background_r")
-                turtle_node.set_params({"background_r": new_background_r})
+                turtle_node.set_live_params({"background_r": new_background_r})
                 timer.cancel()
 
             timer = bl.shared_node.create_timer(2.0, update_background)

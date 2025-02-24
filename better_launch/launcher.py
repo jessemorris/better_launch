@@ -590,6 +590,10 @@ Takeoff in 3... 2... 1...
         with open(path) as f:
             params = yaml.safe_load(f)
 
+        if "/**" in params:
+            # Wildcard for all namespaces and nodes
+            params = params["/**"]
+
         if "ros__parameters" in params:
             # Return the entire config if it doesn't contain sections for different nodes/namespaces
             return params["ros__parameters"]
@@ -599,11 +603,12 @@ Takeoff in 3... 2... 1...
             if isinstance(ns, Node):
                 ns = ns.fullname
 
+            # TODO needs to be rewritten to support https://github.com/ros2/rclcpp/issues/1265 
+            
             # Root namespace is typically not part of param files, but we may have to adjust this
             # Parameter files can use one or more elements from the namespace to define sections
             parts = ns.strip("/").split("/")
             idx = 0
-            # TODO handle wildcards
             while idx < len(parts):
                 key = parts[idx]
 
