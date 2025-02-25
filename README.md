@@ -21,7 +21,7 @@ def my_main(enable_x: bool):
         )
 
     # You can also include regular ROS2 launch files!
-    bl.include("my_other_launchfile.py", "my_other_package")
+    bl.include("my_other_package", "my_other_launchfile.py")
 ```
 
 ```bash
