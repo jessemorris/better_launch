@@ -562,9 +562,17 @@ Takeoff in 3... 2... 1...
     ) -> dict[str, Any]:
         """Load parameters from a yaml file.
 
-        If a node or namespace is provided, the loaded config dict is searched for a matching section. If the config does not contain sections for different namespaces or nodes the entire config is returned regardless. Otherwise a ValueError will be thrown if no matching section can be found.
+        If the config only contains a `ros__parameters` section the entire config is returned regardless of whether `node_or_namespace` was passed. Otherwise, if `node_or_namespace` is provided, the loaded config dict is searched for a matching section. If no matching section can be found a ValueError will be raised.
 
-        Note that *better_launch* could not care less whether you put `"ros__parameters"` in your configs - if it is there it will be silently discarded.
+        The following wildcards are supported for parameter sections:
+        * `/**`: matches any number of tokens, may be followed by additional tokens and a node name
+        * `/*`: skips a single namespace token, or ignores the node's name if at the end
+
+        Note that *better_launch* could not care less whether you put `ros__parameters` in your configs - if it is there it will be silently discarded.
+
+        .. seealso::
+
+            `ROS2 design doc on wildcards<https://github.com/ros2/design/blob/gh-pages/articles/160_ros_command_line_arguments.md#multiple-parameter-assignments>`_
 
         Parameters
         ----------
@@ -620,11 +628,17 @@ Takeoff in 3... 2... 1...
                 # Does NOT start with a slash as only the node name could be specified
                 return "^" + "/".join(regex_parts) + "$"
 
+            # According to the above design document, params files are not allowed to have nesting, 
+            # (e.g. my_namespace/: other_namespace/node: ros__parameters), so no need to delve
             for key in params.keys():
                 pattern = path_to_regex(key)
                 if regex.match(pattern, ns) is not None:
                     params = params[key]
                     break
+            else:
+                # We didn't find any matching parameters, so this either doesn't contain a section 
+                # for this node, or it is not a ros parameters file
+                raise ValueError(f"No section matching full node name {ns}")
             
         if "ros__parameters" in params:
             params = params["ros__parameters"]
