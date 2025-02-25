@@ -42,6 +42,9 @@ class AbstractNode:
         ValueError
             If the name is empty or executable is None.
         """
+        # Required so that other mixins are initialized properly
+        super().__init__()
+
         if not name:
             raise ValueError("Name cannot be empty")
 
