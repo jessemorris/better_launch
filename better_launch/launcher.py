@@ -640,8 +640,8 @@ Takeoff in 3... 2... 1...
                 # for this node, or it is not a ros parameters file
                 raise ValueError(f"No section matching full node name {ns}")
             
-        if "ros__parameters" in params:
-            params = params["ros__parameters"]
+            if "ros__parameters" in params:
+                params = params["ros__parameters"]
 
         return params
 
