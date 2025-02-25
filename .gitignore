@@ -1,4 +1,5 @@
-better_launch/example*
+examples/example_listener.py
+examples/example_talker.py
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
