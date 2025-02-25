@@ -265,7 +265,7 @@ In addition, *better_launch* will make use of the following optional python libr
 
 
 # What's so bad about ROS2 launch?
-Here is a "simple" launch file from the official documentation that does nothing but include another launch file:
+Here is a "simple" launch file from the [official documentation](https://docs.ros.org/en/foxy/Tutorials/Intermediate/Launch/Using-Substitutions.html) that does nothing but include another launch file:
 
 ```python
 from launch_ros.substitutions import FindPackageShare
@@ -277,19 +277,23 @@ from launch.substitutions import PathJoinSubstitution, TextSubstitution
 
 
 def generate_launch_description():
+    colors = {
+        'background_r': '200'
+    }
+
     return LaunchDescription([
         IncludeLaunchDescription(
             PythonLaunchDescriptionSource([
                 PathJoinSubstitution([
                     FindPackageShare('launch_tutorial'),
                     'launch',
-                    'example_substitutions.launch.py'
+                    'example_substitutions_launch.py'
                 ])
             ]),
             launch_arguments={
                 'turtlesim_ns': 'turtlesim2',
                 'use_provided_red': 'True',
-                'new_background_r': TextSubstitution(text=str('200'))
+                'new_background_r': TextSubstitution(text=str(colors['background_r']))
             }.items()
         )
     ])
@@ -309,11 +313,7 @@ For comparison, here is what the above launch file will look like in *better_lau
 from better_launch import BetterLaunch, launch_this
 
 @launch_this
-def main(
-    turtlesim_ns: str = "turtlesim2", 
-    use_provided_red: bool = True, 
-    new_background_r: int = 200,
-):
+def main(turtlesim_ns = "turtlesim2", use_provided_red = True, new_background_r = 200):
     bl = BetterLaunch()
 
     bl.include(

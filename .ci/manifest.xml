@@ -7,7 +7,7 @@
   <maintainer>Nikolas Dahn/nikolas.dahn@dfki.de</maintainer>
   <!-- Use the short version name from: https://spdx.org/licenses/ -->
   <license>MIT</license>
-  <url>...</url>
+  <url>https://git.hb.dfki.de/ric-maritime/solutions/tools/better_launch</url>
   <logo>media/logo.png</logo>
 
   <depend package="rclpy"/>
@@ -29,8 +29,7 @@
     <!-- The idea of "classifiers" is to provide additional meta data about the software,
          for example, which programming language has been used, what is the target platform,
          is it compatible with any robotic middleware. The idea is similar to classifiers
-         in the Python package index (https://packaging.python.org/tutorials/distributing-packages/#classifiers)
-         but we don't have a predefined list of allowed classifiers. -->
+         in the Python package index (https://packaging.python.org/tutorials/distributing-packages/#classifiers) but we don't have a predefined list of allowed classifiers. -->
     <classifier>python</classifier>
     <classifier>ros2</classifier>
     <classifier>gui</classifier>
