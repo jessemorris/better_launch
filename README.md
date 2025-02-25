@@ -241,7 +241,6 @@ ROS2 launch has a bad reputation of leaving stale and abandoned processes behind
 
 # What doesn't work yet
 As of now *better_launch* supports the most important use cases, like starting nodes, proper (nicer!) logging, being awesome. However, there are still a couple of features that I have to work on to make it feature complete (roughly sorted by priority):
-- [ ] add list/get/set parameters to components (abstract class after AbstractNode?)
 - [ ] run some benchmarks
 - [ ] integrate convenience module once it's done
 - [ ] exception handling is barebones, so if something fails, everything fails (this is fine?)

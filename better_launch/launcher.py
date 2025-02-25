@@ -1,4 +1,4 @@
-from typing import Any, Callable, Generator, overload
+from typing import Any, Callable, Generator, overload, TYPE_CHECKING
 import importlib
 import sys
 import os
@@ -11,10 +11,6 @@ from collections import deque
 import logging
 import yaml
 
-from rclpy.action import (
-    ActionServer as RosActionServer,
-    ActionClient as RosActionClient,
-)
 from rclpy.node import (
     Node as RosNode,
     Service as RosServiceProvider,
@@ -24,6 +20,13 @@ from rclpy.node import (
 )
 from rclpy.qos import QoSProfile, qos_profile_services_default
 from ament_index_python.packages import get_package_prefix
+
+if TYPE_CHECKING:
+    # Surprisingly large imports, so we only import them if we actually need them
+    from rclpy.action import (
+        ActionServer as RosActionServer,
+        ActionClient as RosActionClient,
+    )
 
 try:
     # For anonymous nodes
@@ -52,7 +55,7 @@ from better_launch.utils.substitutions import (
     substitute_tokens,
 )
 from better_launch.utils.introspection import (
-    find_calling_frame,
+    find_function_frame,
     find_launchthis_function,
 )
 from better_launch.ros.ros_adapter import ROSAdapter
@@ -394,16 +397,23 @@ Takeoff in 3... 2... 1...
         """
         self._shutdown_callbacks.append(callback)
 
-    def shutdown(self, reason: str, signum: int = signal.SIGTERM) -> None:
+    def shutdown(self, reason: str = None, signum: int = signal.SIGTERM) -> None:
         """Ask all nodes to shutdown and terminate the internal ROS2 thread. Any subsequent calls to BetterLaunch member functions, including this one, may fail. This will typically be called when you want to terminate your launch file.
 
         Parameters
         ----------
-        reason : str
-            A human-readable string explaining the reason for the shutdown.
+        reason : str, optional
+            A human-readable string explaining the reason for the shutdown. If not given this will be requitted with a warning.
         signum : int, optional
             The signal to send to child processes.
         """
+        if reason is None:
+            try:
+                frame = find_function_frame(self.shutdown)
+                self.logger.warning(f"Shutdown was called from {frame.function}, but no reason was given")
+            except:
+                self.logger.warning(f"Shutdown was called without providing a reason and the calling frame could not be determined")
+
         # Tell all nodes to shut down
         for n in self.all_nodes():
             try:
@@ -892,7 +902,7 @@ Takeoff in 3... 2... 1...
         action_type: str | type,
         callback: Callable[[Any], Any],
         qos_profile: QoSProfile = None,
-    ) -> RosActionServer:
+    ) -> "RosActionServer":
         """Create a ROS2 action server using the :py:meth:`shared_node`.
 
         Parameters
@@ -911,13 +921,15 @@ Takeoff in 3... 2... 1...
         RosActionServer
             The action server object. Although not required for Jazzy and below, it is recommended to keep a reference.
         """
+        from rclpy.action import ActionServer
+
         if isinstance(action_type, str):
             action_type = self.get_ros_message_type(action_type)
 
         if not qos_profile:
             qos_profile = qos_profile_services_default
 
-        return RosActionServer(
+        return ActionServer(
             self.shared_node,
             action_type,
             topic,
@@ -933,7 +945,7 @@ Takeoff in 3... 2... 1...
         action_type: str | type,
         timeout: float = 5.0,
         qos_profile: QoSProfile = None,
-    ) -> RosActionClient:
+    ) -> "RosActionClient":
         """Create a ROS2 action client to execute long-running actions.
 
         Parameters
@@ -957,13 +969,16 @@ Takeoff in 3... 2... 1...
         TimeoutError
             If the action server did not become available within the specified timeout.
         """
+        # Lazy import, these add a lot of overhead
+        from rclpy.action import ActionClient
+
         if isinstance(action_type, str):
             action_type = self.get_ros_message_type(action_type)
 
         if not qos_profile:
             qos_profile = qos_profile_services_default
 
-        client = RosActionClient(
+        client = ActionClient(
             self.shared_node,
             action_type,
             topic,
