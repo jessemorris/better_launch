@@ -5,11 +5,11 @@ from rclpy import Parameter
 from composition_interfaces.srv import LoadNode, UnloadNode
 
 from .abstract_node import AbstractNode
-from .lifecycle_manager import LifecycleStage
+from .live_params_mixin import LiveParamsMixin
 from .node import Node
 
 
-class Component(AbstractNode):
+class Component(AbstractNode, LiveParamsMixin):
     def __init__(
         self,
         composer: "Composer",
