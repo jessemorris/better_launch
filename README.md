@@ -6,8 +6,8 @@ Instead of dozens of imports and class instances for even the most basic tasks, 
 ```python
 from better_launch import BetterLaunch, launch_this
 
-@launch_this
-def my_main(enable_x: bool):
+@launch_this(ui=True)
+def my_main(enable_x: bool = True):
     """
     This is how nice your launch files could be!
     """
@@ -17,18 +17,20 @@ def my_main(enable_x: bool):
         bl.node(
             "examples_rclpy_minimal_publisher",
             "publisher_local_function",
-            "TestNode",
+            "example_publisher",
         )
 
-    # You can also include regular ROS2 launch files!
-    bl.include("my_other_package", "my_other_launchfile.py")
+    # Include other launch files, even regular ROS2 launch files!
+    bl.include("better_launch", "example_listener.py")
 ```
 
 ```bash
 $> bl my_package my_launch_file.py --enable_x True
 ```
 
-Do I have your attention? Read on to learn more!
+![TUI](media/tui.svg)
+
+*Do I have your attention? Read on to learn more!*
 
 
 # Why not improve the existing ROS2 launch?
@@ -38,8 +40,6 @@ Essentially, *better_launch* is what I wish ROS2 launch would be: intuitive to u
 
 
 # Okay, what can I do with it?
-![TUI](media/tui.svg)
-
 Everything you would expect and a little more! The `BetterLaunch` instance allows you to
 - create *subscribers*, *publishers*, *services*, *service clients*, *action servers* and *action clients* on the fly
 - start and stop *nodes*

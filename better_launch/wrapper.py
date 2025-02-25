@@ -84,8 +84,12 @@ def _launch_this_wrapper(
         include_args = glob[_bl_include_args]
         bl.logger.info(f"Including launch file: {includefile} (args={include_args})")
 
-        # No need to run the ROS2 launch service here, the main launchfile will handle it
-        launch_func(**include_args)
+        # Pass only those arguments that actually match the function's signature
+        sig = inspect.signature(launch_func)
+        matched_args = {k: include_args[k] for k in sig.parameters if k in include_args}
+        bound_args = sig.bind(**matched_args)
+        bound_args.apply_defaults()
+        launch_func(*bound_args.args, **bound_args.kwargs)
         return
 
     # At this point we know that we are the main launch file
