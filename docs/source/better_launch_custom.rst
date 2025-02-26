@@ -1,3 +1,5 @@
+.. this file will not be regenerated when building or running napoleon
+
 better\_launch package
 ======================
 

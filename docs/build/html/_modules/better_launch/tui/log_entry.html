@@ -5,7 +5,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>better_launch.tui.log_entry &mdash; better_launch 0.9.0 documentation</title>
+  <title>better_launch.tui.log_entry &mdash; better_launch 0.9.1 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=80d5e7a1" />
       <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=e59714d7" />
 
@@ -13,7 +13,7 @@
     <link rel="shortcut icon" href="../../../_static/logo.svg"/>
       <script src="../../../_static/jquery.js?v=5d32c60e"></script>
       <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../../../_static/documentation_options.js?v=39bb1c6d"></script>
+      <script src="../../../_static/documentation_options.js?v=9dc39874"></script>
       <script src="../../../_static/doctools.js?v=9bcbadda"></script>
       <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../../../_static/js/theme.js"></script>
@@ -102,16 +102,38 @@
         <span class="s2">&quot;CRITICAL&quot;</span><span class="p">:</span> <span class="s2">&quot; 🔥&quot;</span><span class="p">,</span>  <span class="c1"># &quot;🔥⚡&quot; (initial space gets swallowed)</span>
     <span class="p">}</span>
 
+<div class="viewcode-block" id="LogEntry.__init__">
+<a class="viewcode-back" href="../../../better_launch.tui.html#better_launch.tui.log_entry.LogEntry.__init__">[docs]</a>
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">record</span><span class="p">:</span> <span class="n">logging</span><span class="o">.</span><span class="n">LogRecord</span><span class="p">,</span>
     <span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;A textual representation of a single log message providing custom rendering for different attributes like severity and so on.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        record : logging.LogRecord</span>
+<span class="sd">            The log record that will be rendered.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">record</span> <span class="o">=</span> <span class="n">record</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">record</span> <span class="o">=</span> <span class="n">record</span></div>
+
 
 <div class="viewcode-block" id="LogEntry.get_color_for_source">
 <a class="viewcode-back" href="../../../better_launch.tui.html#better_launch.tui.log_entry.LogEntry.get_color_for_source">[docs]</a>
     <span class="k">def</span> <span class="nf">get_color_for_source</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">source</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Color</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Returns the color that should be used for highlighting parts of this message.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        source : str</span>
+<span class="sd">            Identifier of the entity that will use the color.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        Color</span>
+<span class="sd">            A color instance.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="n">source</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">LogEntry</span><span class="o">.</span><span class="n">_source_colormap</span><span class="p">:</span>
             <span class="n">LogEntry</span><span class="o">.</span><span class="n">_source_colormap</span><span class="p">[</span><span class="n">source</span><span class="p">]</span> <span class="o">=</span> <span class="n">Color</span><span class="p">(</span><span class="o">*</span><span class="n">get_contrast_color</span><span class="p">())</span>
         <span class="k">return</span> <span class="n">LogEntry</span><span class="o">.</span><span class="n">_source_colormap</span><span class="p">[</span><span class="n">source</span><span class="p">]</span></div>

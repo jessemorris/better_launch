@@ -5,7 +5,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>better_launch.utils.better_logging &mdash; better_launch 0.9.0 documentation</title>
+  <title>better_launch.utils.better_logging &mdash; better_launch 0.9.1 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=80d5e7a1" />
       <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=e59714d7" />
 
@@ -13,7 +13,7 @@
     <link rel="shortcut icon" href="../../../_static/logo.svg"/>
       <script src="../../../_static/jquery.js?v=5d32c60e"></script>
       <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../../../_static/documentation_options.js?v=39bb1c6d"></script>
+      <script src="../../../_static/documentation_options.js?v=9dc39874"></script>
       <script src="../../../_static/doctools.js?v=9bcbadda"></script>
       <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../../../_static/js/theme.js"></script>
@@ -94,9 +94,7 @@
 
 <span class="c1"># Taken from ROS2&#39;s logging.handlers. Since that module replaces itself this function is not </span>
 <span class="c1"># accessible from the outside.</span>
-<div class="viewcode-block" id="with_per_logger_formatting">
-<a class="viewcode-back" href="../../../better_launch.utils.html#better_launch.utils.better_logging.with_per_logger_formatting">[docs]</a>
-<span class="k">def</span> <span class="nf">with_per_logger_formatting</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+<span class="k">def</span> <span class="nf">_with_per_logger_formatting</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Add per logger formatting capabilities to the given logging.Handler.&quot;&quot;&quot;</span>
     <span class="k">class</span> <span class="nc">_trait</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;A logging.Handler subclass to enable per logger formatting.&quot;&quot;&quot;</span>
@@ -124,8 +122,7 @@
 
     <span class="n">_trait</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="vm">__name__</span>
     <span class="n">_trait</span><span class="o">.</span><span class="vm">__doc__</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="vm">__doc__</span>
-    <span class="k">return</span> <span class="n">_trait</span></div>
-
+    <span class="k">return</span> <span class="n">_trait</span>
 
 
 <div class="viewcode-block" id="PrettyLogFormatter">
@@ -134,31 +131,74 @@
     <span class="n">default_screen_format</span> <span class="o">=</span> <span class="s2">&quot;[</span><span class="si">{levelcolor}{levelname}{colorreset}</span><span class="s2">] [</span><span class="si">{sourcecolor}{name}{colorreset}</span><span class="s2">] [</span><span class="si">{asctime}</span><span class="s2">]</span><span class="se">\n</span><span class="si">{message}</span><span class="s2">&quot;</span>
     <span class="n">default_file_format</span> <span class="o">=</span> <span class="s2">&quot;[</span><span class="si">{levelname}</span><span class="s2">] [</span><span class="si">{asctime}</span><span class="s2">] </span><span class="si">{message}</span><span class="s2">&quot;</span>
 
+<div class="viewcode-block" id="PrettyLogFormatter.__init__">
+<a class="viewcode-back" href="../../../better_launch.utils.html#better_launch.utils.better_logging.PrettyLogFormatter.__init__">[docs]</a>
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="nb">format</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">default_screen_format</span><span class="p">,</span>
         <span class="n">timestamp_format</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;%Y-%m-</span><span class="si">%d</span><span class="s2"> %H:%M:%S.</span><span class="si">%f</span><span class="s2">&quot;</span><span class="p">,</span>
         <span class="o">*</span><span class="p">,</span>
-        <span class="n">defaults</span><span class="p">:</span> <span class="n">Any</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">defaults</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">roslog_pattern</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="sa">r</span><span class="s2">&quot;</span><span class="si">%%</span><span class="s2">(\w+)</span><span class="si">%%</span><span class="s2">([\d.]+)</span><span class="si">%%</span><span class="s2">(.*)&quot;</span><span class="p">,</span>
         <span class="n">pattern_info</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;levelname&quot;</span><span class="p">,</span> <span class="s2">&quot;created&quot;</span><span class="p">,</span> <span class="s2">&quot;msg&quot;</span><span class="p">),</span>
-        <span class="n">colormap</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">level_colormap</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">color_per_source</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
         <span class="n">disable_colors</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;A specialized formatter that will try to extract various details from messages logged by ROS2 nodes and reformat them.</span>
+
+<span class="sd">        The following additional keys can be used for formatting messages:</span>
+<span class="sd">        * {levelcolor}: colors subsequent characters based on the message&#39;s severity.</span>
+<span class="sd">        * {sourcecolor}: colors subsequent characters based on the message&#39;s source.</span>
+<span class="sd">        * {colorreset}: subsequent characters will use the default color again.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        format : str, optional</span>
+<span class="sd">            The format this instance will use when formatting messages.</span>
+<span class="sd">        timestamp_format : _type_, optional</span>
+<span class="sd">            The format to use for timestamps (we like human readable here).</span>
+<span class="sd">        defaults : dict[str, Any], optional</span>
+<span class="sd">            Defaults the formatter may use when formatting strings.</span>
+<span class="sd">        roslog_pattern : str, optional</span>
+<span class="sd">            The pattern used for matching incoming log messages. The pattern&#39;s regex groups will be associated with `pattern_info`.</span>
+<span class="sd">        pattern_info : list[str], optional</span>
+<span class="sd">            Formatting keys that can be extracted from incoming log messages using `roslog_pattern`, one for each regex group.</span>
+<span class="sd">        level_colormap : dict[int, str], optional</span>
+<span class="sd">            Color overrides for severity levels.</span>
+<span class="sd">        color_per_source : bool, optional</span>
+<span class="sd">            If True, every distinct log source (according to `LogRecord.name`) will be associated with a different color ({sourcecolor}). Otherwise the color will be chosen per formatter instance; that is, this formatter instance will always use the same color.</span>
+<span class="sd">        disable_colors : bool, optional</span>
+<span class="sd">            If True, no color codes will be inserted when formatting messages.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="nb">format</span><span class="p">,</span> <span class="n">timestamp_format</span><span class="p">,</span> <span class="s2">&quot;{&quot;</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span> <span class="n">defaults</span><span class="o">=</span><span class="n">defaults</span><span class="p">)</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">converter</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">fromtimestamp</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">roslog_pattern</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="n">roslog_pattern</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">pattern_info</span> <span class="o">=</span> <span class="n">pattern_info</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">colormap</span> <span class="o">=</span> <span class="n">colormap</span> <span class="k">if</span> <span class="n">colormap</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="nb">dict</span><span class="p">(</span><span class="n">default_log_colormap</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">level_colormap</span> <span class="o">=</span> <span class="n">default_log_colormap</span> <span class="o">|</span> <span class="n">level_colormap</span> <span class="k">if</span> <span class="n">level_colormap</span> <span class="k">else</span> <span class="p">{}</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">color_per_source</span> <span class="o">=</span> <span class="n">color_per_source</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">disable_colors</span> <span class="o">=</span> <span class="n">disable_colors</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">registered_colors</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">registered_colors</span> <span class="o">=</span> <span class="p">{}</span></div>
+
 
 <div class="viewcode-block" id="PrettyLogFormatter.get_color">
 <a class="viewcode-back" href="../../../better_launch.utils.html#better_launch.utils.better_logging.PrettyLogFormatter.get_color">[docs]</a>
     <span class="k">def</span> <span class="nf">get_color</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">source</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Return the color associated with the provided source.</span>
+
+<span class="sd">        If `color_per_source` is True this will return an individual color for each source. Otherwise it will always return the same color.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        source : str</span>
+<span class="sd">            The name of the source.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        tuple[int, int, int]</span>
+<span class="sd">            An RGB color triplet.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">color_per_source</span><span class="p">:</span>
             <span class="n">source</span> <span class="o">=</span> <span class="s2">&quot;self&quot;</span>
 
@@ -175,7 +215,11 @@
 
         <span class="k">if</span> <span class="n">match</span><span class="p">:</span>
             <span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="n">key</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">pattern_info</span><span class="p">):</span>
-                <span class="nb">setattr</span><span class="p">(</span><span class="n">record</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">match</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="n">idx</span> <span class="o">+</span> <span class="mi">1</span><span class="p">))</span>
+                 <span class="c1"># If we replace an existing key, make sure the value type matches the original, </span>
+                <span class="c1"># otherwise we will get some problems with formatting down the line</span>
+                <span class="n">key_type</span> <span class="o">=</span> <span class="nb">type</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="n">record</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">))</span>
+                <span class="n">val</span> <span class="o">=</span> <span class="n">key_type</span><span class="p">(</span><span class="n">match</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="n">idx</span> <span class="o">+</span> <span class="mi">1</span><span class="p">))</span>
+                <span class="nb">setattr</span><span class="p">(</span><span class="n">record</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">val</span><span class="p">)</span>
 
             <span class="k">if</span> <span class="s2">&quot;levelname&quot;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">pattern_info</span> <span class="ow">and</span> <span class="s2">&quot;levelno&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">pattern_info</span><span class="p">:</span>
                 <span class="n">record</span><span class="o">.</span><span class="n">levelno</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLevelName</span><span class="p">(</span><span class="n">record</span><span class="o">.</span><span class="n">levelname</span><span class="p">)</span>
@@ -191,7 +235,7 @@
         <span class="k">else</span><span class="p">:</span>
             <span class="n">r</span><span class="p">,</span> <span class="n">g</span><span class="p">,</span> <span class="n">b</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_color</span><span class="p">(</span><span class="n">record</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
             <span class="n">record</span><span class="o">.</span><span class="n">rgb</span> <span class="o">=</span> <span class="p">(</span><span class="n">r</span><span class="p">,</span> <span class="n">g</span><span class="p">,</span> <span class="n">b</span><span class="p">)</span>
-            <span class="n">record</span><span class="o">.</span><span class="n">levelcolor</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">colormap</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">record</span><span class="o">.</span><span class="n">levelno</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)</span>
+            <span class="n">record</span><span class="o">.</span><span class="n">levelcolor</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">level_colormap</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">record</span><span class="o">.</span><span class="n">levelno</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)</span>
             <span class="n">record</span><span class="o">.</span><span class="n">sourcecolor</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="se">\x1b</span><span class="s2">[38;2;</span><span class="si">{</span><span class="n">r</span><span class="si">}</span><span class="s2">;</span><span class="si">{</span><span class="n">g</span><span class="si">}</span><span class="s2">;</span><span class="si">{</span><span class="n">b</span><span class="si">}</span><span class="s2">m&quot;</span>
             <span class="n">record</span><span class="o">.</span><span class="n">colorreset</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="se">\x1b</span><span class="s2">[0m&quot;</span>
 
@@ -216,6 +260,13 @@
 <a class="viewcode-back" href="../../../better_launch.utils.html#better_launch.utils.better_logging.RecordForwarder">[docs]</a>
 <span class="k">class</span> <span class="nc">RecordForwarder</span><span class="p">(</span><span class="n">logging</span><span class="o">.</span><span class="n">Handler</span><span class="p">):</span>
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">level</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">INFO</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;A log handler that forwards any records it receives to callbacks.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        level : int, optional</span>
+<span class="sd">            The minimum logging level this handler accepts.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">level</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">formatter</span> <span class="o">=</span> <span class="n">PrettyLogFormatter</span><span class="p">(</span><span class="n">disable_colors</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">listeners</span> <span class="o">=</span> <span class="p">[]</span>
@@ -231,13 +282,22 @@
 
 
 
-<span class="n">RecordForwarder</span> <span class="o">=</span> <span class="n">with_per_logger_formatting</span><span class="p">(</span><span class="n">RecordForwarder</span><span class="p">)</span>
+<span class="n">RecordForwarder</span> <span class="o">=</span> <span class="n">_with_per_logger_formatting</span><span class="p">(</span><span class="n">RecordForwarder</span><span class="p">)</span>
 
 
 <div class="viewcode-block" id="StubbornHandler">
 <a class="viewcode-back" href="../../../better_launch.utils.html#better_launch.utils.better_logging.StubbornHandler">[docs]</a>
 <span class="k">class</span> <span class="nc">StubbornHandler</span><span class="p">(</span><span class="n">logging</span><span class="o">.</span><span class="n">Handler</span><span class="p">):</span>
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">actual_handler</span><span class="p">,</span> <span class="n">level</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">INFO</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;This handler resists the common changes ROS2 attempts to make for its logging so that our formatters can work properly.</span>
+<span class="sd">    </span>
+<span class="sd">    The ROS2 launch system assigns the same formatter to many sources using special wrappers. However, we don&#39;t want our log forwarders and formatters to be replaced just like that. </span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    actual_handler : logging.Handler</span>
+<span class="sd">        The handler which will actually handle any incoming log records.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">actual_handler</span><span class="p">:</span> <span class="n">logging</span><span class="o">.</span><span class="n">Handler</span><span class="p">,</span> <span class="n">level</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">INFO</span><span class="p">):</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">level</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">actual_handler</span> <span class="o">=</span> <span class="n">actual_handler</span>
 

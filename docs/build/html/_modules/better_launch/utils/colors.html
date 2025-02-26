@@ -5,7 +5,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>better_launch.utils.colors &mdash; better_launch 0.9.0 documentation</title>
+  <title>better_launch.utils.colors &mdash; better_launch 0.9.1 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=80d5e7a1" />
       <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=e59714d7" />
 
@@ -13,7 +13,7 @@
     <link rel="shortcut icon" href="../../../_static/logo.svg"/>
       <script src="../../../_static/jquery.js?v=5d32c60e"></script>
       <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../../../_static/documentation_options.js?v=39bb1c6d"></script>
+      <script src="../../../_static/documentation_options.js?v=9dc39874"></script>
       <script src="../../../_static/doctools.js?v=9bcbadda"></script>
       <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../../../_static/js/theme.js"></script>
@@ -77,7 +77,7 @@
 <div class="viewcode-block" id="HighContrastColorGenerator">
 <a class="viewcode-back" href="../../../better_launch.utils.html#better_launch.utils.colors.HighContrastColorGenerator">[docs]</a>
 <span class="k">class</span> <span class="nc">HighContrastColorGenerator</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;A generator class that produces high-contrast RGB colors readable on black.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Generates RGB colors with a certain distance apart so that subsequent colors are visually distinct.&quot;&quot;&quot;</span>
     
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="c1"># Golden ratio conjugate, ensures well-spaced hues</span>
@@ -101,6 +101,8 @@
 
 
 <span class="n">get_contrast_color</span> <span class="o">=</span> <span class="n">HighContrastColorGenerator</span><span class="p">()</span>
+<span class="sd">&quot;&quot;&quot;A global instance to generate sequences of visually distinct colors.</span>
+<span class="sd">&quot;&quot;&quot;</span>
 </pre></div>
 
            </div>
