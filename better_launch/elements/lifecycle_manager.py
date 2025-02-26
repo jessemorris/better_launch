@@ -2,7 +2,6 @@ from enum import IntEnum
 from collections import deque
 import time
 
-from ros2service.api import get_service_names_and_types
 from lifecycle_msgs.msg import TransitionEvent, State, Transition
 from lifecycle_msgs.srv import ChangeState as ChangeLifecycleState
 
@@ -81,9 +80,7 @@ class LifecycleManager:
         now = time.time()
         while True:
             # Check if the node provides one of the key lifecycle services
-            services = get_service_names_and_types(
-                node=bl.shared_node, include_hidden_services=True
-            )
+            services = bl.shared_node.get_service_names_and_types()
             for srv_name, srv_types in services:
                 if (
                     srv_name == f"{node.fullname}/get_state"

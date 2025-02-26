@@ -58,6 +58,7 @@ from better_launch.utils.substitutions import (
 )
 from better_launch.utils.introspection import (
     find_function_frame,
+    find_calling_frame,
     find_launchthis_function,
 )
 from better_launch.ros.ros_adapter import ROSAdapter
@@ -123,6 +124,9 @@ class BetterLaunch(metaclass=_BetterLaunchMeta):
             The namespace of the root group.
         """
         if not name:
+            if not BetterLaunch._launch_func_args:
+                frame = find_calling_frame(self.__init__)
+                BetterLaunch._launchfile = frame.filename
             name = os.path.basename(BetterLaunch._launchfile)
 
         # roslog.launch_config must be setup before instantiation of BetterLaunch

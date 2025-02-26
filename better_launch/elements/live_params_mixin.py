@@ -3,13 +3,13 @@ from typing import Any
 from rclpy.parameter import Parameter
 
 try:
+    # Jazzy
+    from rclpy.parameter import parameter_value_to_python
+except ImportError:
     # Humble
     from ros2param.api import get_value as get_value_humble
 
     parameter_value_to_python = lambda p: get_value_humble(parameter_value=p)
-except ImportError:
-    # Jazzy
-    from rclpy.parameter import parameter_value_to_python
 
 
 class LiveParamsMixin:
@@ -143,7 +143,7 @@ class LiveParamsMixin:
         res = self._set_params_srv.call(req)
 
         return {
-            param: item.successful for param, item in zip(params.keys(), res.result)
+            param: item.successful for param, item in zip(params.keys(), res.results)
         }
 
     def set_live_params_atomic(
