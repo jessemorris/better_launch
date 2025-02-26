@@ -5,7 +5,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>better_launch.tui.node_menu &mdash; better_launch 0.9.0 documentation</title>
+  <title>better_launch.tui.node_menu &mdash; better_launch 0.9.1 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=80d5e7a1" />
       <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=e59714d7" />
 
@@ -13,7 +13,7 @@
     <link rel="shortcut icon" href="../../../_static/logo.svg"/>
       <script src="../../../_static/jquery.js?v=5d32c60e"></script>
       <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../../../_static/documentation_options.js?v=39bb1c6d"></script>
+      <script src="../../../_static/documentation_options.js?v=9dc39874"></script>
       <script src="../../../_static/doctools.js?v=9bcbadda"></script>
       <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../../../_static/js/theme.js"></script>
@@ -101,18 +101,30 @@
 <span class="s2">    }</span>
 <span class="s2">    &quot;&quot;&quot;</span>
 
+<div class="viewcode-block" id="NodeLabel.__init__">
+<a class="viewcode-back" href="../../../better_launch.tui.html#better_launch.tui.node_menu.NodeLabel.__init__">[docs]</a>
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">node</span><span class="p">:</span> <span class="n">AbstractNode</span><span class="p">,</span> <span class="n">keybind</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;A label showing a node&#39;s name and whether it is alive. The &quot;aliveness&quot; of the node will be updated in regular intervals as part of textual&#39;s asyncio loop.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        node : AbstractNode</span>
+<span class="sd">            The node this label represents.</span>
+<span class="sd">        keybind : str</span>
+<span class="sd">            A keybind that is associated with this label.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">node</span> <span class="o">=</span> <span class="n">node</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">keybind</span> <span class="o">=</span> <span class="n">keybind</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">keybind</span> <span class="o">=</span> <span class="n">keybind</span></div>
+
 
 <div class="viewcode-block" id="NodeLabel.compose">
 <a class="viewcode-back" href="../../../better_launch.tui.html#better_launch.tui.node_menu.NodeLabel.compose">[docs]</a>
     <span class="k">def</span> <span class="nf">compose</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="k">yield</span> <span class="n">Static</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;[u]</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">keybind</span><span class="si">}</span><span class="s2">[/u] &quot;</span><span class="p">,</span> <span class="nb">id</span><span class="o">=</span><span class="s2">&quot;keybind&quot;</span><span class="p">)</span>
+        <span class="k">yield</span> <span class="n">Static</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;[u]</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">keybind</span><span class="w"> </span><span class="ow">or</span><span class="w"> </span><span class="s1">&#39; &#39;</span><span class="si">}</span><span class="s2">[/u] &quot;</span><span class="p">,</span> <span class="nb">id</span><span class="o">=</span><span class="s2">&quot;keybind&quot;</span><span class="p">)</span>
 
         <span class="n">suffix</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">node</span><span class="o">.</span><span class="n">is_lifecycle_node</span><span class="p">:</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">node</span><span class="o">.</span><span class="n">check_lifecycle_node</span><span class="p">():</span>
             <span class="n">suffix</span> <span class="o">+=</span> <span class="s2">&quot;L&quot;</span>
         <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">node</span><span class="p">,</span> <span class="n">Composer</span><span class="p">):</span>
             <span class="n">suffix</span> <span class="o">+=</span> <span class="s2">&quot;O&quot;</span>
@@ -135,6 +147,8 @@
 <a class="viewcode-back" href="../../../better_launch.tui.html#better_launch.tui.node_menu.NodeLabel.update_node_state">[docs]</a>
     <span class="nd">@work</span>
     <span class="k">async</span> <span class="k">def</span> <span class="nf">update_node_state</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Worker to check whether the underlying :py:class:`AbstractNode` is still alive.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
             <span class="n">label</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">query_one</span><span class="p">(</span><span class="s2">&quot;#node&quot;</span><span class="p">)</span>
             <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">node</span><span class="o">.</span><span class="n">is_running</span><span class="p">:</span>
@@ -174,9 +188,19 @@
 <span class="s2">    }</span>
 <span class="s2">    &quot;&quot;&quot;</span>
 
+<div class="viewcode-block" id="NodeInfoScreen.__init__">
+<a class="viewcode-back" href="../../../better_launch.tui.html#better_launch.tui.node_menu.NodeInfoScreen.__init__">[docs]</a>
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">node</span><span class="p">:</span> <span class="n">AbstractNode</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Shows a summary of a node&#39;s most important information (according to the node).</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        node : AbstractNode</span>
+<span class="sd">            The node whos information should be shown.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">node</span> <span class="o">=</span> <span class="n">node</span>
-        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
+
 
 <div class="viewcode-block" id="NodeInfoScreen.compose">
 <a class="viewcode-back" href="../../../better_launch.tui.html#better_launch.tui.node_menu.NodeInfoScreen.compose">[docs]</a>

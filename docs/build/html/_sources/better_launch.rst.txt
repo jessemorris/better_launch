@@ -1,19 +1,6 @@
 better\_launch package
 ======================
 
-Subpackages
------------
-
-.. toctree::
-   :maxdepth: 2
-
-   better_launch.elements
-   better_launch.ros
-   better_launch.tui
-   better_launch.utils
-
-Submodules
-----------
 
 better\_launch.launcher module
 ------------------------------
@@ -23,10 +10,22 @@ better\_launch.launcher module
    :undoc-members:
    :show-inheritance:
 
-Module contents
----------------
+better\_launch.wrapper module
+-----------------------------
 
-.. automodule:: better_launch
+.. automodule:: better_launch.wrapper
    :members:
    :undoc-members:
    :show-inheritance:
+
+
+Additional Modules
+------------------
+.. toctree::
+   :maxdepth: 2
+
+   better_launch.elements
+   better_launch.ros
+   better_launch.tui
+   better_launch.utils
+

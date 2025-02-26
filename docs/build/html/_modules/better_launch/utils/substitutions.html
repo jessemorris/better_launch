@@ -5,7 +5,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>better_launch.utils.substitutions &mdash; better_launch 0.9.0 documentation</title>
+  <title>better_launch.utils.substitutions &mdash; better_launch 0.9.1 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=80d5e7a1" />
       <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=e59714d7" />
 
@@ -13,7 +13,7 @@
     <link rel="shortcut icon" href="../../../_static/logo.svg"/>
       <script src="../../../_static/jquery.js?v=5d32c60e"></script>
       <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../../../_static/documentation_options.js?v=39bb1c6d"></script>
+      <script src="../../../_static/documentation_options.js?v=9dc39874"></script>
       <script src="../../../_static/doctools.js?v=9bcbadda"></script>
       <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../../../_static/js/theme.js"></script>
@@ -71,9 +71,9 @@
            <div itemprop="articleBody">
              
   <h1>Source code for better_launch.utils.substitutions</h1><div class="highlight"><pre>
-<span></span><span class="kn">import</span> <span class="nn">re</span>
+<span></span><span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Literal</span><span class="p">,</span> <span class="n">Callable</span>
 <span class="kn">import</span> <span class="nn">os</span>
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Literal</span>
+<span class="kn">import</span> <span class="nn">re</span>
 <span class="kn">from</span> <span class="nn">ast</span> <span class="kn">import</span> <span class="n">literal_eval</span>
 
 <span class="kn">from</span> <span class="nn">rcl_interfaces.srv</span> <span class="kn">import</span> <span class="n">GetParameters</span>
@@ -89,17 +89,47 @@
 <span class="n">_sentinel</span> <span class="o">=</span> <span class="nb">object</span><span class="p">()</span>
 
 
+<div class="viewcode-block" id="SubstitutionError">
+<a class="viewcode-back" href="../../../better_launch.utils.html#better_launch.utils.substitutions.SubstitutionError">[docs]</a>
+<span class="k">class</span> <span class="nc">SubstitutionError</span><span class="p">(</span><span class="ne">ValueError</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Exception type that will be thrown by substitution handlers.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">pass</span></div>
+
+
+
 <div class="viewcode-block" id="default_substitution_handlers">
 <a class="viewcode-back" href="../../../better_launch.utils.html#better_launch.utils.substitutions.default_substitution_handlers">[docs]</a>
 <span class="k">def</span> <span class="nf">default_substitution_handlers</span><span class="p">(</span>
     <span class="n">eval_type</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">&quot;full&quot;</span><span class="p">,</span> <span class="s2">&quot;literal&quot;</span><span class="p">,</span> <span class="s2">&quot;none&quot;</span><span class="p">]</span>
-<span class="p">):</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Callable</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Returns the default substitution handlers.</span>
+
+<span class="sd">    Right now the following substitution handlers will be returned: </span>
+<span class="sd">    * `$(find &lt;filename&gt; &lt;package&gt; &lt;subdir&gt;)`: return the result of :py:meth:`find`. Note that substitution arguments are always sequential (not kwargs).</span>
+<span class="sd">    * `$(arg &lt;name&gt; &lt;default&gt;)`: return the value of an argument passed to the launch function or `&lt;default&gt;` if it doesn&#39;t exist. Raises KeyError if no default is provided and no default was provided.</span>
+<span class="sd">    * `$(param &lt;full-node-name&gt; &lt;param&gt;)`: retrieves the value of the ROS parameter `&lt;param&gt;` from the `&lt;full-node-name&gt;` (i.e. namespace + node name). Raises KeyError if the node does not exist or ValueError if the node does not have the specified parameter.</span>
+<span class="sd">    * `$(env &lt;key&gt; &lt;default&gt;)`: return the value of the environment variable `&lt;key&gt;` or `&lt;default&gt;` if it doesn&#39;t exist. Raises KeyError if no default is provided and no default was provided.</span>
+<span class="sd">    * `$(eval &lt;python-snippet&gt;)`: returns the result from evaluating the provided `&lt;python-snippet&gt;`. Typical use cases include simple math and assembling strings. **Note** that this indeed uses python&#39;s :py:func:`eval`.</span>
+
+<span class="sd">    **NOTE** this function will most likely be deprecated in the future.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    eval_type : Literal[&quot;full&quot;, &quot;literal&quot;, &quot;none&quot;]</span>
+<span class="sd">        How eval substitutions should be handled: `eval`, `ast.literal_eval` or not at all.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    dict[str, Callable]</span>
+<span class="sd">        A dict mapping substitution keys to handler functions. Note that handler functions are allowed to throw instances of :py:class:`SubstitutionError` when invalid parameters are passed.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
     <span class="kn">from</span> <span class="nn">better_launch</span> <span class="kn">import</span> <span class="n">BetterLaunch</span>
 
     <span class="n">bl</span> <span class="o">=</span> <span class="n">BetterLaunch</span><span class="o">.</span><span class="n">instance</span><span class="p">()</span>
 
     <span class="c1"># $(package my_ros_package my_config.yaml)</span>
-    <span class="k">def</span> <span class="nf">_package</span><span class="p">(</span><span class="n">filename</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">package</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">subdir</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">_find</span><span class="p">(</span><span class="n">filename</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">package</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">subdir</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
         <span class="k">return</span> <span class="n">bl</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="n">filename</span><span class="o">=</span><span class="n">filename</span><span class="p">,</span> <span class="n">package</span><span class="o">=</span><span class="n">package</span><span class="p">,</span> <span class="n">subdir</span><span class="o">=</span><span class="n">subdir</span><span class="p">)</span>
 
     <span class="c1"># $(arg x 2.0)</span>
@@ -115,14 +145,14 @@
         <span class="p">)</span>
 
         <span class="k">if</span> <span class="ow">not</span> <span class="n">srv</span><span class="o">.</span><span class="n">wait_for_service</span><span class="p">(</span><span class="mf">5.0</span><span class="p">):</span>
-            <span class="k">raise</span> <span class="ne">KeyError</span><span class="p">(</span><span class="s2">&quot;Failed to wait for node parameter service&quot;</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="n">SubstitutionError</span><span class="p">(</span><span class="s2">&quot;Failed to wait for node parameter service&quot;</span><span class="p">)</span>
 
         <span class="n">req</span> <span class="o">=</span> <span class="n">GetParameters</span><span class="o">.</span><span class="n">Request</span><span class="p">()</span>
         <span class="n">req</span><span class="o">.</span><span class="n">names</span> <span class="o">=</span> <span class="p">[</span><span class="n">param</span><span class="p">]</span>
         <span class="n">res</span> <span class="o">=</span> <span class="n">srv</span><span class="o">.</span><span class="n">call</span><span class="p">(</span><span class="n">req</span><span class="p">)</span>
 
         <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">res</span><span class="o">.</span><span class="n">values</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">1</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="k">raise</span> <span class="n">SubstitutionError</span><span class="p">(</span>
                 <span class="sa">f</span><span class="s2">&quot;Failed to retrieve parameter </span><span class="si">{</span><span class="n">param</span><span class="si">}</span><span class="s2"> from </span><span class="si">{</span><span class="n">full_node_name</span><span class="si">}</span><span class="s2">&quot;</span>
             <span class="p">)</span>
 
@@ -142,10 +172,11 @@
         <span class="k">elif</span> <span class="n">eval_type</span> <span class="o">==</span> <span class="s2">&quot;literal&quot;</span><span class="p">:</span>
             <span class="k">return</span> <span class="n">literal_eval</span><span class="p">(</span><span class="n">expr</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s2">&quot;eval was not enabled for substitutions&quot;</span><span class="p">)</span>
+            <span class="c1"># eval was disabled</span>
+            <span class="k">return</span> <span class="n">expr</span>
 
     <span class="k">return</span> <span class="p">{</span>
-        <span class="s2">&quot;package&quot;</span><span class="p">:</span> <span class="n">_package</span><span class="p">,</span>
+        <span class="s2">&quot;find&quot;</span><span class="p">:</span> <span class="n">_find</span><span class="p">,</span>
         <span class="s2">&quot;arg&quot;</span><span class="p">:</span> <span class="n">_arg</span><span class="p">,</span>
         <span class="s2">&quot;param&quot;</span><span class="p">:</span> <span class="n">_param</span><span class="p">,</span>
         <span class="s2">&quot;env&quot;</span><span class="p">:</span> <span class="n">_env</span><span class="p">,</span>
@@ -157,6 +188,33 @@
 <div class="viewcode-block" id="substitute_tokens">
 <a class="viewcode-back" href="../../../better_launch.utils.html#better_launch.utils.substitutions.substitute_tokens">[docs]</a>
 <span class="k">def</span> <span class="nf">substitute_tokens</span><span class="p">(</span><span class="n">text</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">substitution_handlers</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Parses a string and replaces all substitution strings according to the provided handler functions.</span>
+
+<span class="sd">    Substitution strings are expected to follow the &quot;ROS1 pattern&quot;: `$(key *args)`, where `key` is a substitution type and `*args` are additional arguments passed to the substitution handler.</span>
+
+<span class="sd">    Note that this always finds the innermost set of brackets with no brackets in between to work on. This effectively prevents the use of brackets in our expressions. This behavior may be changed in the future to be more flexible.</span>
+
+<span class="sd">    .. seealso::</span>
+
+<span class="sd">        :py:meth:`default_substitution_handlers`</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    text : str</span>
+<span class="sd">        _description_</span>
+<span class="sd">    substitution_handlers : dict</span>
+<span class="sd">        _description_</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    list[str]</span>
+<span class="sd">        _description_</span>
+
+<span class="sd">    Raises</span>
+<span class="sd">    ------</span>
+<span class="sd">    ValueError</span>
+<span class="sd">        _description_</span>
+<span class="sd">    &quot;&quot;&quot;</span>
     <span class="c1"># Always find the innermost set of brackets with no brackets in between.</span>
     <span class="c1"># TODO This effectively prevents the use of brackets in our expressions</span>
     <span class="n">pattern</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;\$\(([^()]+)\)&quot;</span><span class="p">)</span>

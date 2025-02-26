@@ -5,7 +5,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>better_launch.ros.ros_adapter &mdash; better_launch 0.9.0 documentation</title>
+  <title>better_launch.ros.ros_adapter &mdash; better_launch 0.9.1 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=80d5e7a1" />
       <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=e59714d7" />
 
@@ -13,7 +13,7 @@
     <link rel="shortcut icon" href="../../../_static/logo.svg"/>
       <script src="../../../_static/jquery.js?v=5d32c60e"></script>
       <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../../../_static/documentation_options.js?v=39bb1c6d"></script>
+      <script src="../../../_static/documentation_options.js?v=9dc39874"></script>
       <script src="../../../_static/doctools.js?v=9bcbadda"></script>
       <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../../../_static/js/theme.js"></script>
@@ -76,9 +76,14 @@
 <span class="kn">import</span> <span class="nn">rclpy</span>
 <span class="kn">from</span> <span class="nn">rclpy.executors</span> <span class="kn">import</span> <span class="n">SingleThreadedExecutor</span>
 
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Provides a shared node for interacting with ROS2. Taken from ROS2.</span>
 
-<span class="c1"># Taken from launch_ros</span>
-<span class="c1"># https://github.com/ros2/launch_ros/blob/rolling/launch_ros/launch_ros/ros_adapters.py</span>
+<span class="sd">.. seealso::</span>
+<span class="sd">    </span>
+<span class="sd">    `launch_ros/ros_adapters.py &lt;https://github.com/ros2/launch_ros/blob/rolling/launch_ros/launch_ros/ros_adapters.py&gt;`_</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
 <div class="viewcode-block" id="ROSAdapter">
 <a class="viewcode-back" href="../../../better_launch.ros.html#better_launch.ros.ros_adapter.ROSAdapter">[docs]</a>
 <span class="k">class</span> <span class="nc">ROSAdapter</span><span class="p">:</span>
@@ -139,7 +144,7 @@
         <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_thread</span> <span class="ow">or</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_thread</span><span class="o">.</span><span class="n">is_alive</span><span class="p">():</span>
             <span class="k">return</span>
         
-        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;shutting down better_launch node&quot;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;shutting down shared ROS node&quot;</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">ros_executor</span><span class="o">.</span><span class="n">shutdown</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_thread</span><span class="o">.</span><span class="n">join</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">ros_node</span><span class="o">.</span><span class="n">destroy_node</span><span class="p">()</span>

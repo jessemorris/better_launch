@@ -5,7 +5,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>better_launch.tui.choice_dialog &mdash; better_launch 0.9.0 documentation</title>
+  <title>better_launch.tui.choice_dialog &mdash; better_launch 0.9.1 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=80d5e7a1" />
       <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=e59714d7" />
 
@@ -13,7 +13,7 @@
     <link rel="shortcut icon" href="../../../_static/logo.svg"/>
       <script src="../../../_static/jquery.js?v=5d32c60e"></script>
       <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../../../_static/documentation_options.js?v=39bb1c6d"></script>
+      <script src="../../../_static/documentation_options.js?v=9dc39874"></script>
       <script src="../../../_static/doctools.js?v=9bcbadda"></script>
       <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../../../_static/js/theme.js"></script>
@@ -118,6 +118,8 @@
             <span class="bp">self</span><span class="o">.</span><span class="n">action</span> <span class="o">=</span> <span class="n">action</span></div>
 
 
+<div class="viewcode-block" id="ChoiceDialog.__init__">
+<a class="viewcode-back" href="../../../better_launch.tui.html#better_launch.tui.choice_dialog.ChoiceDialog.__init__">[docs]</a>
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">choices</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
@@ -128,10 +130,28 @@
         <span class="nb">id</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
         <span class="n">classes</span><span class="o">=</span><span class="kc">None</span>
     <span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;A dialog where the user can select one of several choices.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        choices : list[str]</span>
+<span class="sd">            The choices to provide.</span>
+<span class="sd">        message : str, optional</span>
+<span class="sd">            A message to show above the choices.</span>
+<span class="sd">        title : str, optional</span>
+<span class="sd">            A title to render above the dialog.</span>
+<span class="sd">        name : _type_, optional</span>
+<span class="sd">            A name to pass to the underlying screen instance.</span>
+<span class="sd">        id : _type_, optional</span>
+<span class="sd">            A unique ID to identify this dialog by.</span>
+<span class="sd">        classes : _type_, optional</span>
+<span class="sd">            Additional CSS classes this dialog should have.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="nb">id</span><span class="p">,</span> <span class="n">classes</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">message</span> <span class="o">=</span> <span class="n">message</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">choices</span> <span class="o">=</span> <span class="n">choices</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">title</span> <span class="o">=</span> <span class="n">title</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">title</span> <span class="o">=</span> <span class="n">title</span></div>
+
 
 <div class="viewcode-block" id="ChoiceDialog.compose">
 <a class="viewcode-back" href="../../../better_launch.tui.html#better_launch.tui.choice_dialog.ChoiceDialog.compose">[docs]</a>

@@ -5,7 +5,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>better_launch.elements.ros2_launch_wrapper &mdash; better_launch 0.9.0 documentation</title>
+  <title>better_launch.elements.ros2_launch_wrapper &mdash; better_launch 0.9.1 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=80d5e7a1" />
       <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=e59714d7" />
 
@@ -13,7 +13,7 @@
     <link rel="shortcut icon" href="../../../_static/logo.svg"/>
       <script src="../../../_static/jquery.js?v=5d32c60e"></script>
       <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../../../_static/documentation_options.js?v=39bb1c6d"></script>
+      <script src="../../../_static/documentation_options.js?v=9dc39874"></script>
       <script src="../../../_static/doctools.js?v=9bcbadda"></script>
       <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../../../_static/js/theme.js"></script>
@@ -72,12 +72,15 @@
              
   <h1>Source code for better_launch.elements.ros2_launch_wrapper</h1><div class="highlight"><pre>
 <span></span><span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Any</span>
+<span class="kn">import</span> <span class="nn">sys</span>
 <span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">platform</span>
 <span class="kn">import</span> <span class="nn">signal</span>
 <span class="kn">import</span> <span class="nn">logging</span>
 <span class="kn">import</span> <span class="nn">asyncio</span>
 <span class="kn">import</span> <span class="nn">threading</span>
 <span class="kn">from</span> <span class="nn">multiprocessing</span> <span class="kn">import</span> <span class="n">Process</span><span class="p">,</span> <span class="n">Queue</span>
+<span class="kn">import</span> <span class="nn">subprocess</span>
 <span class="kn">import</span> <span class="nn">osrf_pycommon.process_utils</span>
 <span class="kn">from</span> <span class="nn">setproctitle</span> <span class="kn">import</span> <span class="n">setproctitle</span><span class="p">,</span> <span class="n">getproctitle</span>
 
@@ -90,12 +93,39 @@
 
 <span class="k">def</span> <span class="nf">_launchservice_worker</span><span class="p">(</span>
     <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
-    <span class="n">launch_args</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">Any</span><span class="p">],</span>
+    <span class="n">launchservice_args</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">Any</span><span class="p">],</span>
     <span class="n">launch_action_queue</span><span class="p">:</span> <span class="n">Queue</span><span class="p">,</span>
     <span class="n">log_queue</span><span class="p">:</span> <span class="n">Queue</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;This function will run in a child process and will not have access to any objects already in memory UNLESS they are passed to it as arguments. See the comments for further details.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
     <span class="c1"># Makes it easier to tell what&#39;s going on in the process table</span>
     <span class="n">setproctitle</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">getproctitle</span><span class="p">()</span><span class="si">}</span><span class="s2"> (</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">)&quot;</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">platform</span><span class="o">.</span><span class="n">system</span><span class="p">()</span> <span class="o">!=</span> <span class="s2">&quot;Windows&quot;</span><span class="p">:</span>
+        <span class="c1"># On unix-based systems this will make this process independent from the host process. This </span>
+        <span class="c1"># way we can terminate it and its child processes without affecting the host process. Since</span>
+        <span class="c1"># it&#39;s not supported on windows, we handle this in our shutdown function instead.</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">setsid</span><span class="p">()</span>
+
+    <span class="c1"># The child process will have clones of the host process&#39; signal handlers installed (i.e. those </span>
+    <span class="c1"># defined in launch_this), so we should rewire these, otherwise we&#39;ll get parallel calls</span>
+    <span class="k">def</span> <span class="nf">_on_sigint</span><span class="p">(</span><span class="n">signum</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">frame</span><span class="p">):</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">ret</span> <span class="o">=</span> <span class="n">launch_service</span><span class="o">.</span><span class="n">_shutdown</span><span class="p">(</span><span class="n">reason</span><span class="o">=</span><span class="s2">&quot;SIGINT&quot;</span><span class="p">,</span> <span class="n">due_to_sigint</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">ret</span><span class="p">:</span>
+                <span class="c1"># This way we suppress the &quot;coroutine was never awaited&quot; warning</span>
+                <span class="n">ret</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+        <span class="k">finally</span><span class="p">:</span>
+            <span class="c1"># Recommended to use this special _exit call in child processes</span>
+            <span class="n">os</span><span class="o">.</span><span class="n">_exit</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">EX_OK</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_on_sigterm</span><span class="p">(</span><span class="n">signum</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">frame</span><span class="p">):</span>
+        <span class="c1"># Recommended to use this special _exit call in child processes</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">_exit</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">EX_OK</span><span class="p">)</span>
+
+    <span class="n">signal</span><span class="o">.</span><span class="n">signal</span><span class="p">(</span><span class="n">signal</span><span class="o">.</span><span class="n">SIGINT</span><span class="p">,</span> <span class="n">_on_sigint</span><span class="p">)</span>
+    <span class="n">signal</span><span class="o">.</span><span class="n">signal</span><span class="p">(</span><span class="n">signal</span><span class="o">.</span><span class="n">SIGTERM</span><span class="p">,</span> <span class="n">_on_sigterm</span><span class="p">)</span>
 
     <span class="c1"># Late import to avoid adding ROS2 launch as a dependency - we are committed here!</span>
     <span class="kn">import</span> <span class="nn">launch</span>
@@ -129,7 +159,7 @@
     <span class="n">launch</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">launch_config</span><span class="o">.</span><span class="n">screen_handler</span> <span class="o">=</span> <span class="n">StubbornHandler</span><span class="p">(</span><span class="n">std_handler</span><span class="p">)</span>
     <span class="n">logger</span> <span class="o">=</span> <span class="n">launch</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">get_logger</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
 
-    <span class="n">launch_service</span> <span class="o">=</span> <span class="n">launch</span><span class="o">.</span><span class="n">LaunchService</span><span class="p">(</span><span class="n">argv</span><span class="o">=</span><span class="n">launch_args</span><span class="p">,</span> <span class="n">noninteractive</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">launch_service</span> <span class="o">=</span> <span class="n">launch</span><span class="o">.</span><span class="n">LaunchService</span><span class="p">(</span><span class="n">argv</span><span class="o">=</span><span class="n">launchservice_args</span><span class="p">,</span> <span class="n">noninteractive</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
     
     <span class="c1"># This feels highly illegal and I love it! :&gt;</span>
     <span class="nb">setattr</span><span class="p">(</span>
@@ -148,6 +178,7 @@
                 <span class="k">await</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mf">0.1</span><span class="p">)</span>
             <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
                 <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Failed to add actions to ROS launch service: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="k">raise</span>
 
     <span class="k">async</span> <span class="k">def</span> <span class="nf">wrapper</span><span class="p">():</span>
         <span class="k">try</span><span class="p">:</span>
@@ -170,46 +201,74 @@
             <span class="n">loop</span><span class="o">.</span><span class="n">run_until_complete</span><span class="p">(</span><span class="n">task</span><span class="p">)</span>
         <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
             <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;ROS2 launch service terminated: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">raise</span>
 
 
 <div class="viewcode-block" id="Ros2LaunchWrapper">
 <a class="viewcode-back" href="../../../better_launch.elements.html#better_launch.elements.ros2_launch_wrapper.Ros2LaunchWrapper">[docs]</a>
 <span class="k">class</span> <span class="nc">Ros2LaunchWrapper</span><span class="p">(</span><span class="n">AbstractNode</span><span class="p">):</span>
+<div class="viewcode-block" id="Ros2LaunchWrapper.__init__">
+<a class="viewcode-back" href="../../../better_launch.elements.html#better_launch.elements.ros2_launch_wrapper.Ros2LaunchWrapper.__init__">[docs]</a>
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;LaunchService&quot;</span><span class="p">,</span>
-        <span class="n">launch_args</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">launchservice_args</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">output_config</span><span class="p">:</span> <span class="p">(</span>
             <span class="n">Node</span><span class="o">.</span><span class="n">LogSink</span> <span class="o">|</span> <span class="nb">dict</span><span class="p">[</span><span class="n">Node</span><span class="o">.</span><span class="n">LogSource</span><span class="p">,</span> <span class="nb">set</span><span class="p">[</span><span class="n">Node</span><span class="o">.</span><span class="n">LogSink</span><span class="p">]]</span>
         <span class="p">)</span> <span class="o">=</span> <span class="s2">&quot;screen&quot;</span><span class="p">,</span>
     <span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Hosts a separate process running a ROS2 `LaunchService` instance (the main entrypoint of the ROS2 launch system). </span>
+<span class="sd">        </span>
+<span class="sd">        Note that although the ROS2 launch service may start an arbitrary number of nodes they will not be accessible for interaction beyond showing log output. Output on stdout and stderr from the process (and its nodes) will be captured, reformatted and separated by source.</span>
+<span class="sd">        </span>
+<span class="sd">        While this is a node-like object, it does not represent a node in ROS. This was done so that e.g. the TUI can be used to interact with the ROS2 launch system to e.g. include regular ROS2 launch files. Running a full process and a separate launch system is fairly resource heavy, however, `LaunchService` insists on running on the main thread.</span>
+
+<span class="sd">        .. seealso::</span>
+
+<span class="sd">            `ROS2 LaunchService &lt;https://github.com/ros2/launch/blob/rolling/launch/launch/launch_service.py&gt;`_</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        name : str, optional</span>
+<span class="sd">            The name that will be used for the logger and the child process.</span>
+<span class="sd">        launchservice_args : list[str], optional</span>
+<span class="sd">            Additional arguments to pass to the ROS2 launch service. These will show up in the ROS2 `LaunchContext`.</span>
+<span class="sd">        output_config : Node.LogSink  |  dict[Node.LogSource, set[Node.LogSink]], optional</span>
+<span class="sd">            How log output from the launch service should be handled. Sources are `stdout`, `stderr` and `both`. Sinks are `screen`, `log`, `both`, `own_log`, and `full`.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
             <span class="s2">&quot;ros2/launch&quot;</span><span class="p">,</span>
             <span class="s2">&quot;launch_service.py&quot;</span><span class="p">,</span>
             <span class="n">name</span><span class="p">,</span>
             <span class="s2">&quot;/&quot;</span><span class="p">,</span>
             <span class="n">remaps</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-            <span class="n">node_args</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+            <span class="n">params</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
         <span class="p">)</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">output_config</span> <span class="o">=</span> <span class="n">output_config</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_launch_args</span> <span class="o">=</span> <span class="n">launch_args</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_launchservice_args</span> <span class="o">=</span> <span class="n">launchservice_args</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">_process</span><span class="p">:</span> <span class="n">Process</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_launch_action_queue</span> <span class="o">=</span> <span class="n">Queue</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_process_log_queue</span> <span class="o">=</span> <span class="n">Queue</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_loaded_launch_descriptions</span> <span class="o">=</span> <span class="p">[]</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_terminate_requested</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_shutdown_requested</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_terminate_requested</span> <span class="o">=</span> <span class="kc">False</span></div>
+
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">pid</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;The process ID of the node process. Will be -1 if the process is not running.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_process</span><span class="p">:</span>
             <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_process</span><span class="o">.</span><span class="n">pid</span>
         <span class="k">return</span> <span class="o">-</span><span class="mi">1</span>
 
     <span class="nd">@property</span>
-    <span class="k">def</span> <span class="nf">launch_args</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_launch_args</span>
+    <span class="k">def</span> <span class="nf">launchservice_args</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Additional arguments that are passed to the launch service.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_launchservice_args</span>
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">is_running</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
@@ -219,17 +278,27 @@
             <span class="c1"># For some reason we can&#39;t call is_alive when the process was closed</span>
             <span class="k">return</span> <span class="kc">False</span>
 
-    <span class="nd">@property</span>
-    <span class="k">def</span> <span class="nf">is_ros2_connected</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_running</span>
+<div class="viewcode-block" id="Ros2LaunchWrapper.check_ros2_connected">
+<a class="viewcode-back" href="../../../better_launch.elements.html#better_launch.elements.ros2_launch_wrapper.Ros2LaunchWrapper.check_ros2_connected">[docs]</a>
+    <span class="k">def</span> <span class="nf">check_ros2_connected</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">timeout</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Equal to :py:meth:`is_running` for this class.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_running</span></div>
 
-    <span class="nd">@property</span>
-    <span class="k">def</span> <span class="nf">is_lifecycle_node</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
-        <span class="k">return</span> <span class="kc">False</span>
+
+<div class="viewcode-block" id="Ros2LaunchWrapper.check_lifecycle_node">
+<a class="viewcode-back" href="../../../better_launch.elements.html#better_launch.elements.ros2_launch_wrapper.Ros2LaunchWrapper.check_lifecycle_node">[docs]</a>
+    <span class="k">def</span> <span class="nf">check_lifecycle_node</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">timeout</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;This is never a lifecycle node.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="kc">False</span></div>
+
 
 <div class="viewcode-block" id="Ros2LaunchWrapper.queue_ros2_actions">
 <a class="viewcode-back" href="../../../better_launch.elements.html#better_launch.elements.ros2_launch_wrapper.Ros2LaunchWrapper.queue_ros2_actions">[docs]</a>
     <span class="k">def</span> <span class="nf">queue_ros2_actions</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">actions</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Add ROS2 actions that will be loaded asynchronously by the launch service once it is running. Actions are bundled as a `LaunchDescription` before sending them off.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="kn">import</span> <span class="nn">launch</span>
 
         <span class="n">ld</span> <span class="o">=</span> <span class="n">launch</span><span class="o">.</span><span class="n">LaunchDescription</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">actions</span><span class="p">))</span>
@@ -237,7 +306,13 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">_loaded_launch_descriptions</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">ld</span><span class="p">)</span></div>
 
 
-    <span class="k">def</span> <span class="nf">_do_start</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<div class="viewcode-block" id="Ros2LaunchWrapper.start">
+<a class="viewcode-back" href="../../../better_launch.elements.html#better_launch.elements.ros2_launch_wrapper.Ros2LaunchWrapper.start">[docs]</a>
+    <span class="k">def</span> <span class="nf">start</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_running</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;LaunchService </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2"> is alrady running&quot;</span><span class="p">)</span>
+            <span class="k">return</span>
+
         <span class="n">logout</span><span class="p">,</span> <span class="n">logerr</span> <span class="o">=</span> <span class="n">roslog</span><span class="o">.</span><span class="n">get_output_loggers</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">output_config</span><span class="p">)</span>
 
         <span class="c1"># Note that passing loggers will not work for the TUI, as they would have to communicate</span>
@@ -247,7 +322,7 @@
             <span class="n">target</span><span class="o">=</span><span class="n">_launchservice_worker</span><span class="p">,</span>
             <span class="n">args</span><span class="o">=</span><span class="p">(</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">launch_args</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">launchservice_args</span><span class="p">,</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">_launch_action_queue</span><span class="p">,</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">_process_log_queue</span><span class="p">,</span>
             <span class="p">),</span>
@@ -258,7 +333,8 @@
 
         <span class="n">threading</span><span class="o">.</span><span class="n">Thread</span><span class="p">(</span>
             <span class="n">target</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_process_watcher</span><span class="p">,</span> <span class="n">args</span><span class="o">=</span><span class="p">(</span><span class="n">logout</span><span class="p">,</span> <span class="n">logerr</span><span class="p">),</span> <span class="n">daemon</span><span class="o">=</span><span class="kc">True</span>
-        <span class="p">)</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">start</span><span class="p">()</span></div>
+
 
     <span class="k">def</span> <span class="nf">_process_watcher</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">logout</span><span class="p">:</span> <span class="n">logging</span><span class="o">.</span><span class="n">Logger</span><span class="p">,</span> <span class="n">logerr</span><span class="p">:</span> <span class="n">logging</span><span class="o">.</span><span class="n">Logger</span><span class="p">):</span>
         <span class="n">q</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_process_log_queue</span>
@@ -276,29 +352,55 @@
 <div class="viewcode-block" id="Ros2LaunchWrapper.shutdown">
 <a class="viewcode-back" href="../../../better_launch.elements.html#better_launch.elements.ros2_launch_wrapper.Ros2LaunchWrapper.shutdown">[docs]</a>
     <span class="k">def</span> <span class="nf">shutdown</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">reason</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">signum</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">signal</span><span class="o">.</span><span class="n">SIGTERM</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_terminate_requested</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_running</span><span class="p">:</span>
+            <span class="c1"># Give the process a little bit of time to terminate</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_process</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="mf">0.5</span><span class="p">)</span>
+            <span class="k">except</span><span class="p">:</span>
+                <span class="c1"># Might fail during shutdown</span>
+                <span class="k">pass</span>
+        
         <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_running</span><span class="p">:</span>
             <span class="k">return</span>
-
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_terminate_requested</span><span class="p">:</span>
-            <span class="c1"># Give the process a little bit of time to terminate</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_process</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="mf">0.5</span><span class="p">)</span>
-            <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_running</span><span class="p">:</span>
-                <span class="k">return</span>
 
         <span class="k">try</span><span class="p">:</span>
             <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_terminate_requested</span> <span class="ow">or</span> <span class="n">signum</span> <span class="o">==</span> <span class="n">signal</span><span class="o">.</span><span class="n">SIGKILL</span><span class="p">:</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
                     <span class="sa">f</span><span class="s2">&quot;(</span><span class="si">{</span><span class="n">reason</span><span class="si">}</span><span class="s2">), but </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2"> was asked to terminate before -&gt; escalating to SIGKILL. Killing ROS2 launch service may leave stale processes behind!&quot;</span>
                 <span class="p">)</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">_process</span><span class="o">.</span><span class="n">kill</span><span class="p">()</span>
-            <span class="k">else</span><span class="p">:</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
-                    <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2"> was asked to terminate: </span><span class="si">{</span><span class="n">reason</span><span class="si">}</span><span class="s2"> (SIGTERM)&quot;</span>
-                <span class="p">)</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">_process</span><span class="o">.</span><span class="n">terminate</span><span class="p">()</span>
+                <span class="c1"># Set the child process and all its children on fire</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">send_signal</span><span class="p">(</span><span class="n">signal</span><span class="o">.</span><span class="n">SIGKILL</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">_shutdown_requested</span><span class="p">:</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">_terminate_requested</span> <span class="o">=</span> <span class="kc">True</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2"> is still runing, escalating to SIGTERM (</span><span class="si">{</span><span class="n">reason</span><span class="si">}</span><span class="s2">)&quot;</span>
+                <span class="p">)</span>
+                <span class="c1"># Rudely ask the child process and all its children to exit immediately</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">send_signal</span><span class="p">(</span><span class="n">signal</span><span class="o">.</span><span class="n">SIGTERM</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_shutdown_requested</span> <span class="o">=</span> <span class="kc">True</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;Asking </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2"> to shutdown gracefully via SIGINT (</span><span class="si">{</span><span class="n">reason</span><span class="si">}</span><span class="s2">)&quot;</span>
+                <span class="p">)</span>
+                <span class="c1"># Gently suggest to the child process and all its children that they could exit now</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">send_signal</span><span class="p">(</span><span class="n">signal</span><span class="o">.</span><span class="n">SIGINT</span><span class="p">)</span>
         <span class="k">except</span><span class="p">:</span>
             <span class="k">pass</span></div>
+
+
+<div class="viewcode-block" id="Ros2LaunchWrapper.send_signal">
+<a class="viewcode-back" href="../../../better_launch.elements.html#better_launch.elements.ros2_launch_wrapper.Ros2LaunchWrapper.send_signal">[docs]</a>
+    <span class="k">def</span> <span class="nf">send_signal</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">signum</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_running</span><span class="p">:</span>
+            <span class="k">return</span>
+
+        <span class="k">if</span> <span class="n">platform</span><span class="o">.</span><span class="n">system</span><span class="p">()</span> <span class="o">==</span> <span class="s2">&quot;Windows&quot;</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">signum</span> <span class="o">==</span> <span class="n">signal</span><span class="o">.</span><span class="n">SIGINT</span> <span class="ow">or</span> <span class="n">signum</span> <span class="o">==</span> <span class="n">signal</span><span class="o">.</span><span class="n">SIGTERM</span><span class="p">:</span>
+                <span class="n">subprocess</span><span class="o">.</span><span class="n">call</span><span class="p">([</span><span class="s2">&quot;taskkill&quot;</span><span class="p">,</span> <span class="s2">&quot;/PID&quot;</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">pid</span><span class="p">),</span> <span class="s2">&quot;/T&quot;</span><span class="p">])</span>
+            <span class="k">elif</span> <span class="n">signum</span> <span class="o">==</span> <span class="n">signal</span><span class="o">.</span><span class="n">SIGKILL</span><span class="p">:</span>
+                <span class="n">subprocess</span><span class="o">.</span><span class="n">call</span><span class="p">([</span><span class="s2">&quot;taskkill&quot;</span><span class="p">,</span> <span class="s2">&quot;/F&quot;</span><span class="p">,</span> <span class="s2">&quot;/T&quot;</span><span class="p">,</span> <span class="s2">&quot;/PID&quot;</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">pid</span><span class="p">)])</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">os</span><span class="o">.</span><span class="n">killpg</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">getpgid</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">pid</span><span class="p">),</span> <span class="n">signum</span><span class="p">)</span></div>
 
 
     <span class="k">def</span> <span class="nf">_get_info_section_general</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
@@ -311,15 +413,23 @@
         <span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">_get_info_section_ros</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
-        <span class="n">ld_info</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">describe_launch_actions</span><span class="p">())</span>
         <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;&quot;&quot;</span><span class="se">\</span>
 <span class="s2">[bold]Loaded Actions[/bold]</span>
-<span class="si">{</span><span class="n">ld_info</span><span class="si">}</span>
+<span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">describe_launch_actions</span><span class="p">()</span><span class="si">}</span>
 <span class="s2">&quot;&quot;&quot;</span>
 
 <div class="viewcode-block" id="Ros2LaunchWrapper.describe_launch_actions">
 <a class="viewcode-back" href="../../../better_launch.elements.html#better_launch.elements.ros2_launch_wrapper.Ros2LaunchWrapper.describe_launch_actions">[docs]</a>
-    <span class="k">def</span> <span class="nf">describe_launch_actions</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+    <span class="k">def</span> <span class="nf">describe_launch_actions</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Returns a best-effort summary of all `LaunchDescription`s that have been loaded so far.</span>
+
+<span class="sd">        Since ROS2 does not provide a way to serialize its slew of launch actions (beyond *maybe* pickle), it is not possible to create a full representation without special handlers. However, *most* launch actions expose their relevant data as properties. This function will look for these and recurse into them if they return launch actions.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        str</span>
+<span class="sd">            A formatted and indented representation of the launch descriptions scheduled for loading thus far.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">descriptions</span> <span class="o">=</span> <span class="p">[]</span>
 
         <span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="n">ld</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_loaded_launch_descriptions</span><span class="p">):</span>
@@ -330,7 +440,7 @@
 
             <span class="n">descriptions</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">info</span><span class="p">)</span>
 
-        <span class="k">return</span> <span class="n">descriptions</span></div>
+        <span class="k">return</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">descriptions</span><span class="p">)</span></div>
 
 
     <span class="k">def</span> <span class="nf">_format_properties</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">entity</span><span class="p">,</span> <span class="n">depth</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">):</span>

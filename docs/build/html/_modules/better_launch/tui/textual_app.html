@@ -1,0 +1,541 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>better_launch.tui.textual_app &mdash; better_launch 0.9.1 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=e59714d7" />
+
+  
+    <link rel="shortcut icon" href="../../../_static/logo.svg"/>
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=9dc39874"></script>
+      <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            better_launch
+              <img src="../../../_static/logo.svg" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../modules.html">better_launch</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">better_launch</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">better_launch.tui.textual_app</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for better_launch.tui.textual_app</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">cast</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">logging</span>
+<span class="kn">import</span> <span class="nn">pyperclip</span>
+
+<span class="kn">from</span> <span class="nn">textual</span> <span class="kn">import</span> <span class="n">work</span>
+<span class="kn">from</span> <span class="nn">textual.app</span> <span class="kn">import</span> <span class="n">App</span><span class="p">,</span> <span class="n">ComposeResult</span>
+<span class="kn">from</span> <span class="nn">textual.widgets</span> <span class="kn">import</span> <span class="n">ListView</span><span class="p">,</span> <span class="n">ListItem</span><span class="p">,</span> <span class="n">Header</span><span class="p">,</span> <span class="n">Footer</span>
+<span class="kn">from</span> <span class="nn">textual.containers</span> <span class="kn">import</span> <span class="n">Horizontal</span>
+<span class="kn">from</span> <span class="nn">textual.binding</span> <span class="kn">import</span> <span class="n">Binding</span>
+<span class="kn">from</span> <span class="nn">textual.reactive</span> <span class="kn">import</span> <span class="n">reactive</span>
+
+<span class="kn">from</span> <span class="nn">ros2node.api</span> <span class="kn">import</span> <span class="n">get_node_names</span>
+
+<span class="kn">from</span> <span class="nn">better_launch.launcher</span> <span class="kn">import</span> <span class="n">BetterLaunch</span>
+<span class="kn">import</span> <span class="nn">better_launch.ros.logging</span> <span class="k">as</span> <span class="nn">roslog</span>
+<span class="kn">from</span> <span class="nn">better_launch.utils.better_logging</span> <span class="kn">import</span> <span class="n">RecordForwarder</span>
+<span class="kn">from</span> <span class="nn">better_launch.elements</span> <span class="kn">import</span> <span class="n">Node</span><span class="p">,</span> <span class="n">Composer</span><span class="p">,</span> <span class="n">Component</span><span class="p">,</span> <span class="n">LifecycleStage</span>
+<span class="kn">from</span> <span class="nn">.log_entry</span> <span class="kn">import</span> <span class="n">LogEntry</span>
+<span class="kn">from</span> <span class="nn">.node_menu</span> <span class="kn">import</span> <span class="n">NodeLabel</span><span class="p">,</span> <span class="n">NodeInfoScreen</span>
+<span class="kn">from</span> <span class="nn">.choice_dialog</span> <span class="kn">import</span> <span class="n">ChoiceDialog</span>
+
+
+<span class="c1"># Inspired by xqms&#39; rosmon: https://github.com/xqms/rosmon</span>
+<div class="viewcode-block" id="BetterUI">
+<a class="viewcode-back" href="../../../better_launch.tui.html#better_launch.tui.textual_app.BetterUI">[docs]</a>
+<span class="k">class</span> <span class="nc">BetterUI</span><span class="p">(</span><span class="n">App</span><span class="p">):</span>
+    <span class="n">TITLE</span> <span class="o">=</span> <span class="s2">&quot;BetterLaunch&quot;</span>
+
+    <span class="n">BINDINGS</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="n">Binding</span><span class="p">(</span><span class="s2">&quot;ctrl+q&quot;</span><span class="p">,</span> <span class="s2">&quot;quit&quot;</span><span class="p">,</span> <span class="s2">&quot;Quit&quot;</span><span class="p">),</span>
+        <span class="n">Binding</span><span class="p">(</span><span class="s2">&quot;space&quot;</span><span class="p">,</span> <span class="s2">&quot;toggle_mute&quot;</span><span class="p">,</span> <span class="s2">&quot;Mute&quot;</span><span class="p">),</span>
+        <span class="n">Binding</span><span class="p">(</span><span class="s2">&quot;f1&quot;</span><span class="p">,</span> <span class="s2">&quot;toggle_sidebar&quot;</span><span class="p">,</span> <span class="s2">&quot;Sidebar&quot;</span><span class="p">),</span>
+        <span class="n">Binding</span><span class="p">(</span><span class="s2">&quot;f2&quot;</span><span class="p">,</span> <span class="s2">&quot;toggle_log_names&quot;</span><span class="p">,</span> <span class="s2">&quot;Names&quot;</span><span class="p">),</span>
+        <span class="n">Binding</span><span class="p">(</span><span class="s2">&quot;f3&quot;</span><span class="p">,</span> <span class="s2">&quot;toggle_log_icons&quot;</span><span class="p">,</span> <span class="s2">&quot;Icons&quot;</span><span class="p">),</span>
+    <span class="p">]</span>
+
+    <span class="n">DEFAULT_CSS</span> <span class="o">=</span> <span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">        #sidebar {</span>
+<span class="s2">            width: 20%;</span>
+<span class="s2">            min_width: 20;</span>
+<span class="s2">            max_width: 40%;</span>
+<span class="s2">            height: 1fr;</span>
+<span class="s2">            background: $panel;</span>
+
+<span class="s2">            .-highlight {</span>
+<span class="s2">                text-style: italic bold;</span>
+<span class="s2">            }</span>
+<span class="s2">        }</span>
+<span class="s2">        #logview {</span>
+<span class="s2">            width: 1fr;</span>
+<span class="s2">            height: 1fr;</span>
+
+<span class="s2">            LogEntry {</span>
+<span class="s2">                #source {</span>
+<span class="s2">                    width: 25%;</span>
+<span class="s2">                    max-width: 30;</span>
+<span class="s2">                    height: 1;</span>
+<span class="s2">                    text-align: right;</span>
+<span class="s2">                }</span>
+<span class="s2">                #icon {</span>
+<span class="s2">                    width: 3;</span>
+<span class="s2">                    height: 1;</span>
+<span class="s2">                    text-align: center;</span>
+<span class="s2">                }</span>
+<span class="s2">                #message {</span>
+<span class="s2">                    width: 70%;</span>
+<span class="s2">                    text-align: left;</span>
+<span class="s2">                    margin-right: 1;</span>
+<span class="s2">                }</span>
+<span class="s2">            }</span>
+<span class="s2">        }</span>
+<span class="s2">    &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="BetterUI.setup_logging">
+<a class="viewcode-back" href="../../../better_launch.tui.html#better_launch.tui.textual_app.BetterUI.setup_logging">[docs]</a>
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">setup_logging</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Sets up a few things to make sure log messages can be parsed by the TUI.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># Make sure all ros loggers follow a parsable format</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s2">&quot;RCUTILS_COLORIZED_OUTPUT&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;0&quot;</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s2">&quot;RCUTILS_CONSOLE_OUTPUT_FORMAT&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">%%{severity}%%{time}%%{message}</span><span class="s2">&quot;</span>
+
+        <span class="k">if</span> <span class="s2">&quot;OVERRIDE_LAUNCH_SCREEN_FORMAT&quot;</span> <span class="ow">in</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">:</span>
+            <span class="k">del</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s2">&quot;OVERRIDE_LAUNCH_SCREEN_FORMAT&quot;</span><span class="p">]</span>
+
+        <span class="c1"># Install the log handler</span>
+        <span class="n">roslog</span><span class="o">.</span><span class="n">launch_config</span><span class="o">.</span><span class="n">screen_handler</span> <span class="o">=</span> <span class="n">RecordForwarder</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="BetterUI.__init__">
+<a class="viewcode-back" href="../../../better_launch.tui.html#better_launch.tui.textual_app.BetterUI.__init__">[docs]</a>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">launch_func</span><span class="p">:</span> <span class="n">Callable</span><span class="p">,</span>
+        <span class="n">disable_colors</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="n">max_log_length</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="mi">1000</span><span class="p">,</span>
+    <span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Creates a new TUI instance. Only one of these should be created and started.</span>
+
+<span class="sd">        Since UIs (including TUIs) should usually run on the main thread, the passed in launch function will actually be run on a separate thread. </span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        launch_func : Callable</span>
+<span class="sd">            The launch function of the launch file. Note that no arguments will be provided to this function - use `partial` or a wrapper with bound arguments for anything you need to pass to the function.</span>
+<span class="sd">        disable_colors : bool, optional</span>
+<span class="sd">            If True, the TUI will not render any colors (and hopefully nothing else will either). This will set the `NO_COLOR` environment variable.</span>
+<span class="sd">        max_log_length : bool, optional</span>
+<span class="sd">            How many log messages to keep in the buffer for scrolling.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">disable_colors</span><span class="p">:</span>
+            <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s2">&quot;NO_COLOR&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;1&quot;</span>
+
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">exit_reason</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">backlog</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">max_log_length</span> <span class="o">=</span> <span class="n">max_log_length</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">node_keymap</span> <span class="o">=</span> <span class="p">{}</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">mute</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">show_log_sources</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">show_log_icons</span> <span class="o">=</span> <span class="kc">True</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">launch_func</span> <span class="o">=</span> <span class="n">launch_func</span></div>
+
+
+<div class="viewcode-block" id="BetterUI.compose">
+<a class="viewcode-back" href="../../../better_launch.tui.html#better_launch.tui.textual_app.BetterUI.compose">[docs]</a>
+    <span class="k">def</span> <span class="nf">compose</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ComposeResult</span><span class="p">:</span>
+        <span class="k">yield</span> <span class="n">Header</span><span class="p">(</span><span class="n">show_clock</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+        <span class="c1"># Could use a Tree view instead</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sidebar</span> <span class="o">=</span> <span class="n">ListView</span><span class="p">(</span><span class="nb">id</span><span class="o">=</span><span class="s2">&quot;sidebar&quot;</span><span class="p">)</span>
+        <span class="c1"># TODO OptionList is more performant</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">logview</span> <span class="o">=</span> <span class="n">ListView</span><span class="p">(</span><span class="nb">id</span><span class="o">=</span><span class="s2">&quot;logview&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">logview</span><span class="o">.</span><span class="n">can_focus</span> <span class="o">=</span> <span class="kc">False</span>
+
+        <span class="k">with</span> <span class="n">Horizontal</span><span class="p">():</span>
+            <span class="k">yield</span> <span class="bp">self</span><span class="o">.</span><span class="n">sidebar</span>
+            <span class="k">yield</span> <span class="bp">self</span><span class="o">.</span><span class="n">logview</span>
+
+        <span class="k">yield</span> <span class="n">Footer</span><span class="p">(</span><span class="n">show_command_palette</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="BetterUI.on_mount">
+<a class="viewcode-back" href="../../../better_launch.tui.html#better_launch.tui.textual_app.BetterUI.on_mount">[docs]</a>
+    <span class="k">def</span> <span class="nf">on_mount</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">run_launch_function</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="BetterUI.exit">
+<a class="viewcode-back" href="../../../better_launch.tui.html#better_launch.tui.textual_app.BetterUI.exit">[docs]</a>
+    <span class="k">def</span> <span class="nf">exit</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">reason</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;UI terminated&quot;</span><span class="p">):</span>
+        <span class="c1"># This might be invoked more than once</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">exit_reason</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">exit_reason</span> <span class="o">=</span> <span class="n">reason</span>
+        
+        <span class="n">bl</span> <span class="o">=</span> <span class="n">BetterLaunch</span><span class="o">.</span><span class="n">instance</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">bl</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">bl</span><span class="o">.</span><span class="n">is_shutdown</span><span class="p">:</span>
+            <span class="n">bl</span><span class="o">.</span><span class="n">shutdown</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">exit_reason</span><span class="p">)</span>
+
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">exit</span><span class="p">()</span></div>
+
+
+    <span class="k">async</span> <span class="k">def</span> <span class="nf">_shutdown</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">await</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_shutdown</span><span class="p">()</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">exit_reason</span><span class="p">:</span>
+            <span class="kn">from</span> <span class="nn">rich.console</span> <span class="kn">import</span> <span class="n">Console</span>
+
+            <span class="c1"># Passing a message to super.exit will be treated as an error, so we instead handle any</span>
+            <span class="c1"># post-shutdown stuff here</span>
+            <span class="n">Console</span><span class="p">()</span><span class="o">.</span><span class="n">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;[bright_green]BetterUI exit: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">exit_reason</span><span class="si">}</span><span class="s2">[/bright_green]&quot;</span><span class="p">)</span>
+
+<div class="viewcode-block" id="BetterUI.run_launch_function">
+<a class="viewcode-back" href="../../../better_launch.tui.html#better_launch.tui.textual_app.BetterUI.run_launch_function">[docs]</a>
+    <span class="nd">@work</span><span class="p">(</span><span class="n">thread</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">exit_on_error</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">group</span><span class="o">=</span><span class="s2">&quot;launch_func&quot;</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">run_launch_function</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Runs the launch function passed to the constructor and sets up the log capturing mechanism.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">def</span> <span class="nf">log_to_ui</span><span class="p">(</span><span class="n">record</span><span class="p">:</span> <span class="n">logging</span><span class="o">.</span><span class="n">LogRecord</span><span class="p">):</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_running</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">call_later</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">on_log_record</span><span class="p">,</span> <span class="n">record</span><span class="p">)</span>
+
+        <span class="n">log_handler</span> <span class="o">=</span> <span class="n">roslog</span><span class="o">.</span><span class="n">launch_config</span><span class="o">.</span><span class="n">screen_handler</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">log_handler</span><span class="p">,</span> <span class="n">RecordForwarder</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span>
+                <span class="s2">&quot;Something modified the logging handler, UI cant&#39;t start&quot;</span>
+            <span class="p">)</span>
+
+        <span class="n">log_handler</span><span class="o">.</span><span class="n">add_listener</span><span class="p">(</span><span class="n">log_to_ui</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">launch_func</span><span class="p">()</span>
+
+        <span class="n">bl</span> <span class="o">=</span> <span class="n">BetterLaunch</span><span class="o">.</span><span class="n">wait_for_instance</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sub_title</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">bl</span><span class="o">.</span><span class="n">launchfile</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">call_later</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">add_nodes_to_sidebar</span><span class="p">)</span>
+        <span class="n">bl</span><span class="o">.</span><span class="n">spin</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="s2">&quot;BetterLaunch terminated&quot;</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="BetterUI.add_nodes_to_sidebar">
+<a class="viewcode-back" href="../../../better_launch.tui.html#better_launch.tui.textual_app.BetterUI.add_nodes_to_sidebar">[docs]</a>
+    <span class="k">def</span> <span class="nf">add_nodes_to_sidebar</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Populates the sidebar with node items.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">bl</span> <span class="o">=</span> <span class="n">BetterLaunch</span><span class="o">.</span><span class="n">wait_for_instance</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="n">n</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">bl</span><span class="o">.</span><span class="n">all_nodes</span><span class="p">(</span><span class="n">include_components</span><span class="o">=</span><span class="kc">True</span><span class="p">)):</span>
+            <span class="n">key</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_node_key</span><span class="p">(</span><span class="n">idx</span><span class="p">)</span>
+            <span class="n">item</span> <span class="o">=</span> <span class="n">ListItem</span><span class="p">(</span><span class="n">NodeLabel</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">key</span><span class="p">))</span>
+            <span class="k">if</span> <span class="n">key</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">node_keymap</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">idx</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">sidebar</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">item</span><span class="p">)</span></div>
+
+
+    <span class="k">def</span> <span class="nf">_get_node_key</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">idx</span><span class="p">:</span> <span class="nb">int</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">idx</span> <span class="o">&lt;</span> <span class="mi">10</span><span class="p">:</span>
+            <span class="c1"># Node number starting at 1</span>
+            <span class="k">return</span> <span class="nb">str</span><span class="p">(</span><span class="n">idx</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">idx</span> <span class="o">==</span> <span class="mi">10</span><span class="p">:</span>
+            <span class="c1"># Easier for the user</span>
+            <span class="k">return</span> <span class="mi">0</span>
+        <span class="k">if</span> <span class="n">idx</span> <span class="o">&lt;</span> <span class="mi">36</span><span class="p">:</span>
+            <span class="c1"># Next lowercase character</span>
+            <span class="k">return</span> <span class="nb">chr</span><span class="p">(</span><span class="mi">97</span> <span class="o">+</span> <span class="n">idx</span> <span class="o">-</span> <span class="mi">10</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="kc">None</span>
+
+<div class="viewcode-block" id="BetterUI.on_key">
+<a class="viewcode-back" href="../../../better_launch.tui.html#better_launch.tui.textual_app.BetterUI.on_key">[docs]</a>
+    <span class="k">def</span> <span class="nf">on_key</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">event</span><span class="p">):</span>
+        <span class="n">idx</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">node_keymap</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">event</span><span class="o">.</span><span class="n">key</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">idx</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="c1"># Select the node and open its menu (see open_menu_for_node)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">sidebar</span><span class="o">.</span><span class="n">index</span> <span class="o">=</span> <span class="n">idx</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">sidebar</span><span class="o">.</span><span class="n">action_select_cursor</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="BetterUI.on_log_record">
+<a class="viewcode-back" href="../../../better_launch.tui.html#better_launch.tui.textual_app.BetterUI.on_log_record">[docs]</a>
+    <span class="k">def</span> <span class="nf">on_log_record</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">record</span><span class="p">:</span> <span class="n">logging</span><span class="o">.</span><span class="n">LogRecord</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Adds a new log record to the log view.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        record : logging.LogRecord</span>
+<span class="sd">            The log record to render.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># This will be called by our logging handler</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">mute</span><span class="p">:</span>
+            <span class="c1"># Save the raw messages and add them once we get unmuted</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">backlog</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">record</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_log</span><span class="p">(</span><span class="n">record</span><span class="p">)</span></div>
+
+
+    <span class="k">def</span> <span class="nf">_log</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">records</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_exit</span><span class="p">:</span>
+            <span class="k">return</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">logview</span><span class="o">.</span><span class="n">extend</span><span class="p">([</span><span class="n">ListItem</span><span class="p">(</span><span class="n">LogEntry</span><span class="p">(</span><span class="n">r</span><span class="p">))</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">records</span><span class="p">])</span>
+
+        <span class="c1"># restrict number of list items</span>
+        <span class="n">num_entries</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">logview</span><span class="o">.</span><span class="n">children</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">num_entries</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_log_length</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">logview</span><span class="o">.</span><span class="n">remove_items</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">num_entries</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_log_length</span> <span class="o">+</span> <span class="mi">1</span><span class="p">))</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">logview</span><span class="o">.</span><span class="n">is_vertical_scrollbar_grabbed</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">logview</span><span class="o">.</span><span class="n">scroll_end</span><span class="p">()</span>
+
+<div class="viewcode-block" id="BetterUI.on_list_view_selected">
+<a class="viewcode-back" href="../../../better_launch.tui.html#better_launch.tui.textual_app.BetterUI.on_list_view_selected">[docs]</a>
+    <span class="k">def</span> <span class="nf">on_list_view_selected</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">selected</span><span class="p">:</span> <span class="n">ListView</span><span class="o">.</span><span class="n">Selected</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;React to a list item being selected, either on the sidebar or log view.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        selected : ListView.Selected</span>
+<span class="sd">            The selected item.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">selected</span><span class="o">.</span><span class="n">list_view</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">sidebar</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">open_menu_for_node</span><span class="p">(</span><span class="n">selected</span><span class="o">.</span><span class="n">item</span><span class="o">.</span><span class="n">get_child_by_type</span><span class="p">(</span><span class="n">NodeLabel</span><span class="p">))</span>
+        <span class="k">elif</span> <span class="n">selected</span><span class="o">.</span><span class="n">list_view</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">logview</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">copy_log_entry</span><span class="p">(</span><span class="n">selected</span><span class="o">.</span><span class="n">item</span><span class="o">.</span><span class="n">get_child_by_type</span><span class="p">(</span><span class="n">LogEntry</span><span class="p">))</span></div>
+
+
+<div class="viewcode-block" id="BetterUI.open_menu_for_node">
+<a class="viewcode-back" href="../../../better_launch.tui.html#better_launch.tui.textual_app.BetterUI.open_menu_for_node">[docs]</a>
+    <span class="k">def</span> <span class="nf">open_menu_for_node</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">label</span><span class="p">:</span> <span class="n">NodeLabel</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Opens an options menu for a node offering different actions to interact with it.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        label : NodeLabel</span>
+<span class="sd">            The node item to open the menu for.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">node</span> <span class="o">=</span> <span class="n">label</span><span class="o">.</span><span class="n">node</span>
+
+        <span class="k">def</span> <span class="nf">on_lifecycle_choice</span><span class="p">(</span><span class="n">choice</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">choice</span><span class="p">:</span>
+                <span class="n">node</span><span class="o">.</span><span class="n">lifecycle</span><span class="o">.</span><span class="n">transition</span><span class="p">(</span><span class="n">LifecycleStage</span><span class="p">[</span><span class="n">choice</span><span class="o">.</span><span class="n">upper</span><span class="p">()])</span>
+
+        <span class="k">def</span> <span class="nf">on_kill_choice</span><span class="p">(</span><span class="n">choice</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">choice</span> <span class="o">==</span> <span class="s2">&quot;yes&quot;</span><span class="p">:</span>
+                <span class="n">node</span><span class="o">.</span><span class="n">shutdown</span><span class="p">(</span><span class="s2">&quot;Shutdown by user&quot;</span><span class="p">)</span>
+
+        <span class="k">def</span> <span class="nf">on_node_menu_choice</span><span class="p">(</span><span class="n">action</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">action</span> <span class="o">==</span> <span class="s2">&quot;info&quot;</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">push_screen</span><span class="p">(</span><span class="n">NodeInfoScreen</span><span class="p">(</span><span class="n">node</span><span class="p">))</span>
+
+            <span class="k">elif</span> <span class="n">action</span> <span class="o">==</span> <span class="s2">&quot;lifecycle&quot;</span><span class="p">:</span>
+                <span class="n">valid_stages</span> <span class="o">=</span> <span class="nb">list</span><span class="p">([</span><span class="n">s</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">LifecycleStage</span><span class="p">])</span>
+                <span class="n">valid_stages</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">node</span><span class="o">.</span><span class="n">lifecycle</span><span class="o">.</span><span class="n">current_stage</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">push_screen</span><span class="p">(</span>
+                    <span class="n">ChoiceDialog</span><span class="p">(</span><span class="n">valid_stages</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;Transition </span><span class="si">{</span><span class="n">node</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2"> to&quot;</span><span class="p">),</span>
+                    <span class="n">on_lifecycle_choice</span><span class="p">,</span>
+                <span class="p">)</span>
+
+            <span class="k">elif</span> <span class="n">action</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;kill&quot;</span><span class="p">,</span> <span class="s2">&quot;unload&quot;</span><span class="p">]:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">push_screen</span><span class="p">(</span>
+                    <span class="n">ChoiceDialog</span><span class="p">([</span><span class="s2">&quot;yes&quot;</span><span class="p">,</span> <span class="s2">&quot;cancel&quot;</span><span class="p">],</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">action</span><span class="o">.</span><span class="n">capitalize</span><span class="p">()</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">node</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">?&quot;</span><span class="p">),</span>
+                    <span class="n">on_kill_choice</span><span class="p">,</span>
+                <span class="p">)</span>
+
+        <span class="n">is_lifecycle</span> <span class="o">=</span> <span class="n">node</span><span class="o">.</span><span class="n">check_lifecycle_node</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">is_lifecycle</span><span class="p">:</span>
+            <span class="n">choices</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;info&quot;</span><span class="p">,</span> <span class="s2">&quot;lifecycle&quot;</span><span class="p">,</span> <span class="s2">&quot;kill&quot;</span><span class="p">]</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">node</span><span class="p">,</span> <span class="n">Component</span><span class="p">):</span>
+            <span class="n">choices</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;info&quot;</span><span class="p">,</span> <span class="s2">&quot;unload&quot;</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">choices</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;info&quot;</span><span class="p">,</span> <span class="s2">&quot;kill&quot;</span><span class="p">]</span>
+
+        <span class="n">lifecycle</span> <span class="o">=</span> <span class="s2">&quot;LC &quot;</span> <span class="k">if</span> <span class="n">is_lifecycle</span> <span class="k">else</span> <span class="s2">&quot;&quot;</span>
+        <span class="n">title</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">node</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2"> (</span><span class="si">{</span><span class="n">lifecycle</span><span class="si">}{</span><span class="n">node</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">)&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">push_screen</span><span class="p">(</span><span class="n">ChoiceDialog</span><span class="p">(</span><span class="n">choices</span><span class="p">,</span> <span class="n">title</span><span class="p">),</span> <span class="n">on_node_menu_choice</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="BetterUI.copy_log_entry">
+<a class="viewcode-back" href="../../../better_launch.tui.html#better_launch.tui.textual_app.BetterUI.copy_log_entry">[docs]</a>
+    <span class="k">def</span> <span class="nf">copy_log_entry</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">entry</span><span class="p">:</span> <span class="n">LogEntry</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Tries to copy a log entry to the clipboard.</span>
+
+<span class="sd">        Copying some text to the clipboard is surprisingly complex, involving different OS-dependent backends. This function uses `pyperclip &lt;https://github.com/asweigart/pyperclip&gt;`_ to handle the brunt work.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        entry : LogEntry</span>
+<span class="sd">            The log entry to copy to clipboard.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">pyperclip</span><span class="o">.</span><span class="n">is_available</span><span class="p">():</span>
+            <span class="n">text</span> <span class="o">=</span> <span class="s2">&quot;[</span><span class="si">{created}</span><span class="s2">] [</span><span class="si">{name}</span><span class="s2">] </span><span class="si">{message}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="o">**</span><span class="n">entry</span><span class="o">.</span><span class="n">record</span><span class="o">.</span><span class="vm">__dict__</span><span class="p">)</span>
+            <span class="n">pyperclip</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="n">text</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">notify</span><span class="p">(</span><span class="s2">&quot;Copied to clipboard! To select text instead, use shift+click.&quot;</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="mf">2.0</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">notify</span><span class="p">(</span>
+                <span class="s2">&quot;pyperclip failed, see documentation. You can still copy using shift+click.&quot;</span><span class="p">,</span> <span class="n">severity</span><span class="o">=</span><span class="s2">&quot;error&quot;</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="mf">3.0</span>
+            <span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">logview</span><span class="o">.</span><span class="n">index</span> <span class="o">=</span> <span class="kc">None</span></div>
+
+
+<div class="viewcode-block" id="BetterUI.action_toggle_sidebar">
+<a class="viewcode-back" href="../../../better_launch.tui.html#better_launch.tui.textual_app.BetterUI.action_toggle_sidebar">[docs]</a>
+    <span class="k">def</span> <span class="nf">action_toggle_sidebar</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sidebar</span><span class="o">.</span><span class="n">display</span> <span class="o">=</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">sidebar</span><span class="o">.</span><span class="n">display</span></div>
+
+
+<div class="viewcode-block" id="BetterUI.action_toggle_log_names">
+<a class="viewcode-back" href="../../../better_launch.tui.html#better_launch.tui.textual_app.BetterUI.action_toggle_log_names">[docs]</a>
+    <span class="k">def</span> <span class="nf">action_toggle_log_names</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">show</span> <span class="o">=</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">show_log_sources</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">show_log_sources</span> <span class="o">=</span> <span class="n">show</span>
+
+        <span class="k">if</span> <span class="n">show</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">stylesheet</span><span class="o">.</span><span class="n">add_source</span><span class="p">(</span>
+                <span class="s2">&quot;#logview #source {display: block;}&quot;</span><span class="p">,</span> <span class="n">read_from</span><span class="o">=</span><span class="s2">&quot;toggle_log_names&quot;</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">stylesheet</span><span class="o">.</span><span class="n">add_source</span><span class="p">(</span>
+                <span class="s2">&quot;#logview #source {display: none;}&quot;</span><span class="p">,</span> <span class="n">read_from</span><span class="o">=</span><span class="s2">&quot;toggle_log_names&quot;</span>
+            <span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">refresh_css</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="BetterUI.action_toggle_log_icons">
+<a class="viewcode-back" href="../../../better_launch.tui.html#better_launch.tui.textual_app.BetterUI.action_toggle_log_icons">[docs]</a>
+    <span class="k">def</span> <span class="nf">action_toggle_log_icons</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">show</span> <span class="o">=</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">show_log_sources</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">show_log_sources</span> <span class="o">=</span> <span class="n">show</span>
+
+        <span class="k">if</span> <span class="n">show</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">stylesheet</span><span class="o">.</span><span class="n">add_source</span><span class="p">(</span>
+                <span class="s2">&quot;#logview #icon {display: block;}&quot;</span><span class="p">,</span> <span class="n">read_from</span><span class="o">=</span><span class="s2">&quot;toggle_log_icons&quot;</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">stylesheet</span><span class="o">.</span><span class="n">add_source</span><span class="p">(</span>
+                <span class="s2">&quot;#logview #icon {display: none;}&quot;</span><span class="p">,</span> <span class="n">read_from</span><span class="o">=</span><span class="s2">&quot;toggle_log_icons&quot;</span>
+            <span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">refresh_css</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="BetterUI.action_toggle_mute">
+<a class="viewcode-back" href="../../../better_launch.tui.html#better_launch.tui.textual_app.BetterUI.action_toggle_mute">[docs]</a>
+    <span class="k">def</span> <span class="nf">action_toggle_mute</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">mute</span><span class="p">:</span>
+            <span class="c1"># Add messages we missed while muted</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">backlog</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_log</span><span class="p">(</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">backlog</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">backlog</span><span class="o">.</span><span class="n">clear</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">mute</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">mute</span> <span class="o">=</span> <span class="kc">True</span></div>
+
+
+<div class="viewcode-block" id="BetterUI.action_close_node_menu">
+<a class="viewcode-back" href="../../../better_launch.tui.html#better_launch.tui.textual_app.BetterUI.action_close_node_menu">[docs]</a>
+    <span class="k">def</span> <span class="nf">action_close_node_menu</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">node_menu</span><span class="o">.</span><span class="n">display</span> <span class="o">=</span> <span class="kc">False</span></div>
+
+
+<div class="viewcode-block" id="BetterUI.action_quit">
+<a class="viewcode-back" href="../../../better_launch.tui.html#better_launch.tui.textual_app.BetterUI.action_quit">[docs]</a>
+    <span class="k">def</span> <span class="nf">action_quit</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">def</span> <span class="nf">on_quit_choice</span><span class="p">(</span><span class="n">reply</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">reply</span> <span class="o">==</span> <span class="s2">&quot;yes&quot;</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="s2">&quot;terminated by user&quot;</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">push_screen</span><span class="p">(</span>
+            <span class="n">ChoiceDialog</span><span class="p">([</span><span class="s2">&quot;yes&quot;</span><span class="p">,</span> <span class="s2">&quot;no&quot;</span><span class="p">],</span> <span class="s2">&quot;Quit launcher and terminate all nodes?&quot;</span><span class="p">),</span>
+            <span class="n">on_quit_choice</span><span class="p">,</span>
+        <span class="p">)</span></div>
+</div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Nikolas Dahn.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

@@ -5,3 +5,4 @@ better_launch
    :maxdepth: 4
 
    better_launch
+   setup

@@ -36,6 +36,14 @@ better\_launch.elements.lifecycle\_manager module
    :undoc-members:
    :show-inheritance:
 
+better\_launch.elements.live\_params\_mixin module
+--------------------------------------------------
+
+.. automodule:: better_launch.elements.live_params_mixin
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 better\_launch.elements.node module
 -----------------------------------
 

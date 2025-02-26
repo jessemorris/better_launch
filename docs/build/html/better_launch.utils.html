@@ -6,7 +6,7 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>better_launch.utils package &mdash; better_launch 0.9.0 documentation</title>
+  <title>better_launch.utils package &mdash; better_launch 0.9.1 documentation</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=80d5e7a1" />
       <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
 
@@ -14,12 +14,13 @@
     <link rel="shortcut icon" href="_static/logo.svg"/>
       <script src="_static/jquery.js?v=5d32c60e"></script>
       <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="_static/documentation_options.js?v=39bb1c6d"></script>
+      <script src="_static/documentation_options.js?v=9dc39874"></script>
       <script src="_static/doctools.js?v=9bcbadda"></script>
       <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="setup module" href="setup.html" />
     <link rel="prev" title="better_launch.tui package" href="better_launch.tui.html" /> 
 </head>
 
@@ -55,14 +56,12 @@
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="better_launch.html#submodules">Submodules</a></li>
-<li class="toctree-l3"><a class="reference internal" href="better_launch.html#better-launch-convenience-module">better_launch.convenience module</a></li>
-<li class="toctree-l3"><a class="reference internal" href="better_launch.html#better-launch-example1-module">better_launch.example1 module</a></li>
-<li class="toctree-l3"><a class="reference internal" href="better_launch.html#better-launch-example2-module">better_launch.example2 module</a></li>
-<li class="toctree-l3"><a class="reference internal" href="better_launch.html#module-better_launch.gazebo">better_launch.gazebo module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="better_launch.html#module-better_launch.launcher">better_launch.launcher module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="better_launch.html#module-better_launch.wrapper">better_launch.wrapper module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="better_launch.html#module-better_launch">Module contents</a></li>
 </ul>
 </li>
+<li class="toctree-l2"><a class="reference internal" href="setup.html">setup module</a></li>
 </ul>
 </li>
 </ul>
@@ -100,15 +99,9 @@
 </section>
 <section id="module-better_launch.utils.better_logging">
 <span id="better-launch-utils-better-logging-module"></span><h2>better_launch.utils.better_logging module<a class="headerlink" href="#module-better_launch.utils.better_logging" title="Link to this heading"></a></h2>
-<dl class="py function">
-<dt class="sig sig-object py" id="better_launch.utils.better_logging.with_per_logger_formatting">
-<span class="sig-prename descclassname"><span class="pre">better_launch.utils.better_logging.</span></span><span class="sig-name descname"><span class="pre">with_per_logger_formatting</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cls</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/better_launch/utils/better_logging.html#with_per_logger_formatting"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#better_launch.utils.better_logging.with_per_logger_formatting" title="Link to this definition"></a></dt>
-<dd><p>Add per logger formatting capabilities to the given logging.Handler.</p>
-</dd></dl>
-
 <dl class="py class">
 <dt class="sig sig-object py" id="better_launch.utils.better_logging.PrettyLogFormatter">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">better_launch.utils.better_logging.</span></span><span class="sig-name descname"><span class="pre">PrettyLogFormatter</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">format</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'[{levelcolor}{levelname}{colorreset}]</span> <span class="pre">[{sourcecolor}{name}{colorreset}]</span> <span class="pre">[{asctime}]\\n{message}'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">timestamp_format</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'%Y-%m-%d</span> <span class="pre">%H:%M:%S.%f'</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">defaults</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">roslog_pattern</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'%%(\\\\w+)%%([\\\\d.]+)%%(.*)'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pattern_info</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">('levelname',</span> <span class="pre">'created',</span> <span class="pre">'msg')</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">colormap</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">color_per_source</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">disable_colors</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/better_launch/utils/better_logging.html#PrettyLogFormatter"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#better_launch.utils.better_logging.PrettyLogFormatter" title="Link to this definition"></a></dt>
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">better_launch.utils.better_logging.</span></span><span class="sig-name descname"><span class="pre">PrettyLogFormatter</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">format</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'[{levelcolor}{levelname}{colorreset}]</span> <span class="pre">[{sourcecolor}{name}{colorreset}]</span> <span class="pre">[{asctime}]\\n{message}'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">timestamp_format</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'%Y-%m-%d</span> <span class="pre">%H:%M:%S.%f'</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">defaults</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">roslog_pattern</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'%%(\\\\w+)%%([\\\\d.]+)%%(.*)'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pattern_info</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">('levelname',</span> <span class="pre">'created',</span> <span class="pre">'msg')</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">level_colormap</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">color_per_source</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">disable_colors</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/better_launch/utils/better_logging.html#PrettyLogFormatter"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#better_launch.utils.better_logging.PrettyLogFormatter" title="Link to this definition"></a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Formatter</span></code></p>
 <dl class="py attribute">
 <dt class="sig sig-object py" id="better_launch.utils.better_logging.PrettyLogFormatter.default_screen_format">
@@ -121,11 +114,43 @@
 <dd></dd></dl>
 
 <dl class="py method">
+<dt class="sig sig-object py" id="better_launch.utils.better_logging.PrettyLogFormatter.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">format</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'[{levelcolor}{levelname}{colorreset}]</span> <span class="pre">[{sourcecolor}{name}{colorreset}]</span> <span class="pre">[{asctime}]\\n{message}'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">timestamp_format</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'%Y-%m-%d</span> <span class="pre">%H:%M:%S.%f'</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">defaults</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">roslog_pattern</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'%%(\\\\w+)%%([\\\\d.]+)%%(.*)'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pattern_info</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">('levelname',</span> <span class="pre">'created',</span> <span class="pre">'msg')</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">level_colormap</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">color_per_source</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">disable_colors</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/better_launch/utils/better_logging.html#PrettyLogFormatter.__init__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#better_launch.utils.better_logging.PrettyLogFormatter.__init__" title="Link to this definition"></a></dt>
+<dd><p>A specialized formatter that will try to extract various details from messages logged by ROS2 nodes and reformat them.</p>
+<p>The following additional keys can be used for formatting messages:
+* {levelcolor}: colors subsequent characters based on the message’s severity.
+* {sourcecolor}: colors subsequent characters based on the message’s source.
+* {colorreset}: subsequent characters will use the default color again.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>format</strong> (<em>str</em><em>, </em><em>optional</em>) – The format this instance will use when formatting messages.</p></li>
+<li><p><strong>timestamp_format</strong> (<em>_type_</em><em>, </em><em>optional</em>) – The format to use for timestamps (we like human readable here).</p></li>
+<li><p><strong>defaults</strong> (<em>dict</em><em>[</em><em>str</em><em>, </em><em>Any</em><em>]</em><em>, </em><em>optional</em>) – Defaults the formatter may use when formatting strings.</p></li>
+<li><p><strong>roslog_pattern</strong> (<em>str</em><em>, </em><em>optional</em>) – The pattern used for matching incoming log messages. The pattern’s regex groups will be associated with <cite>pattern_info</cite>.</p></li>
+<li><p><strong>pattern_info</strong> (<em>list</em><em>[</em><em>str</em><em>]</em><em>, </em><em>optional</em>) – Formatting keys that can be extracted from incoming log messages using <cite>roslog_pattern</cite>, one for each regex group.</p></li>
+<li><p><strong>level_colormap</strong> (<em>dict</em><em>[</em><em>int</em><em>, </em><em>str</em><em>]</em><em>, </em><em>optional</em>) – Color overrides for severity levels.</p></li>
+<li><p><strong>color_per_source</strong> (<em>bool</em><em>, </em><em>optional</em>) – If True, every distinct log source (according to <cite>LogRecord.name</cite>) will be associated with a different color ({sourcecolor}). Otherwise the color will be chosen per formatter instance; that is, this formatter instance will always use the same color.</p></li>
+<li><p><strong>disable_colors</strong> (<em>bool</em><em>, </em><em>optional</em>) – If True, no color codes will be inserted when formatting messages.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
 <dt class="sig sig-object py" id="better_launch.utils.better_logging.PrettyLogFormatter.get_color">
 <span class="sig-name descname"><span class="pre">get_color</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">source</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/better_launch/utils/better_logging.html#PrettyLogFormatter.get_color"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#better_launch.utils.better_logging.PrettyLogFormatter.get_color" title="Link to this definition"></a></dt>
-<dd><dl class="field-list simple">
+<dd><p>Return the color associated with the provided source.</p>
+<p>If <cite>color_per_source</cite> is True this will return an individual color for each source. Otherwise it will always return the same color.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>source</strong> (<em>str</em>) – The name of the source.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>An RGB color triplet.</p>
+</dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">tuple</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code>]</span></p>
+<dd class="field-odd"><p>tuple[int, int, int]</p>
 </dd>
 </dl>
 </dd></dl>
@@ -195,6 +220,13 @@ for the module.</p>
 <dt class="sig sig-object py" id="better_launch.utils.better_logging.StubbornHandler">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">better_launch.utils.better_logging.</span></span><span class="sig-name descname"><span class="pre">StubbornHandler</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">actual_handler</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">level</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">20</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/better_launch/utils/better_logging.html#StubbornHandler"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#better_launch.utils.better_logging.StubbornHandler" title="Link to this definition"></a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Handler</span></code></p>
+<p>This handler resists the common changes ROS2 attempts to make for its logging so that our formatters can work properly.</p>
+<p>The ROS2 launch system assigns the same formatter to many sources using special wrappers. However, we don’t want our log forwarders and formatters to be replaced just like that.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>actual_handler</strong> (<em>logging.Handler</em>) – The handler which will actually handle any incoming log records.</p>
+</dd>
+</dl>
 <dl class="py method">
 <dt class="sig sig-object py" id="better_launch.utils.better_logging.StubbornHandler.setFormatterFor">
 <span class="sig-name descname"><span class="pre">setFormatterFor</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">logger</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">formatter</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/better_launch/utils/better_logging.html#StubbornHandler.setFormatterFor"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#better_launch.utils.better_logging.StubbornHandler.setFormatterFor" title="Link to this definition"></a></dt>
@@ -230,7 +262,13 @@ for the module.</p>
 <dt class="sig sig-object py" id="better_launch.utils.colors.HighContrastColorGenerator">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">better_launch.utils.colors.</span></span><span class="sig-name descname"><span class="pre">HighContrastColorGenerator</span></span><a class="reference internal" href="_modules/better_launch/utils/colors.html#HighContrastColorGenerator"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#better_launch.utils.colors.HighContrastColorGenerator" title="Link to this definition"></a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
-<p>A generator class that produces high-contrast RGB colors readable on black.</p>
+<p>Generates RGB colors with a certain distance apart so that subsequent colors are visually distinct.</p>
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="better_launch.utils.colors.get_contrast_color">
+<span class="sig-prename descclassname"><span class="pre">better_launch.utils.colors.</span></span><span class="sig-name descname"><span class="pre">get_contrast_color</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">&lt;better_launch.utils.colors.HighContrastColorGenerator</span> <span class="pre">object&gt;</span></em><a class="headerlink" href="#better_launch.utils.colors.get_contrast_color" title="Link to this definition"></a></dt>
+<dd><p>A global instance to generate sequences of visually distinct colors.</p>
 </dd></dl>
 
 </section>
@@ -239,19 +277,20 @@ for the module.</p>
 <dl class="py function">
 <dt class="sig sig-object py" id="better_launch.utils.introspection.find_function_frame">
 <span class="sig-prename descclassname"><span class="pre">better_launch.utils.introspection.</span></span><span class="sig-name descname"><span class="pre">find_function_frame</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">func</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/better_launch/utils/introspection.html#find_function_frame"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#better_launch.utils.introspection.find_function_frame" title="Link to this definition"></a></dt>
-<dd><p>Find the most recent stack frame this function is called in.</p>
+<dd><p>Find the most recent stack frame the specified function is called in.</p>
+<p>Note that the function <strong>must</strong> be part of the current stack frame that led to the invocation of this function.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>func</strong> (<em>_type_</em>) – _description_</p>
+<dd class="field-odd"><p><strong>func</strong> (<em>Callable</em>) – A defined function.</p>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>_description_</p>
+<dd class="field-even"><p>The frame the specified function was called from.</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>_type_</p>
+<dd class="field-odd"><p>inspect.FrameInfo</p>
 </dd>
 <dt class="field-even">Raises<span class="colon">:</span></dt>
-<dd class="field-even"><p><strong>ValueError</strong> – _description_</p>
+<dd class="field-even"><p><strong>ValueError</strong> – If no such frame could be found.</p>
 </dd>
 </dl>
 </dd></dl>
@@ -260,36 +299,44 @@ for the module.</p>
 <dt class="sig sig-object py" id="better_launch.utils.introspection.find_calling_frame">
 <span class="sig-prename descclassname"><span class="pre">better_launch.utils.introspection.</span></span><span class="sig-name descname"><span class="pre">find_calling_frame</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">func</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/better_launch/utils/introspection.html#find_calling_frame"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#better_launch.utils.introspection.find_calling_frame" title="Link to this definition"></a></dt>
 <dd><p>Find the most recent stack frame the specified function is called in that is NOT in the same file as the
-function’s frame (e.g. a module importing and calling a function).</p>
+function. This is useful to e.g. identify the python file a function is imported from and called in.</p>
+<p>Note that the function <strong>must</strong> be part of the current stack frame that led to the invocation of this function.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>func</strong> (<em>_type_</em>) – _description_</p>
+<dd class="field-odd"><p><strong>func</strong> (<em>Callable</em>) – A defined function.</p>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>_description_</p>
+<dd class="field-even"><p>A frame which called the provided function but lives in a different file than the function itself.</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>_type_</p>
+<dd class="field-odd"><p>inspect.FrameInfo</p>
 </dd>
 <dt class="field-even">Raises<span class="colon">:</span></dt>
-<dd class="field-even"><p><strong>ValueError</strong> – _description_</p>
+<dd class="field-even"><p><strong>ValueError</strong> – If no such frame could be found.</p>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="better_launch.utils.introspection.get_bound_arguments">
-<span class="sig-prename descclassname"><span class="pre">better_launch.utils.introspection.</span></span><span class="sig-name descname"><span class="pre">get_bound_arguments</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">func</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/better_launch/utils/introspection.html#get_bound_arguments"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#better_launch.utils.introspection.get_bound_arguments" title="Link to this definition"></a></dt>
+<span class="sig-prename descclassname"><span class="pre">better_launch.utils.introspection.</span></span><span class="sig-name descname"><span class="pre">get_bound_arguments</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">func</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">with_defaults</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/better_launch/utils/introspection.html#get_bound_arguments"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#better_launch.utils.introspection.get_bound_arguments" title="Link to this definition"></a></dt>
 <dd><p>Retrieve the arguments that were passed to the specified function.</p>
+<p>Note that the function <strong>must</strong> be part of the current stack frame that led to the invocation of this function.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>func</strong> (<em>_type_</em>) – _description_</p>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>func</strong> (<em>Callable</em>) – A defined function.</p></li>
+<li><p><strong>with_defaults</strong> (<em>bool</em>) – If True the returned dict will include defaults according to the function’s signature for arguments that were not passed to it.</p></li>
+</ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>_description_</p>
+<dd class="field-even"><p>The arguments that were used to invoke the function.</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>dict</p>
+<dd class="field-odd"><p>dict[str, Any]</p>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>ValueError</strong> – If the function frame could not be identified.</p>
 </dd>
 </dl>
 </dd></dl>
@@ -297,19 +344,58 @@ function’s frame (e.g. a module importing and calling a function).</p>
 <dl class="py function">
 <dt class="sig sig-object py" id="better_launch.utils.introspection.find_decorated_function_args">
 <span class="sig-prename descclassname"><span class="pre">better_launch.utils.introspection.</span></span><span class="sig-name descname"><span class="pre">find_decorated_function_args</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">decorator_func</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/better_launch/utils/introspection.html#find_decorated_function_args"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#better_launch.utils.introspection.find_decorated_function_args" title="Link to this definition"></a></dt>
-<dd><p>Retrieve the arguments of the function that the decorator was wrapping.</p>
+<dd><p>Retrieve the arguments of the function that the specified decorator is wrapping.</p>
+<p>Note that the function <strong>must</strong> be part of the current stack frame that led to the invocation of this function.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>decorator_func</strong> (<em>_type_</em>) – _description_</p>
+<dd class="field-odd"><p><strong>decorator_func</strong> (<em>Callable</em>) – A decorator function.</p>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>_description_</p>
+<dd class="field-even"><p>The arguments that were used to invoke the function decorated by the provided decorator.</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>dict</p>
+<dd class="field-odd"><p>dict[str, Any]</p>
 </dd>
 <dt class="field-even">Raises<span class="colon">:</span></dt>
-<dd class="field-even"><p><strong>RuntimeError</strong> – _description_</p>
+<dd class="field-even"><p><strong>ValueError</strong> – If the function could not be extracted from the decorator or the function frame could not be identified.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="better_launch.utils.introspection.find_launchthis_function">
+<span class="sig-prename descclassname"><span class="pre">better_launch.utils.introspection.</span></span><span class="sig-name descname"><span class="pre">find_launchthis_function</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">filepath</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/better_launch/utils/introspection.html#find_launchthis_function"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#better_launch.utils.introspection.find_launchthis_function" title="Link to this definition"></a></dt>
+<dd><p>Parses a source file into an AST tree and searches for a function decorated by <a class="reference internal" href="better_launch.html#better_launch.launch_this" title="better_launch.launch_this"><code class="xref py py-meth docutils literal notranslate"><span class="pre">better_launch.launch_this()</span></code></a>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>filepath</strong> (<em>str</em>) – Path to a python source file.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A representation of the function decorated by launch_this, or <cite>None</cite> if it could not be found.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>ast.FunctionDef</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="better_launch.utils.introspection.get_launchfunc_signature_from_file">
+<span class="sig-prename descclassname"><span class="pre">better_launch.utils.introspection.</span></span><span class="sig-name descname"><span class="pre">get_launchfunc_signature_from_file</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">filepath</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/better_launch/utils/introspection.html#get_launchfunc_signature_from_file"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#better_launch.utils.introspection.get_launchfunc_signature_from_file" title="Link to this definition"></a></dt>
+<dd><p>Searches for a launch function in the specified source file and returns its name, signature and docstring.</p>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="#better_launch.utils.introspection.find_launchthis_function" title="better_launch.utils.introspection.find_launchthis_function"><code class="xref py py-meth docutils literal notranslate"><span class="pre">find_launchthis_function()</span></code></a></p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>filepath</strong> (<em>str</em>) – Path to a python source file</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The name, signature and docstring of the function decorated by launch_this. If no docstring is defined for the function it will be <cite>None</cite>. Likewise, if no such function could be found all parts of the returned tuple will be <cite>None</cite>.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>tuple[str, inspect.Signature]</p>
 </dd>
 </dl>
 </dd></dl>
@@ -317,17 +403,62 @@ function’s frame (e.g. a module importing and calling a function).</p>
 </section>
 <section id="module-better_launch.utils.substitutions">
 <span id="better-launch-utils-substitutions-module"></span><h2>better_launch.utils.substitutions module<a class="headerlink" href="#module-better_launch.utils.substitutions" title="Link to this heading"></a></h2>
+<dl class="py exception">
+<dt class="sig sig-object py" id="better_launch.utils.substitutions.SubstitutionError">
+<em class="property"><span class="pre">exception</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">better_launch.utils.substitutions.</span></span><span class="sig-name descname"><span class="pre">SubstitutionError</span></span><a class="reference internal" href="_modules/better_launch/utils/substitutions.html#SubstitutionError"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#better_launch.utils.substitutions.SubstitutionError" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">ValueError</span></code></p>
+<p>Exception type that will be thrown by substitution handlers.</p>
+</dd></dl>
+
 <dl class="py function">
 <dt class="sig sig-object py" id="better_launch.utils.substitutions.default_substitution_handlers">
 <span class="sig-prename descclassname"><span class="pre">better_launch.utils.substitutions.</span></span><span class="sig-name descname"><span class="pre">default_substitution_handlers</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">eval_type</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/better_launch/utils/substitutions.html#default_substitution_handlers"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#better_launch.utils.substitutions.default_substitution_handlers" title="Link to this definition"></a></dt>
-<dd></dd></dl>
+<dd><p>Returns the default substitution handlers.</p>
+<p>Right now the following substitution handlers will be returned:
+* <cite>$(find &lt;filename&gt; &lt;package&gt; &lt;subdir&gt;)</cite>: return the result of <code class="xref py py-meth docutils literal notranslate"><span class="pre">find()</span></code>. Note that substitution arguments are always sequential (not kwargs).
+* <cite>$(arg &lt;name&gt; &lt;default&gt;)</cite>: return the value of an argument passed to the launch function or <cite>&lt;default&gt;</cite> if it doesn’t exist. Raises KeyError if no default is provided and no default was provided.
+* <cite>$(param &lt;full-node-name&gt; &lt;param&gt;)</cite>: retrieves the value of the ROS parameter <cite>&lt;param&gt;</cite> from the <cite>&lt;full-node-name&gt;</cite> (i.e. namespace + node name). Raises KeyError if the node does not exist or ValueError if the node does not have the specified parameter.
+* <cite>$(env &lt;key&gt; &lt;default&gt;)</cite>: return the value of the environment variable <cite>&lt;key&gt;</cite> or <cite>&lt;default&gt;</cite> if it doesn’t exist. Raises KeyError if no default is provided and no default was provided.
+* <cite>$(eval &lt;python-snippet&gt;)</cite>: returns the result from evaluating the provided <cite>&lt;python-snippet&gt;</cite>. Typical use cases include simple math and assembling strings. <strong>Note</strong> that this indeed uses python’s <code class="xref py py-func docutils literal notranslate"><span class="pre">eval()</span></code>.</p>
+<p><strong>NOTE</strong> this function will most likely be deprecated in the future.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>eval_type</strong> (<em>Literal</em><em>[</em><em>&quot;full&quot;</em><em>, </em><em>&quot;literal&quot;</em><em>, </em><em>&quot;none&quot;</em><em>]</em>) – How eval substitutions should be handled: <cite>eval</cite>, <cite>ast.literal_eval</cite> or not at all.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A dict mapping substitution keys to handler functions. Note that handler functions are allowed to throw instances of <a class="reference internal" href="#better_launch.utils.substitutions.SubstitutionError" title="better_launch.utils.substitutions.SubstitutionError"><code class="xref py py-class docutils literal notranslate"><span class="pre">SubstitutionError</span></code></a> when invalid parameters are passed.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>dict[str, Callable]</p>
+</dd>
+</dl>
+</dd></dl>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="better_launch.utils.substitutions.substitute_tokens">
 <span class="sig-prename descclassname"><span class="pre">better_launch.utils.substitutions.</span></span><span class="sig-name descname"><span class="pre">substitute_tokens</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">text</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">substitution_handlers</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/better_launch/utils/substitutions.html#substitute_tokens"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#better_launch.utils.substitutions.substitute_tokens" title="Link to this definition"></a></dt>
-<dd><dl class="field-list simple">
+<dd><p>Parses a string and replaces all substitution strings according to the provided handler functions.</p>
+<p>Substitution strings are expected to follow the “ROS1 pattern”: <cite>$(key *args)</cite>, where <cite>key</cite> is a substitution type and <cite>*args</cite> are additional arguments passed to the substitution handler.</p>
+<p>Note that this always finds the innermost set of brackets with no brackets in between to work on. This effectively prevents the use of brackets in our expressions. This behavior may be changed in the future to be more flexible.</p>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="#better_launch.utils.substitutions.default_substitution_handlers" title="better_launch.utils.substitutions.default_substitution_handlers"><code class="xref py py-meth docutils literal notranslate"><span class="pre">default_substitution_handlers()</span></code></a></p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>text</strong> (<em>str</em>) – _description_</p></li>
+<li><p><strong>substitution_handlers</strong> (<em>dict</em>) – _description_</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>_description_</p>
+</dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>]</span></p>
+<dd class="field-odd"><p>list[str]</p>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>ValueError</strong> – _description_</p>
 </dd>
 </dl>
 </dd></dl>
@@ -343,6 +474,7 @@ function’s frame (e.g. a module importing and calling a function).</p>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
         <a href="better_launch.tui.html" class="btn btn-neutral float-left" title="better_launch.tui package" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="setup.html" class="btn btn-neutral float-right" title="setup module" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>
