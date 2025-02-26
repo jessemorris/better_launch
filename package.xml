@@ -16,7 +16,6 @@
   <depend>composition_interfaces</depend>
   <depend>ros2node</depend>
   <depend>ros2param</depend>
-  <depend>ros2service</depend>
   <depend>rclpy</depend>
 
   <export>
