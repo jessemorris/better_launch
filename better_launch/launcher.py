@@ -426,9 +426,7 @@ Takeoff in 3... 2... 1...
                 )
 
         try:
-            self.logger.info("Waiting for shared ROS node to shutdown")
             self.ros_adapter.shutdown()
-            self.logger.info("ROS node terminated")
         except Exception as e:
             self.logger.error(f"RosAdapter raised an exception during shutdown: {e}")
 
