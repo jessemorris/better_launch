@@ -4,7 +4,9 @@ import sys
 import os
 import signal
 import inspect
+import time
 import regex
+import threading
 from concurrent.futures import Future
 from contextlib import contextmanager
 from collections import deque
@@ -424,7 +426,9 @@ Takeoff in 3... 2... 1...
                 )
 
         try:
+            self.logger.info("Waiting for shared ROS node to shutdown")
             self.ros_adapter.shutdown()
+            self.logger.info("ROS node terminated")
         except Exception as e:
             self.logger.error(f"RosAdapter raised an exception during shutdown: {e}")
 
@@ -1527,3 +1531,46 @@ Takeoff in 3... 2... 1...
         """
         self.ros2_launch_service().queue_ros2_actions(*ros2_actions)
         return self._ros2_launcher
+
+    def run_later(self, delay: float, callback: Callable, *args, **kwargs) -> Future:
+        """Convenience method for running a callback with a delay. The callback will be called on a separte thread.
+
+        This mainly exists to cover the use case where you want to interact with ROS from an `rclpy.Timer`. A synchronous call from within a timer (e.g. a service call like :py:meth:`Node.set_live_params`) will block ROS' background event loop, preventing publishers, subscribers, services, etc. from doing their work. It will also prevent a clean shutdown as ROS usually waits for the event queue to become empty.
+
+        Parameters
+        ----------
+        delay : float
+            How long to wait in seconds before calling the callback.
+        callback : Callable
+            The function to call after the timeout. Will not be called if :py:meth:`shutdown` is called beforehand. 
+        *args : Any, optional
+            Positional arguments to the callback.
+        **kwargs : Any, optional
+            Keyword arguments to the callback.
+
+        Returns
+        -------
+        Future
+            A future which will be cancelled on `shutdown`, otherwise it will hold the callback's result or an exception the callback raised.
+        """
+        future = Future()
+
+        def run():
+            time.sleep(delay)
+
+            if future.cancelled():
+                return
+
+            if self.is_shutdown:
+                future.cancel()
+                return
+
+            try:
+                ret = callback(*args, **kwargs)
+                future.set_result(ret)
+            except Exception as e:
+                future.set_exception(e)
+
+        # TODO this is a good candidate for running on an asyncio loop
+        threading.Thread(target=run, daemon=True).start()
+        return future

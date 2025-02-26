@@ -36,8 +36,14 @@ def great_atuin(
 
         if use_provided_red:
             def update_background():
-                bl.logger.info("Updating background_r")
-                turtle_node.set_live_params({"background_r": new_background_r})
-                timer.cancel()
+                try:
+                    bl.logger.info("Updating background_r")
+                    turtle_node.set_live_params({"background_r": new_background_r})
+                except Exception as e:
+                    bl.logger.info(str(e))
 
-            timer = bl.shared_node.create_timer(2.0, update_background)
+            # Note: rclpy.Timer runs on the main asyncio loop all background ROS tasks use. This 
+            # means that any synchronous interactions with ROS (e.g. service.call) will block
+            # the event queue and cause problems if run from a timer. See the documentation of 
+            # run_later for details.
+            bl.run_later(2.0, update_background)
