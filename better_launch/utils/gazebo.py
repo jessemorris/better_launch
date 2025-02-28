@@ -6,12 +6,13 @@ from os.path import join, exists
 import logging
 from os import environ
 from shlex import split
-
+from typing import Optional, Tuple
+from better_launch import BetterLaunch
 
 logger = logging.getLogger(__name__)
 
 
-def _silent_exec(cmd):
+def _silent_exec(cmd) -> str:
     """
     Executes the given command and returns the output
     Returns an empty list if any error
@@ -29,11 +30,41 @@ def _silent_exec(cmd):
 gazebo_launched_worlds = []
 
 
-def gazebo_launch_setup(world_file, gz_args=None, show_args=False, launcher=None):
+def gazebo_launch_setup(
+    world_file: str,
+    gz_args: Optional[str] = None,
+    show_args: bool = False,
+    launcher: Optional[BetterLaunch] = None,
+) -> Tuple[str, dict]:
+    """
+    Prepares the launch file and arguments for starting a Gazebo simulation based on the provided world file.
+
+    Parameters
+    ----------
+    world_file : str
+        The path to the world file to be loaded in the Gazebo simulator.
+    gz_args : str, optional
+        Optional additional arguments to pass to Gazebo, such as simulation parameters.
+    show_args : bool, optional
+        Whether to log and display world information, by default False.
+    launcher : BetterLaunch, optional
+        The launcher instance to manage logging and other functionality, by default None.
+
+    Raises
+    ------
+    ValueError
+        If the launcher is not provided.
+
+    Returns
+    -------
+    Tuple[str, dict]
+        - The path to the launch file for Gazebo (`str`).
+        - A dictionary of arguments to be passed to the Gazebo launch file (`dict`).
+    """
     if launcher is None:
         raise ValueError("Launcher must be provided")
 
-    logger = launcher.get_logger()  
+    logger = launcher.get_logger()
 
     full_args = world_file + (" " + gz_args if gz_args else "")
 
@@ -75,13 +106,18 @@ def gazebo_launch_setup(world_file, gz_args=None, show_args=False, launcher=None
     return launch_file, launch_arguments
 
 
-def get_gazebo_prefix():
+def get_gazebo_prefix() -> str:
+    """
+    Returns
+    -------
+    str
+        The prefix indicating the type of Gazebo: "ign" for Ignition Gazebo or "gz" for Gazebo Classic.
+    """
 
     for env in ("IGN_VERSION", "GZ_VERSION"):
         if env in environ:
             return "ign" if environ[env] == "fortress" else "gz"
 
-    # guess from installed packages
     try:
         get_package_share_directory("ros_gz")
         return "gz"
@@ -101,7 +137,7 @@ class GazeboBridge:
     # ros <-> gz mapping
     # from https://github.com/gazebosim/ros_gz/tree/ros2/ros_gz_bridge
 
-    def generate_msg_map(ros_gz_bridge_readme):
+    def generate_msg_map(ros_gz_bridge_readme) -> None:
         """
         function to regenerate known messages from readme
         """
@@ -176,7 +212,32 @@ class GazeboBridge:
         "vision_msgs/msg/Detection2DArray": "gz.msgs.AnnotatedAxisAligned2DBox_V",
     }
 
-    def __init__(self, gz_topic, ros_topic, ros_msg, direction, gz_msg=None):
+    def __init__(self, gz_topic, ros_topic, ros_msg, direction, gz_msg=None) -> None:
+        """
+        Initializes a ROS-to-Gazebo bridge with the specified parameters.
+
+        This constructor sets up the bridge between a ROS topic and a Gazebo topic. It maps the ROS message type to a Gazebo message type
+        and validates the direction of communication (e.g., ROS to Gazebo, Gazebo to ROS, or bidirectional). If the message type or
+        direction is invalid, an error is logged.
+
+        Parameters
+        ----------
+        gz_topic : str
+            The Gazebo topic to be bridged.
+        ros_topic : str
+            The ROS topic to be bridged.
+        ros_msg : str
+            The message type used on the ROS topic.
+        direction : str
+            The direction of the bridge, either "gz2ros", "ros2gz", or "bidirectional".
+        gz_msg : str, optional
+            The Gazebo message type. If not provided, it will be inferred from the ROS message type.
+
+        Raises
+        ------
+        ValueError
+            If the provided message type or direction is invalid.
+        """
 
         if "/msg/" not in ros_msg:
             ros_msg = ros_msg.replace("/", "/msg/")
@@ -200,12 +261,11 @@ class GazeboBridge:
         self.gz_topic = gz_topic
         self.ros_topic = ros_topic
 
-        # Images with gz2ros use ros_gz_image bridge
         self.is_image = ros_msg == "sensor_msgs/msg/Image"
         self.direction = direction
         self.ros_msg = ros_msg
 
-    def yaml(self):
+    def yaml(self) -> None:
         """
         use YAML-based config for other bridges
         - topic_name: "chatter"
@@ -256,7 +316,7 @@ class GazeboBridge:
         )
 
     @staticmethod
-    def set_world_name(name: str):
+    def set_world_name(name: str) -> None:
         """
         Overwrite world name in order to avoid communicating with Gazebo
         Useful when Gazebo is launched in an included file, where the world name cannot be guessed
@@ -264,7 +324,7 @@ class GazeboBridge:
         GazeboBridge._world_name = name
 
     @staticmethod
-    def world(show_args=False):
+    def world(show_args=False) -> Optional[str]:
         if GazeboBridge._world_name is not None:
             return GazeboBridge._world_name
 
@@ -302,25 +362,77 @@ class GazeboBridge:
         return GazeboBridge._world_name
 
     @staticmethod
-    def model_prefix(model):
-        return f"/world/{GazeboBridge.world()}/model/" + model
+    def model_prefix(model: str) -> str:
+        """
+        Constructs a Gazebo model prefix string for the given model name.
+
+        Parameters
+        ----------
+        model : str
+            The name of the model.
+
+        Returns
+        -------
+        str
+            A string representing the model's prefix in the Gazebo world.
+        """
         if isinstance(model, str):
             return f"/world/{GazeboBridge.world()}/model/{model}"
-        return (f"/world/{GazeboBridge.world()}/model/", model)
+        return f"/world/{GazeboBridge.world()}/model/", model
 
     @staticmethod
     def model_topic(model, topic):
         return ("/model/", model, "/", topic)
 
     @staticmethod
-    def clock():
+    def model_topic(model: str, topic: str) -> tuple:
+        """
+        Constructs a tuple representing the model topic in Gazebo.
+
+        Parameters
+        ----------
+        model : str
+            The model name.
+        topic : str
+            The topic name related to the model.
+
+        Returns
+        -------
+        tuple
+            A tuple representing the model and topic for Gazebo.
+        """
+        return ("/model/", model, "/", topic)
+
+    @staticmethod
+    def clock() -> "GazeboBridge":
+        """
+        Creates a GazeboBridge instance for the /clock topic.
+
+        Returns
+        -------
+        GazeboBridge
+            An instance of the GazeboBridge for the clock topic.
+        """
         return GazeboBridge(
             "/clock", "/clock", "rosgraph_msgs/msg/Clock", GazeboBridge.gz2ros
         )
 
     @staticmethod
-    def joint_states_bridge(model):
-        js_gz_topic = f"/world/{GazeboBridge.world()}/model/" + model + "/joint_state"
+    def joint_states_bridge(model: str) -> "GazeboBridge":
+        """
+        Creates a GazeboBridge instance for the joint states of a given model.
+
+        Parameters
+        ----------
+        model : str
+            The model name to associate with the joint state topic.
+
+        Returns
+        -------
+        GazeboBridge
+            An instance of the GazeboBridge for the joint state topic.
+        """
+        js_gz_topic = f"/world/{GazeboBridge.world()}/model/{model}/joint_state"
         return GazeboBridge(
             js_gz_topic, "joint_states", "sensor_msgs/JointState", GazeboBridge.gz2ros
         )
