@@ -1,9 +1,12 @@
-from typing import Any, Callable
+from typing import Any, Callable, Literal
 import re
 import logging
 from datetime import datetime
 
 from .colors import get_contrast_color
+
+
+Colormode = Literal["none", "severity", "source", "all"]
 
 
 default_log_colormap = {
@@ -66,7 +69,7 @@ class PrettyLogFormatter(logging.Formatter):
         pattern_info: list[str] = ("levelname", "created", "msg"),
         level_colormap: dict[int, str] = None,
         color_per_source: bool = True,
-        disable_colors: bool = False,
+        colormode: Colormode = "all",
     ):
         """A specialized formatter that will try to extract various details from messages logged by ROS2 nodes and reformat them.
 
@@ -91,8 +94,12 @@ class PrettyLogFormatter(logging.Formatter):
             Color overrides for severity levels.
         color_per_source : bool, optional
             If True, every distinct log source (according to `LogRecord.name`) will be associated with a different color ({sourcecolor}). Otherwise the color will be chosen per formatter instance; that is, this formatter instance will always use the same color.
-        disable_colors : bool, optional
-            If True, no color codes will be inserted when formatting messages.
+        colormode : Colormode, optional
+            Decides what colors will be used for:
+            * all: colorize log severity and message source
+            * severity: colorize only log severity
+            * source: colorize only message source
+            * none: don't colorize anything
         """
         super().__init__(format, timestamp_format, "{", True, defaults=defaults)
 
@@ -101,7 +108,7 @@ class PrettyLogFormatter(logging.Formatter):
         self.pattern_info = pattern_info
         self.level_colormap = default_log_colormap | level_colormap if level_colormap else {}
         self.color_per_source = color_per_source
-        self.disable_colors = disable_colors
+        self.colormode = colormode
         self.registered_colors = {}
 
     def get_color(self, source: str) -> tuple[int, int, int]:
@@ -144,17 +151,28 @@ class PrettyLogFormatter(logging.Formatter):
             elif "levelno" in self.pattern_info and "levelname" not in self.pattern_info:
                 record.levelname = logging.getLevelName(record.levelno)
 
-        if self.disable_colors:
+        if self.colormode == "all":
+            r, g, b = self.get_color(record.name)
+            record.rgb = (r, g, b)
+            record.sourcecolor = f"\x1b[38;2;{r};{g};{b}m"
+            record.levelcolor = self.level_colormap.get(record.levelno, "")
+            record.colorreset = "\x1b[0m"
+        elif self.colormode == "source":
+            r, g, b = self.get_color(record.name)
+            record.rgb = (r, g, b)
+            record.sourcecolor = f"\x1b[38;2;{r};{g};{b}m"
+            record.levelcolor = ""
+            record.colorreset = "\x1b[0m"
+        elif self.colormode == "severity":
+            record.rgb = (255, 255, 255)
+            record.sourcecolor = ""
+            record.levelcolor = self.level_colormap.get(record.levelno, "")
+            record.colorreset = "\x1b[0m"
+        else:
             record.rgb = (255, 255, 255)
             record.levelcolor = ""
             record.sourcecolor = ""
             record.colorreset = ""
-        else:
-            r, g, b = self.get_color(record.name)
-            record.rgb = (r, g, b)
-            record.levelcolor = self.level_colormap.get(record.levelno, "")
-            record.sourcecolor = f"\x1b[38;2;{r};{g};{b}m"
-            record.colorreset = "\x1b[0m"
 
         return super().format(record)
 

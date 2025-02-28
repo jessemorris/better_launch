@@ -1,4 +1,4 @@
-from typing import Any, Callable
+from typing import Any, Callable, Literal
 import os
 import platform
 from ast import literal_eval
@@ -14,7 +14,7 @@ from better_launch.launcher import (
     _bl_singleton_instance,
     _bl_include_args,
 )
-from better_launch.utils.better_logging import default_log_colormap, PrettyLogFormatter
+from better_launch.utils.better_logging import Colormode, default_log_colormap, PrettyLogFormatter
 from better_launch.utils.introspection import find_calling_frame
 from better_launch.ros import logging as roslog
 from better_launch.ros.logging import LaunchConfig as LogConfig
@@ -29,9 +29,9 @@ def launch_this(
     ui: bool = False,
     join: bool = True,
     log_config: LogConfig = None,
+    colormode: Colormode = "all",
 ):
-    """Use this to decorate your launch function. The function will be run automatically. If you
-    are planning to use the UI the function must not block.
+    """Use this to decorate your launch function. The function will be run automatically. The function is allowed to block even when using the UI.
 
     **NOTE:** this decorator cannot be used more than once per module.
 
@@ -45,10 +45,16 @@ def launch_this(
         If True, join the better_launch process. Has no effect when ui == True.
     log_config : LogConfig, optional
         Allows to provide your own logging configuration. It's usually better to change settings per node.
+    colormode : Colormode, optional
+        Decides what colors will be used for:
+        * all: colorize log severity and message source
+        * severity: colorize only log severity
+        * source: colorize only message source
+        * none: don't colorize anything
     """
 
     def decoration_helper(func):
-        return _launch_this_wrapper(func, ui=ui, join=join, log_config=log_config)
+        return _launch_this_wrapper(func, ui=ui, join=join, log_config=log_config, colormode=colormode)
 
     return decoration_helper if launch_func is None else decoration_helper(launch_func)
 
@@ -58,6 +64,7 @@ def _launch_this_wrapper(
     ui: bool = False,
     join: bool = True,
     log_config: LogConfig = None,
+    colormode: Colormode = "all",
 ):
     # Globals of the calling module
     glob = find_calling_frame(_launch_this_wrapper).frame.f_globals
@@ -181,10 +188,16 @@ def _launch_this_wrapper(
         )
 
     # Additional overrides for launch arguments
-    def click_ui_override(ctx: click.Context, param: click.Parameter, value: Any):
+    def click_ui_override(ctx: click.Context, param: click.Parameter, value: str):
         if value != "unset":
             nonlocal ui
             ui = value == "enable"
+        return value
+
+    def click_colormode_override(ctx: click.Context, param: click.Parameter, value: str):
+        if value:
+            nonlocal colormode
+            colormode = value
         return value
 
     options.extend(
@@ -200,6 +213,17 @@ def _launch_this_wrapper(
                 expose_value=False,  # not passed to our run method
                 callback=click_ui_override,
             ),
+            click.Option(
+                ["--bl-colormode-override"],
+                type=click.types.Choice(
+                    ["none", "severity", "source", "all"], case_sensitive=False
+                ),
+                show_choices=True,
+                default="all",
+                help="Override the logging color mode",
+                expose_value=False,
+                callback=click_colormode_override,
+            )
         ]
     )
 
@@ -215,7 +239,8 @@ def _launch_this_wrapper(
                 level_colormap = dict(default_log_colormap)
                 level_colormap[logging.INFO] = "\x1b[32;20m"
                 roslog.launch_config.screen_formatter = PrettyLogFormatter(
-                    level_colormap=level_colormap
+                    level_colormap=level_colormap,
+                    colormode=colormode
                 )
 
         # Wrap the launch function so we can do some preparation and cleanup tasks

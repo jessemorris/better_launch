@@ -1539,6 +1539,8 @@ Takeoff in 3... 2... 1...
 
         This mainly exists to cover the use case where you want to interact with ROS from an `rclpy.Timer`. A synchronous call from within a timer (e.g. a service call like :py:meth:`Node.set_live_params`) will block ROS' background event loop, preventing publishers, subscribers, services, etc. from doing their work. It will also prevent a clean shutdown as ROS usually waits for the event queue to become empty.
 
+        When executing a long running task this way it is a good idea to check :py:meth:`is_shutdown` in between iterations.
+
         Parameters
         ----------
         delay : float
