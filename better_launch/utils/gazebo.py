@@ -271,7 +271,7 @@ class GazeboBridge:
         if show_args:
             # set a dummy world model, we are not running anyway
             GazeboBridge._world_name = "dummy"  # silent future calls
-            logger.warn(
+            logger.warning(
                 "This launch file will request information on a running Gazebo instance at the time of the launch"
             )
             return GazeboBridge._world_name
