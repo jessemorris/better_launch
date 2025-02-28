@@ -81,7 +81,6 @@ def gazebo_launch_setup(
         )
         launch_arguments = {"ign_args": full_args}
 
-    # Validate the existence of the world file in the arguments
     valid_file = world_file if exists(world_file) else None
     if not valid_file:
         for arg in full_args.split():
@@ -89,7 +88,6 @@ def gazebo_launch_setup(
                 valid_file = arg
                 break
 
-    # Display world information if valid and requested
     if valid_file:
         if show_args and valid_file not in gazebo_launched_worlds:
             gazebo_launched_worlds.append(valid_file)
@@ -133,9 +131,11 @@ class GazeboBridge:
     bidirectional = "@"
     _world_name = None
     _gz_exec = None
+    """
 
-    # ros <-> gz mapping
-    # from https://github.com/gazebosim/ros_gz/tree/ros2/ros_gz_bridge
+    ros <-> gz mapping
+    from https://github.com/gazebosim/ros_gz/tree/ros2/ros_gz_bridge
+    """
 
     def generate_msg_map(ros_gz_bridge_readme) -> None:
         """
