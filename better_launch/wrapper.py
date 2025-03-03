@@ -69,7 +69,7 @@ def _launch_this_wrapper(
     # Globals of the calling module
     glob = find_calling_frame(_launch_this_wrapper).frame.f_globals
 
-    if _is_launcher_defined in glob and _bl_singleton_instance not in glob:
+    if glob.get(_is_launcher_defined, False) and _bl_singleton_instance not in glob:
         # Allow using launch_this only once unless we got included from another file
         raise RuntimeError("Can only use one launch decorator")
 
@@ -96,7 +96,9 @@ def _launch_this_wrapper(
         matched_args = {k: include_args[k] for k in sig.parameters if k in include_args}
         bound_args = sig.bind(**matched_args)
         bound_args.apply_defaults()
+
         launch_func(*bound_args.args, **bound_args.kwargs)
+
         return
 
     # At this point we know that we are the main launch file
@@ -248,7 +250,7 @@ def _launch_this_wrapper(
             if launch_func_kwarg is not None:
                 # If the launch func defines a **kwarg we can pass all extra arguments to it, with
                 # the caveat that these extra arguments need to be defined as `-[-]<key> val` tuples.
-                assert len(ctx.args) % 2 == 0
+                assert len(ctx.args) % 2 == 0, "extra arguments need to be '--<key> <value>' tuples"
                 extra_kwargs = {}
 
                 for (i,) in range(0, len(ctx.args), 2):

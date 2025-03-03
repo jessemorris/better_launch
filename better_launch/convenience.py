@@ -1,134 +1,106 @@
-# TODO Create convenience module for common stuff like joint_state_publisher, robot_state_publisher, moveit, rviz, gazebo (see simple_launch)
+"""This module contains additional convenience functions that would have bloated the main API. It takes inspiration from simple_launch"""
+
 import os
 import threading
 import time
-from better_launch import BetterLaunch
 import subprocess
-from .utils.gazebo import GazeboBridge, get_gazebo_prefix, gazebo_launch_setup
 from tempfile import NamedTemporaryFile
+
+from better_launch import BetterLaunch
+from better_launch.utils.gazebo import GazeboBridge, get_gazebo_prefix, gazebo_launch_setup
 from better_launch.ros import logging as roslog
 
 
-def joint_state_publisher(use_gui=True, **params) -> None:
+def joint_state_publisher(use_gui: bool, node_name: str = None, **kwargs) -> None:
     """
     Adds a joint_state_publisher or joint_state_publisher_gui with passed arguments as parameters.
 
     Parameters
     ----------
-    use_gui : bool, optional
-        Whether to use the GUI version of the joint_state_publisher (default is True).
-    **params : dict
-        Additional parameters to pass to the node (e.g., name, remaps, params, etc.).
-
-    Returns
-    -------
-    None
-        This function does not return anything.
+    use_gui : bool
+        Whether to use the GUI version of the joint_state_publisher.
+    node_name : str, optional
+        The name of the node. If not provided the name of the executable will be used. Will be anonymized unless `anonymous=False` is passed.
+    **kwargs : dict, optional
+        Additional arguments to pass to the node (e.g. name, remaps, params, etc.). See :py:meth:`BetterLaunch.node`.
     """
     launcher = BetterLaunch.instance()
 
+    kwargs.setdefault("anonymous", True)
+
     if use_gui:
         launcher.node(
-            package="joint_state_publisher_gui",
-            executable="joint_state_publisher_gui",
-            **params,
+            "joint_state_publisher_gui",
+            "joint_state_publisher_gui",
+            node_name or "joint_state_publisher_gui",
+            **kwargs,
         )
     else:
         launcher.node(
-            package="joint_state_publisher",
-            executable="joint_state_publisher",
-            **params,
+            "joint_state_publisher",
+            "joint_state_publisher",
+            node_name or "joint_state_publisher",
+            **kwargs,
         )
 
 
-def rviz(config_file=None, warnings=False) -> None:
+def rviz(config_file: str = None, suppress_warnings: bool = False) -> None:
     """
     Runs RViz with the given config file and optional warning level suppression.
 
     Parameters
     ----------
     config_file : str, optional
-        Path to the RViz configuration file. If not provided, RViz will run without a config.
-    warnings : bool, optional
-        Whether to suppress warnings (default is False).
-
-    Returns
-    -------
-    None
-        This function does not return anything.
+        Path to the RViz configuration file which will be resolved by :py:meth:`BetterLaunch.find`. Otherwise RViz will run with the default config.
+    suppress_warnings : bool, optional
+        Whether to suppress warnings.
     """
     launcher = BetterLaunch.instance()
+
     args = []
     if config_file:
         config_file = launcher.find(config_file)
         args += ["-d", config_file]
-    if not warnings:
-        args.extend(["--ros-args", "--log-level", "FATAL"])
+    
+    if not suppress_warnings:
+        args += ["--ros-args", "--log-level", "FATAL"]
 
-    launcher.node(package="rviz2", executable="rviz2", cmd_args=args)
-
-
-def moveit(config_pkg: str, config_file: str) -> None:
-    """
-    Launches a MoveIt configuration specified by package and launch file path.
-
-    Parameters
-    ----------
-    config_pkg : str
-        The package name containing the MoveIt configuration.
-    config_file : str
-        The MoveIt launch file (without the extension) to use.
-
-    Returns
-    -------
-    None
-        This function does not return anything.
-    """
-    launcher = BetterLaunch.instance()
-    moveit_launch_file_path = launcher.find(config_pkg, f"{config_file}.launch.py")
-    launcher.include(package=config_pkg, launch_file=moveit_launch_file_path)
+    launcher.node("rviz2", "rviz2", "rviz2", anonymous=True, cmd_args=args)
 
 
-def robot_description(
+def read_robot_description(
     package: str = None,
-    description_file: str = None,
-    description_dir: str = None,
+    urdf_or_xacro: str = None,
     xacro_args: list[str] = None,
 ) -> str | None:
     """
-    Returns the robot description after a potential xacro parse.
+    Returns the robot description after a potential xacro parse. The file is resolved using :py:meth:`BetterLaunch.find`.
 
-    If the description file ends with `.urdf` and `xacro_args` is not provided, it reads the URDF file directly.
-    Otherwise, it runs `xacro` to generate the URDF from a `.xacro` file.
+    If the description file ends with `.urdf` and `xacro_args` is not provided, it reads the URDF file directly. Otherwise it runs `xacro` to generate the URDF from a `.xacro` file.
 
     Parameters
     ----------
     package : str, optional
         The package where the robot description file is located.
-    description_file : str, optional
+    urdf_or_xacro : str, optional
         The name of the robot description file (URDF or XACRO).
-    description_dir : str, optional
-        An optional directory to look for the description file.
     xacro_args : list of str, optional
         Additional arguments to pass to `xacro` when processing `.xacro` files.
 
     Returns
     -------
     str | None
-        The parsed URDF XML as a string if successful, otherwise `None`.
+        The parsed URDF XML as a string if successful, `None` otherwise.
     """
-    launcher = BetterLaunch.instance()
-    name = os.path.basename(BetterLaunch._launchfile)
-    logger = roslog.get_logger(name)
+    bl = BetterLaunch.instance()
 
-    description_file = launcher.find(package, description_file, description_dir)
+    filepath = bl.find(package, urdf_or_xacro)
 
-    if description_file.endswith("urdf") and xacro_args is None:
-        with open(description_file) as f:
-            urdf_xml = f.read()
-        return urdf_xml
+    if filepath.endswith("urdf") and xacro_args is None:
+        with open(filepath) as f:
+            return f.read()
 
-    cmd = ["xacro", description_file] + (
+    cmd = ["xacro", filepath] + (
         xacro_args if isinstance(xacro_args, list) else [xacro_args]
     )
 
@@ -140,68 +112,63 @@ def robot_description(
             if proc.returncode == 0:
                 return stdout
             else:
-                logger.warning(f"Error processing xacro: {stderr}")
+                bl.logger.warning(f"Error processing xacro: {stderr}")
                 return None
     except Exception as e:
-        logger.warning(f"Failed to execute xacro command: {e}")
+        bl.logger.warning(f"Failed to execute xacro command: {e}")
         return None
 
 
 def robot_state_publisher(
     package: str = None,
-    description_file: str = None,
-    description_dir: str = None,
+    urdf_or_xacro: str = None,
     xacro_args: list[str] = None,
-    **node_args,
+    node_name: str = None,
+    **kwargs,
 ) -> None:
     """
-    Adds a Robot State Publisher node to the launch tree using the given URDF/Xacro file.
-
-    This function incorporates `robot_description` into `node_args` directly to simplify node launching.
+    Start a Robot State Publisher node using the given URDF/Xacro file. The file is resolved using :py:meth:`BetterLaunch.find`.
 
     Parameters
     ----------
     package : str, optional
-        The name of the package containing the robot description file. If None, an absolute path is assumed.
-    description_file : str, optional
+        The name of the package containing the robot description file. 
+    urdf_or_xacro : str, optional
         The name of the URDF or Xacro file describing the robot model.
-    description_dir : str, optional
-        The directory containing the description file. If None, the location is derived.
     xacro_args : list of str, optional
         Additional arguments to pass to the Xacro processor when processing `.xacro` files.
-    **node_args : dict, optional
+    node_name : str, optional
+        The name of the node. If not provided the name of the executable will be used. Will be anonymized unless `anonymous=False` is passed.
+    **kwargs : dict, optional
         Additional arguments for the node, such as remappings or parameters.
-
-    Returns
-    -------
-    None
-        This function does not return anything.
     """
-    launcher = BetterLaunch.instance()
-    name = os.path.basename(BetterLaunch._launchfile)
-    logger = roslog.get_logger(name)
+    bl = BetterLaunch.instance()
 
     try:
-        urdf_xml = robot_description(
-            package=package,
-            description_file=description_file,
-            description_dir=description_dir,
+        urdf_xml = read_robot_description(
+            package,
+            urdf_or_xacro,
             xacro_args=xacro_args,
         )
-        node_args["robot_description"] = urdf_xml
 
-        launcher.node(
-            package="robot_state_publisher",
-            executable="robot_state_publisher",
-            params=node_args,
+        kwargs.setdefault("anonymous", True)
+        params = kwargs.pop("params", {})
+        params["robot_description"] = urdf_xml
+
+        bl.node(
+            "robot_state_publisher",
+            "robot_state_publisher",
+            node_name or "robot_state_publisher",
+            params=params,
+            **kwargs,
         )
     except FileNotFoundError as e:
-        logger.warning(f"Error loading robot description: {e}")
+        bl.logger.warning(f"Error loading robot description: {e}")
     except Exception as e:
-        logger.warning(f"Error launching robot state publisher node: {e}")
+        bl.logger.warning(f"Error launching robot state publisher node: {e}")
 
 
-def declare_gazebo_axes(axes: dict[str, float] = None) -> dict[str, float]:
+def declare_gazebo_axes(default_axes: dict[str, float] = None) -> dict[str, float]:
     """
     Declares classical Gazebo axes as launch arguments.
 
@@ -210,7 +177,7 @@ def declare_gazebo_axes(axes: dict[str, float] = None) -> dict[str, float]:
 
     Parameters
     ----------
-    axes : dict[str, float], optional
+    default_axes : dict[str, float], optional
         A dictionary specifying which axes to declare and their default values.
         If not provided, all six axes will be declared with a default of `0.0`.
 
@@ -220,14 +187,14 @@ def declare_gazebo_axes(axes: dict[str, float] = None) -> dict[str, float]:
         A dictionary where the keys are axis names (`x`, `y`, `z`, `yaw`, `pitch`, `roll`)
         and the values are their corresponding default values.
     """
-    gz_axes = ("x", "y", "z", "yaw", "pitch", "roll")
+    gz_axes = ["x", "y", "z", "yaw", "pitch", "roll"]
 
-    if axes:
-        filtered_axes = {axis: axes[axis] for axis in gz_axes if axis in axes}
+    if default_axes:
+        axes = {ax: default_axes[ax] for ax in gz_axes if ax in default_axes}
     else:
-        filtered_axes = {axis: 0.0 for axis in gz_axes}
+        axes = {ax: 0.0 for ax in gz_axes}
 
-    return filtered_axes
+    return axes
 
 
 def gazebo_axes_args(declared_axes: dict[str, float] = None) -> list[str]:
