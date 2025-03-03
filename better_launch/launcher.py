@@ -5,7 +5,7 @@ import os
 import signal
 import inspect
 import time
-import regex
+import re
 import threading
 from concurrent.futures import Future
 from contextlib import contextmanager
@@ -289,7 +289,7 @@ Takeoff in 3... 2... 1...
         AbstractNode
             The first node matching the provided regex, or None if none matched.
         """
-        reg = regex.compile(name_regex)
+        reg = re.compile(name_regex)
         for node in self.all_nodes(
             include_components=include_components,
             include_launch_service=include_launch_service,
@@ -322,7 +322,7 @@ Takeoff in 3... 2... 1...
         list[AbstractNode]
             A list of all nodes matching the regex.
         """
-        reg = regex.compile(name_regex)
+        reg = re.compile(name_regex)
         return [
             node 
             for node in self.all_nodes(
@@ -648,7 +648,7 @@ Takeoff in 3... 2... 1...
             # (e.g. my_namespace/: other_namespace/node: ros__parameters), so no need to delve
             for key in params.keys():
                 pattern = path_to_regex(key)
-                if regex.match(pattern, ns) is not None:
+                if re.match(pattern, ns) is not None:
                     params = params[key]
                     break
             else:
@@ -1049,7 +1049,7 @@ Takeoff in 3... 2... 1...
         self,
         package: str,
         executable: str,
-        name: str = None,
+        name: str,
         *,
         remaps: dict[str, str] = None,
         params: str | dict[str, Any] = None,
@@ -1084,7 +1084,7 @@ Takeoff in 3... 2... 1...
             The package providing the node.
         executable : str
             The executable that should be run.
-        name : str, optional
+        name : str
             The name you want the node to be known as.
         remaps : dict[str, str], optional
             Tells the node to replace any topics it wants to interact with according to the provided dict.

@@ -193,7 +193,7 @@ def _launch_this_wrapper(
     def click_ui_override(ctx: click.Context, param: click.Parameter, value: str):
         if value != "unset":
             nonlocal ui
-            ui = (value == "enable")
+            ui = value == "enable"
         return value
 
     def click_colormode_override(ctx: click.Context, param: click.Parameter, value: str):
