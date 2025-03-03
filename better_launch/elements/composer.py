@@ -97,7 +97,7 @@ class Component(AbstractNode, LiveParamsMixin):
             **composer_extra_params
         )
 
-    def shutdown(self, reason: str, signum: int = signal.SIGTERM):
+    def shutdown(self, reason: str, signum: int = signal.SIGTERM) -> None:
         """Unload this component if it was loaded.
 
         Parameters
@@ -371,7 +371,6 @@ class Composer(Node):
             component._component_id = cid
 
             self._loaded_components[cid] = component
-            self.logger.info(f"Loaded component {component}")
             return cid
         else:
             self.logger.error(
@@ -411,17 +410,17 @@ class Composer(Node):
         req = UnloadNode.Request()
         req.unique_id = cid
 
+        self.logger.info(f"Unloading component {cid} ({component.name})")
         res = self._unload_node_client.call(req)
 
         if res.success:
             # Component.shutdown() takes care of this, but the user can call unload_component directly
             component._component_id = None
             del self._loaded_components[cid]
-            self.logger.info(f"Unloaded component {component} ({cid})")
             return True
 
         self.logger.error(
-            f"Unloading component {component} ({cid}) failed: {res.error_message}"
+            f"Unloading component {cid} ({component.name}) failed: {res.error_message}"
         )
         return False
 

@@ -157,7 +157,7 @@ class Node(AbstractNode, LiveParamsMixin):
             for key, value in self._flat_params().items():
                 final_cmd.extend(["-p", f"{key}:={value}"])
 
-            # Remappings become part of the command's ros-args
+            # Special args and remaps
             # launch_ros/actions/node.py:206
             for src, dst in self._ros_args().items():
                 # launch_ros/actions/node.py:481
