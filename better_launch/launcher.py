@@ -458,12 +458,39 @@ Takeoff in 3... 2... 1...
             except Exception as e:
                 self.logger.warning(f"Shutdown callback failed: {e}")
 
+    @overload
     def find(
         self,
+        filename: str,
         *,
-        filename: str = None,
-        package: str = None,
-        subdir: str = None,
+        resolve_result: bool = True,
+    ) -> str:
+        ...
+
+    @overload
+    def find(
+        self,
+        package: str,
+        filename: str,
+        *,
+        resolve_result: bool = True,
+    ) -> str:
+        ...
+
+    @overload
+    def find(
+        self,
+        package: str,
+        filename: str,
+        subdir: str,
+        *,
+        resolve_result: bool = True,
+    ) -> str:
+        ...
+
+    def find(
+        self,
+        *search_args: str,
         resolve_result: bool = True,
     ) -> str:
         """Resolve a path to a file or package.
@@ -497,6 +524,16 @@ Takeoff in 3... 2... 1...
         ValueError
             If `package` contains path separators, or if a `filename` is provided but could not be found within base path.
         """
+        if len(search_args) == 1:
+            package = None
+            filename = search_args[0]
+        elif len(search_args) == 2:
+            package, filename = search_args
+        elif len(search_args) == 3:
+            package, filename, subdir = search_args
+        else:
+            raise ValueError(f"Incorrect number of arguments: {search_args}")
+
         if resolve_result:
             resolve = self.resolve_string
         else:
@@ -609,7 +646,7 @@ Takeoff in 3... 2... 1...
         IOError
             If the config file could not be read.
         """
-        path = self.find(filename=path)
+        path = self.find(path)
 
         with open(path) as f:
             params = yaml.safe_load(f)
@@ -1446,7 +1483,7 @@ Takeoff in 3... 2... 1...
             include_args.update(self.launch_args)
         include_args.update(**kwargs)
 
-        file_path = self.find(filename=launchfile, package=package)
+        file_path = self.find(package, launchfile)
 
         if find_launchthis_function(file_path):
             try:

@@ -52,7 +52,7 @@ def default_substitution_handlers(
 
     # $(package my_ros_package my_config.yaml)
     def _find(filename: str = None, package: str = None, subdir: str = None):
-        return bl.find(filename=filename, package=package, subdir=subdir)
+        return bl.find(package, filename, subdir)
 
     # $(arg x 2.0)
     def _arg(key: str, default: Any = _sentinel):

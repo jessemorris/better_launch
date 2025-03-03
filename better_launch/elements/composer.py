@@ -357,6 +357,7 @@ class Composer(Node):
             raise ValueError(f"Could not serialize extra parameters: {e}") from e
 
         # Call the load_node service
+        self.logger.info(f"Loading component {component.name}")
         res = self._load_node_client.call(req)
 
         if res.success:
