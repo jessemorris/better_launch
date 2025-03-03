@@ -1,7 +1,20 @@
-"""This module contains additional convenience functions for working with Gazebo. It takes inspiration from simple_launch.
+"""Additional functions for working with Gazebo, taking inspiration from simple_launch.
 """
 
-from typing import Literal, get_args
+__all__ = [
+    "get_gazebo_version",
+    "get_gazebo_prefix",
+    "get_gazebo_axes_args",
+    "spawn_gazebo_topic_bridge",
+    "spawn_gazebo_world_transform",
+    "gazebo_launch",
+    "gazebo_save_world",
+    "gazebo_spawn_model",
+    "GazeboBridge",
+]
+
+
+from typing import Any, Literal, get_args
 import os
 from subprocess import check_output, STDOUT
 from tempfile import NamedTemporaryFile
@@ -13,9 +26,6 @@ from ament_index_python.packages import (
 
 from better_launch import BetterLaunch
 from better_launch.elements import Node
-
-
-gazebo_launched_worlds = {}
 
 
 def get_gazebo_version() -> str:
@@ -54,53 +64,47 @@ def get_gazebo_prefix() -> str:
         return "ign"
 
 
-def declare_gazebo_axes(default_axes: dict[str, float] = None) -> dict[str, float]:
-    """Declares classical Gazebo axes for e.g. defining the orientation of a model you're spawning.
-
-    If `axes` is empty or None, all six axes (`x`, `y`, `z`, `yaw`, `pitch`, `roll`) are declared with a default value of `0.0`. Otherwise, only the specified axes are declared with the given defaults.
+def get_gazebo_axes_args(
+    x: float = 0.0,
+    y: float = 0.0,
+    z: float = 0.0,
+    yaw: float = 0.0,
+    pitch: float = 0.0,
+    roll: float = 0.0,
+) -> dict[str, float]:
+    """Constructs a list of command-line arguments that can be used e.g. when spawning a new model.
 
     Parameters
     ----------
-    default_axes : dict[str, float], optional
-        A dictionary specifying which axes to declare and their default values. If not provided, all six axes will be declared with a default of `0.0`.
+    x : float, optional
+        translation x component
+    y : float, optional
+        translation y component
+    z : float, optional
+        translation z component
+    yaw : float, optional
+        rotation yaw component
+    pitch : float, optional
+        rotation pitch component
+    roll : float, optional
+        rotation roll component
 
     Returns
     -------
     dict[str, float]
-        A dictionary where the keys are axis names (`x`, `y`, `z`, `yaw`, `pitch`, `roll`) and the values are their corresponding default values.
+        A dictionary containing the axes names and values. The axes names correspond to what Gazebo expects on the command line and so can be passed to e.g. :py:meth:`gazebo_spawn_model`.
     """
-    gz_axes = ["x", "y", "z", "yaw", "pitch", "roll"]
-
-    if default_axes:
-        axes = {ax: default_axes[ax] for ax in gz_axes if ax in default_axes}
-    else:
-        axes = {ax: 0.0 for ax in gz_axes}
-
-    return axes
-
-
-def get_gazebo_axes_args(declared_axes: dict[str, float] = None) -> list[str]:
-    """Constructs a list of command-line arguments that can be used e.g. when spawning a new model.
-
-    If `declared_axes` is None, the function defaults to declaring all six classical Gazebo axes (`x`, `y`, `z`, `yaw`, `pitch`, `roll`). See :py:meth:`get_gazebo_axes` for details.
-
-    Parameters
-    ----------
-    declared_axes : dict[str, float], optional
-        A dictionary specifying which Gazebo axes to include and their corresponding values. If None, all six axes will be initialized with a default value of `0.0`.
-
-    Returns
-    -------
-    list[str]
-        A list of command-line arguments formatted as `--axis value` pairs, suitable for passing to a Gazebo launch command.
-    """
-    if declared_axes is None:
-        declared_axes = declare_gazebo_axes()
-
-    return [f"--{axis} {value}" for axis, value in declared_axes.items()]
+    return {
+        "x": x,
+        "y": y,
+        "z": z,
+        "Y": yaw,
+        "P": pitch,
+        "R": roll,
+    }
 
 
-def start_gazebo_topic_bridge(
+def spawn_gazebo_topic_bridge(
     *bridges: "GazeboBridge", node_name: str = "gz_bridge"
 ) -> tuple[Node, Node]:
     """Creates a `ros_gz_bridge::parameter_bridge` node with the specified `GazeboBridge` instances.
@@ -126,7 +130,7 @@ def start_gazebo_topic_bridge(
 
     ros_gz = "ros_" + get_gazebo_prefix()
     image_bridges = [bridge for bridge in bridges if bridge.is_image]
-    std_config = sum((bridge.yaml() for bridge in bridges if not bridge.is_image), [])
+    std_config = "\n".join(bridge.yaml() for bridge in bridges if not bridge.is_image)
 
     node_reg = None
     node_img = None
@@ -247,7 +251,7 @@ def gazebo_spawn_model(
     model_name: str,
     topic: str = "robot_description",
     model_file: str = None,
-    spawn_args: list[str] = None,
+    spawn_args: dict[str, Any] = None,
 ) -> Node:
     """
     Spawns a model into Gazebo under the given name from the specified topic or file.
@@ -262,8 +266,8 @@ def gazebo_spawn_model(
         The topic to retrieve the model description from.
     model_file : str, optional
         The path to the model file to spawn. If not provided, the model will be retrieved from the specified topic.
-    spawn_args : list[str], optional
-        Additional arguments for spawning the model, such as pose and other options.
+    spawn_args : dict[str, Any], optional
+        Additional arguments for spawning the model, such as pose and other options. See :py:meth:`get_gazebo_axes_args` for defining the model's orientation.
 
     Returns
     -------
@@ -273,17 +277,20 @@ def gazebo_spawn_model(
     bl = BetterLaunch.instance()
 
     if spawn_args is None:
-        spawn_args = []
+        spawn_args = {}
 
-    spawn_args += ["-name", model_name]
+    cmd_args = ["-name", model_name]
     if model_file is not None:
-        spawn_args += ["-file", model_file]
+        cmd_args.extend(["-file", model_file])
     else:
-        spawn_args += ["-topic", topic]
+        cmd_args.extend(["-topic", topic])
+
+    for key, val in spawn_args.items():
+        cmd_args.extend([f"-{key}", val])
 
     pkg = "ros_ign_gazebo" if get_gazebo_prefix() == "ign" else "ros_gz_sim"
     return bl.node(
-        pkg, "create", f"spawn_{model_name}", anonymous=True, cmd_args=spawn_args
+        pkg, "create", f"spawn_{model_name}", anonymous=True, cmd_args=cmd_args
     )
 
 
@@ -329,26 +336,22 @@ def _get_gazebo_launch_args(
         launch_file = bl.find("ros_ign_gazebo", "ign_gazebo.launch.py")
         launch_arguments = {"ign_args": full_args}
 
-    if world_file in gazebo_launched_worlds:
-        world_name = gazebo_launched_worlds[world_file]
-    else:
-        world_name = None
-        with open(world_file) as f:
-            while True:
-                line = f.readline()
+    world_name = None
+    with open(world_file) as f:
+        while True:
+            line = f.readline()
 
-                if not line:
-                    bl.logger.warning(
-                        f"Could not get the name of the Gazebo world {world_file}"
-                    )
-                    break
+            if not line:
+                bl.logger.warning(
+                    f"Could not get the name of the Gazebo world {world_file}"
+                )
+                break
 
-                if "world name" in line:
-                    world_name = line.split('"')[1]
-                    gazebo_launched_worlds[world_file] = world_name
-                    GazeboBridge.set_world_name(world_name)  # TODO
-                    bl.logger.info(f"Found Gazebo world '{world_name}' in {world_file}")
-                    break
+            if "world name" in line:
+                world_name = line.split('"')[1]
+                GazeboBridge.set_world_name(world_name)
+                bl.logger.info(f"Found Gazebo world '{world_name}' in {world_file}")
+                break
 
     return world_name, launch_file, launch_arguments
 
@@ -493,7 +496,7 @@ class GazeboBridge:
             cls._gz_exec = get_gazebo_prefix()
         return cls._gz_exec
 
-    def yaml(self) -> None:
+    def yaml(self) -> str:
         """Returns a YAML snippet that can be used to configure other bridges.
         """
         gz_exec = self.gz_exec()
@@ -609,7 +612,7 @@ class GazeboBridge:
         )
 
     @classmethod
-    def make_(cls, model: str) -> "GazeboBridge":
+    def make_joint_state_bridge(cls, model: str) -> "GazeboBridge":
         """
         Creates a GazeboBridge instance for the joint states of a given model.
 

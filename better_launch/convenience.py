@@ -1,3 +1,14 @@
+"""Additional convenience methods that aren't general enough to be added to the main namespace.
+"""
+
+__all__ = [
+    "rviz",
+    "read_robot_description",
+    "joint_state_publisher",
+    "robot_state_publisher",
+]
+
+
 import subprocess
 
 from better_launch import BetterLaunch
