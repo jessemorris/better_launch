@@ -24,6 +24,8 @@ class Component(AbstractNode, LiveParamsMixin):
 
         Note that in ROS2 launch files you can reference existing composers by name when creating components. This is a clutch because you ROS2 you can never obtain a reference to a meaningful object to refer to. Since we have actual instances in better_launch, referring to composers by name is not supported. Use :py:meth:`BetterLaunch.component` or construct your own component and pass a :py:class:`Composer` instance.
 
+        Also note that since components are loaded via a service call there are some additional restrictions on the types of `params`. In particular, they must be compatible with the `ROS2 Parameter message type<https://github.com/ros2/rcl_interfaces/blob/rolling/rcl_interfaces/msg/ParameterValue.msg>`_. This is *not* verified on construction.
+
         .. seealso::
 
             `ROS2 About Composition <https://docs.ros.org/en/jazzy/Concepts/Intermediate/About-Composition.html>`_
@@ -284,11 +286,13 @@ class Composer(Node):
         self,
         component: Component,
         use_intra_process_comms: bool = True,
-        **composer_extra_args: dict,
+        **composer_extra_params: dict,
     ) -> int:
         """Load this component into its composer.
 
         Additional keyword arguments will be passed as ROS parameters to the component. If the component is not associated with this composer yet, a warning will be logged and its association will be updated.
+
+        Note that since components are loaded via a service call that there are some additional restrictions on the types of :py:meth:`Component.params` and `composer_extra_params`. In particular, they must be compatible with the `ROS2 Parameter message type<https://github.com/ros2/rcl_interfaces/blob/rolling/rcl_interfaces/msg/ParameterValue.msg>`_.
 
         Parameters
         ----------
@@ -305,7 +309,7 @@ class Composer(Node):
         Raises
         ------
         ValueError
-            If this composer is not running or if the component is already loaded.
+            If this composer is not running, if the component is already loaded, or if the parameters could not be serialized.
         RuntimeError
             If loading the component failed.
         """
@@ -327,24 +331,30 @@ class Composer(Node):
         req.node_namespace = component.namespace
         req.parameters = []
 
-        req.parameters.extend(
-            [
-                Parameter(name=k, value=v).to_parameter_msg()
-                for k, v in component._flat_params().items()
-            ]
-        )
+        try:
+            req.parameters.extend(
+                [
+                    Parameter(name=k, value=v).to_parameter_msg()
+                    for k, v in component._flat_params().items()
+                ]
+            )
+        except Exception as e:
+            raise ValueError(f"Could not serialize component parameters: {e}") from e
 
         remaps = dict(self._component_remaps)
         remaps.update(component.remaps)
         req.remap_rules = [f"{src}:={dst}" for src, dst in remaps.items()]
 
-        composer_args = {}
-        composer_args.update(composer_extra_args)
-        composer_args["use_intra_process_comms"] = use_intra_process_comms
-        req.extra_arguments = [
-            Parameter(name=k, value=v).to_parameter_msg()
-            for k, v in composer_args.items()
-        ]
+        composer_params = {}
+        composer_params.update(composer_extra_params)
+        composer_params["use_intra_process_comms"] = use_intra_process_comms
+        try:
+            req.extra_arguments = [
+                Parameter(name=k, value=v).to_parameter_msg()
+                for k, v in composer_params.items()
+            ]
+        except Exception as e:
+            raise ValueError(f"Could not serialize extra parameters: {e}") from e
 
         # Call the load_node service
         res = self._load_node_client.call(req)
