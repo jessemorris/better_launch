@@ -1049,7 +1049,7 @@ Takeoff in 3... 2... 1...
         self,
         package: str,
         executable: str,
-        name: str = None,
+        name: str,
         *,
         remaps: dict[str, str] = None,
         params: str | dict[str, Any] = None,
@@ -1084,7 +1084,7 @@ Takeoff in 3... 2... 1...
             The package providing the node.
         executable : str
             The executable that should be run.
-        name : str, optional
+        name : str
             The name you want the node to be known as.
         remaps : dict[str, str], optional
             Tells the node to replace any topics it wants to interact with according to the provided dict.
