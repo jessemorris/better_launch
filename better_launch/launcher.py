@@ -481,8 +481,8 @@ Takeoff in 3... 2... 1...
     def find(
         self,
         package: str,
-        filename: str,
         subdir: str,
+        filename: str,
         *,
         resolve_result: bool = True,
     ) -> str:
@@ -507,10 +507,10 @@ Takeoff in 3... 2... 1...
         ----------
         filename : str, optional
             Name of a file to look for.
-        package : str, optional
-            Name of a ROS2 package to resolve.
         subdir : str, optional
             Path to add to the base path.
+        package : str, optional
+            Name of a ROS2 package to resolve.
         resolve_result : bool, optional
             If True, the result will be passed through :py:metho:`resolve_string` before returning.
 
@@ -530,7 +530,7 @@ Takeoff in 3... 2... 1...
         elif len(search_args) == 2:
             package, filename = search_args
         elif len(search_args) == 3:
-            package, filename, subdir = search_args
+            package, subdir, filename = search_args
         else:
             raise ValueError(f"Incorrect number of arguments: {search_args}")
 
