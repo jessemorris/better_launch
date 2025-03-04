@@ -2,7 +2,7 @@ from better_launch import BetterLaunch, launch_this
 from better_launch.elements import Component
 
 
-@launch_this(ui=False)
+@launch_this(ui=True)
 def not_a_song():
     """
     This example will create a Composer node and load two example plugins into it from the composition package:

@@ -505,12 +505,12 @@ Takeoff in 3... 2... 1...
 
         Parameters
         ----------
-        filename : str, optional
-            Name of a file to look for.
-        subdir : str, optional
-            Path to add to the base path.
         package : str, optional
             Name of a ROS2 package to resolve.
+        subdir : str, optional
+            Path snippet that should be found inside the package.
+        filename : str, optional
+            Name of a file to look for.
         resolve_result : bool, optional
             If True, the result will be passed through :py:metho:`resolve_string` before returning.
 
