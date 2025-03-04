@@ -206,7 +206,7 @@ def _launch_this_wrapper(
     options.extend(
         [
             click.Option(
-                ["--bl-ui-override"],
+                ["--bl_ui_override"],
                 type=click.types.Choice(
                     ["enable", "disable", "unset"], case_sensitive=False
                 ),
@@ -217,7 +217,7 @@ def _launch_this_wrapper(
                 callback=click_ui_override,
             ),
             click.Option(
-                ["--bl-colormode-override"],
+                ["--bl_colormode_override"],
                 type=click.types.Choice(
                     ["none", "severity", "source", "all"], case_sensitive=False
                 ),

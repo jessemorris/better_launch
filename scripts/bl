@@ -161,7 +161,7 @@ class BetterLaunchFile(LaunchFile):
         # NOTE these should match the overrides in wrapper.py
         options.extend([
             click.Option(
-                ["--bl-ui-override"],
+                ["--bl_ui_override"],
                 type=click.types.Choice(
                     ["enable", "disable", "unset"], case_sensitive=False
                 ),
@@ -170,7 +170,7 @@ class BetterLaunchFile(LaunchFile):
                 help="Override to enable/disable the terminal UI",
             ),
             click.Option(
-                ["--bl-colormode-override"],
+                ["--bl_colormode_override"],
                 type=click.types.Choice(
                     ["none", "severity", "source", "all"], case_sensitive=False
                 ),

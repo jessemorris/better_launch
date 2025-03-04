@@ -1,11 +1,18 @@
 #!/usr/bin/env python3
 
-"""Generates reports/bl_profile.csv and reports/ros2_profile.csv
+"""Generates reports/psutil_bl.csv and reports/psutil_ros2.csv
 
 Memory and CPU usage is measured using psutil.Popen. This method will record significantly less 
 memory for ROS2, possibly due to only counting residential set memory.
 
 Use plot.py to generate the plots from the recorded csv files.
+
+NOTE: make sure the referenced launch files are installed in your workspace and that the 
+workspace is sourced!
+
+Usage:
+    python psutil_benchmark.py bl
+    python psutil_benchmark.py ros2
 """
 
 import sys
@@ -19,7 +26,7 @@ import csv
 COMMAND_BL = ["bl", "better_launch", "08_better_turtlesim.py"]
 COMMAND_ROS2 = ["ros2", "launch", "better_launch", "ros2_turtlesim.launch.py"]
 INTERVAL = 0.1  
-OUTPUT_SUFFIX = "_profile.csv"
+OUTPUT_NAME_FMT = "psutil_%s.csv"
 
 
 def monitor_process(proc: psutil.Popen, output: str, interval: float = 0.1):
@@ -67,5 +74,6 @@ if __name__ == "__main__":
         raise ValueError("Invalid mode")
 
     process = psutil.Popen(cmd)
-    path = os.path.join(os.path.dirname(__file__), "reports", cmd[0] + OUTPUT_SUFFIX)
+    output = OUTPUT_NAME_FMT % cmd[0]
+    path = os.path.join(os.path.dirname(__file__), "reports", output)
     monitor_process(process, path, INTERVAL)
