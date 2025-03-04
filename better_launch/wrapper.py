@@ -202,6 +202,7 @@ def _launch_this_wrapper(
             colormode = value
         return value
 
+    # NOTE these should be mirrored in the bl script
     options.extend(
         [
             click.Option(
