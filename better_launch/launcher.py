@@ -526,8 +526,10 @@ Takeoff in 3... 2... 1...
         """
         if len(search_args) == 1:
             package = None
+            subdir = None
             filename = search_args[0]
         elif len(search_args) == 2:
+            subdir = None
             package, filename = search_args
         elif len(search_args) == 3:
             package, subdir, filename = search_args
