@@ -462,7 +462,7 @@ Takeoff in 3... 2... 1...
     def find(
         self,
         filename: str,
-        *,
+        /,
         resolve_result: bool = True,
     ) -> str:
         ...
@@ -472,7 +472,7 @@ Takeoff in 3... 2... 1...
         self,
         package: str,
         filename: str,
-        *,
+        /,
         resolve_result: bool = True,
     ) -> str:
         ...
@@ -483,7 +483,7 @@ Takeoff in 3... 2... 1...
         package: str,
         subdir: str,
         filename: str,
-        *,
+        /,
         resolve_result: bool = True,
     ) -> str:
         ...
@@ -1432,7 +1432,7 @@ Takeoff in 3... 2... 1...
 
     @overload
     def include(
-        self, launchfile: str, *, pass_launch_func_args: bool = True, **kwargs
+        self, launchfile: str, /, pass_launch_func_args: bool = True, **kwargs
     ) -> None: ...
 
     @overload
@@ -1440,7 +1440,18 @@ Takeoff in 3... 2... 1...
         self,
         package: str,
         launchfile: str,
-        *,
+        /,
+        pass_launch_func_args: bool = True,
+        **kwargs,
+    ) -> None: ...
+
+    @overload
+    def include(
+        self,
+        package: str,
+        subdir: str, 
+        launchfile: str,
+        /,
         pass_launch_func_args: bool = True,
         **kwargs,
     ) -> None: ...
@@ -1454,13 +1465,15 @@ Takeoff in 3... 2... 1...
         """Include another launch file, resolving its path using :py:meth:`find`.
 
         The file is first read into memory and checked. If it seems to be a *better_launch* launch file, it is executed immediately (using :py:func:`exec`). The BetterLaunch instance and global context will be shared. Any arguments to :py:meth:`launch_this` in the included launch file will be ignored.
-
+        
         If the file does not appear to be a *better_launch* launch file, it is assumed to be a regular ROS2 launch file. In this case a :py:class:`launch.actions.IncludeLaunchDescription` instance is created and passed to :py:meth:`ros2_actions`.
 
         Parameters
         ----------
         package : str
             The package containing the specified launch file.
+        subdir : str
+            Path snippet that should be found inside the package.
         launchfile : str
             The name of a launch file to execute.
         pass_launch_func_args : bool, optional
@@ -1473,19 +1486,23 @@ Takeoff in 3... 2... 1...
         """
         if len(search_args) == 1:
             package = None
+            subdir = None
             launchfile = search_args[0]
         elif len(search_args) == 2:
+            subdir = None
             package, launchfile = search_args
+        elif len(search_args) == 3:
+            package, subdir, launchfile = search_args
         else:
             raise ValueError(f"Incorrect number of arguments: {search_args}")
-
+        
         # Pass additional arguments, e.g. launch args
         include_args = {}
         if pass_launch_func_args:
             include_args.update(self.launch_args)
         include_args.update(**kwargs)
 
-        file_path = self.find(package, launchfile)
+        file_path = self.find(package, subdir, launchfile)
 
         if find_launchthis_function(file_path):
             try:
