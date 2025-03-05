@@ -26,7 +26,7 @@ import csv
 COMMAND_BL = ["bl", "better_launch", "08_better_turtlesim.py"]
 COMMAND_ROS2 = ["ros2", "launch", "better_launch", "ros2_turtlesim.launch.py"]
 INTERVAL = 0.1  
-OUTPUT_NAME_FMT = "psutil_%s.csv"
+OUTPUT_NAME_FMT = "results/psutil_%s.csv"
 
 
 def monitor_process(proc: psutil.Popen, output: str, interval: float = 0.1):
@@ -75,5 +75,5 @@ if __name__ == "__main__":
 
     process = psutil.Popen(cmd)
     output = OUTPUT_NAME_FMT % cmd[0]
-    path = os.path.join(os.path.dirname(__file__), "reports", output)
+    path = os.path.join(os.path.dirname(__file__), output)
     monitor_process(process, path, INTERVAL)

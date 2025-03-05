@@ -241,6 +241,8 @@ ROS2 launch has a bad reputation of leaving stale and abandoned processes behind
 
 # What doesn't work yet
 As of now *better_launch* supports the most important use cases, like starting nodes, proper (nicer!) logging, being awesome. However, there are still a couple of features that I have to work on to make it feature complete (roughly sorted by priority):
+- [ ] test include from ros
+- [ ] test tui web interface
 - [ ] document benchmarks
 - [ ] integrate convenience module once it's done
 - [ ] exception handling is barebones, so if something fails, everything fails (this is fine?)
@@ -261,6 +263,14 @@ colcon build --packages-select better_launch
 
 In addition, *better_launch* will make use of the following optional python libraries:
 - *wonderwords*: if installed, wonderwords will be used to generate unique suffixes for anonymous nodes. Otherwise UUIDs will be used.
+
+
+# Performance
+I am not an expert on profiling code. That being said, in my tests *better_launch* showed comparable yet slightly worse performance compared to using the `ros2 launch`. This is expected as `asyncio` is highly optimized for performance while *better_launch* uses synchronous calls (or classic threads if necessary), and does some additional work to reformat output from nodes. In most cases the performance difference will be neglectable.
+
+The scripts, launch files and results from the benchmarks can be found under [media/benchmarks](media/benchmarks/). This section will only show the most relevant parts.
+
+
 
 
 # What's so bad about ROS2 launch?

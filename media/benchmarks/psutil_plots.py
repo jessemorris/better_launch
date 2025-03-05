@@ -8,8 +8,8 @@ import plotly.graph_objects as go
 import pandas as pd
 
 
-BENCHMARK_BL = "bl_profile.csv"
-BENCHMARK_ROS2 = "ros2_profile.csv"
+BENCHMARK_BL = "results/psutil_bl.csv"
+BENCHMARK_ROS2 = "results/psutil_ros2.csv"
 
 
 def plot_usage(bl_csv: str, ros2_csv: str):
@@ -44,6 +44,6 @@ def plot_usage(bl_csv: str, ros2_csv: str):
 
 if __name__ == "__main__":
     plot_usage(
-        os.path.join(os.path.dirname(__file__), "reports", BENCHMARK_BL),
-        os.path.join(os.path.dirname(__file__), "reports", BENCHMARK_ROS2),
+        os.path.join(os.path.dirname(__file__), BENCHMARK_BL),
+        os.path.join(os.path.dirname(__file__), BENCHMARK_ROS2),
     )
