@@ -582,6 +582,7 @@ Takeoff in 3... 2... 1...
         package: str,
         configfile: str,
         subdir: str = None,
+        *,
         node_or_namespace: str | Node = None,
     ) -> dict[str, Any]:
         """Load parameters from a yaml file located through :py:meth:`find`.
@@ -1408,6 +1409,7 @@ Takeoff in 3... 2... 1...
         package: str,
         launchfile: str,
         subdir: str = None,
+        *,
         pass_launch_func_args: bool = True,
         **kwargs,
     ) -> None:
