@@ -296,7 +296,7 @@ Takeoff in 3... 2... 1...
         ):
             if reg.match(node.fullname):
                 return node
-        
+
         return None
 
     def query_nodes(
@@ -324,7 +324,7 @@ Takeoff in 3... 2... 1...
         """
         reg = re.compile(name_regex)
         return [
-            node 
+            node
             for node in self.all_nodes(
                 include_components=include_components,
                 include_launch_service=include_launch_service,
@@ -416,9 +416,13 @@ Takeoff in 3... 2... 1...
         if reason is None:
             try:
                 frame = find_function_frame(self.shutdown)
-                self.logger.warning(f"Shutdown was called from {frame.function}, but no reason was given")
+                self.logger.warning(
+                    f"Shutdown was called from {frame.function}, but no reason was given"
+                )
             except:
-                self.logger.warning(f"Shutdown was called without providing a reason and the calling frame could not be determined")
+                self.logger.warning(
+                    f"Shutdown was called without providing a reason and the calling frame could not be determined"
+                )
 
         # Tell all nodes to shut down
         for n in self.all_nodes():
@@ -458,39 +462,11 @@ Takeoff in 3... 2... 1...
             except Exception as e:
                 self.logger.warning(f"Shutdown callback failed: {e}")
 
-    @overload
     def find(
         self,
-        filename: str,
-        /,
-        resolve_result: bool = True,
-    ) -> str:
-        ...
-
-    @overload
-    def find(
-        self,
-        package: str,
-        filename: str,
-        /,
-        resolve_result: bool = True,
-    ) -> str:
-        ...
-
-    @overload
-    def find(
-        self,
-        package: str,
-        subdir: str,
-        filename: str,
-        /,
-        resolve_result: bool = True,
-    ) -> str:
-        ...
-
-    def find(
-        self,
-        *search_args: str,
+        package: str = None,
+        filename: str = None,
+        subdir: str = None,
         resolve_result: bool = True,
     ) -> str:
         """Resolve a path to a file or package.
@@ -501,16 +477,16 @@ Takeoff in 3... 2... 1...
 
         If neither `subdir` nor `filename` are provided, the base path is returned. Otherwise, subdir and filename are concatenated to form a target path. The base path is then searched for any directory or file matching the target path.
 
-        More specifically, if only `filename` is provided, a file with that name is located. If only `subdir` is provided, a matching path within the base path is located. If both `filename` and `subdir` are provided, a file within the specified path fragment is located.
+        More specifically, if only `filename` is provided, a file with that name is located. If only `subdir` is provided, a matching path within the base path is located. If both `filename` and `subdir` are provided, a file matching the specified path fragment is located.
 
         Parameters
         ----------
         package : str, optional
             Name of a ROS2 package to resolve.
-        subdir : str, optional
-            Path snippet that should be found inside the package.
         filename : str, optional
             Name of a file to look for.
+        subdir : str, optional
+            Path snippet that should be located inside the base path.
         resolve_result : bool, optional
             If True, the result will be passed through :py:metho:`resolve_string` before returning.
 
@@ -524,18 +500,6 @@ Takeoff in 3... 2... 1...
         ValueError
             If `package` contains path separators, or if a `filename` is provided but could not be found within base path.
         """
-        if len(search_args) == 1:
-            package = None
-            subdir = None
-            filename = search_args[0]
-        elif len(search_args) == 2:
-            subdir = None
-            package, filename = search_args
-        elif len(search_args) == 3:
-            package, subdir, filename = search_args
-        else:
-            raise ValueError(f"Incorrect number of arguments: {search_args}")
-
         if resolve_result:
             resolve = self.resolve_string
         else:
@@ -552,6 +516,7 @@ Takeoff in 3... 2... 1...
             while os.pathsep in searchpath:
                 files = os.listdir(searchpath)
                 if "package.xml" in files:
+                    # TODO should get package name from xml
                     package = os.path.basename(searchpath)
                     break
                 searchpath = searchpath.rsplit(os.pathsep, maxsplit=1)[0]
@@ -613,9 +578,13 @@ Takeoff in 3... 2... 1...
         return substitute_tokens(s, default_substitution_handlers("full"))
 
     def load_params(
-        self, path: str, node_or_namespace: str | Node = None
+        self,
+        package: str,
+        configfile: str,
+        subdir: str = None,
+        node_or_namespace: str | Node = None,
     ) -> dict[str, Any]:
-        """Load parameters from a yaml file.
+        """Load parameters from a yaml file located through :py:meth:`find`.
 
         If the config only contains a `ros__parameters` section the entire config is returned regardless of whether `node_or_namespace` was passed. Otherwise, if `node_or_namespace` is provided, the loaded config dict is searched for a matching section. If no matching section can be found a ValueError will be raised.
 
@@ -631,8 +600,12 @@ Takeoff in 3... 2... 1...
 
         Parameters
         ----------
-        path : str
-            The path to the config. Will be resolved using :py:meth:`find`.
+        package : str
+            A package to search for the config file. May be `None` (see :py:meth:`find`).
+        configfile : str
+            The name of the config file to locate.
+        subdir : str, optional
+            A path fragment that the config file must be located in.
         node_or_namespace : str | Node, optional
             Used to specifiy which section of the config to return.
 
@@ -648,7 +621,7 @@ Takeoff in 3... 2... 1...
         IOError
             If the config file could not be read.
         """
-        path = self.find(path)
+        path = self.find(package, configfile, subdir)
 
         with open(path) as f:
             params = yaml.safe_load(f)
@@ -668,7 +641,7 @@ Takeoff in 3... 2... 1...
             def path_to_regex(path: str) -> str:
                 parts = path.strip("/").split("/")
                 regex_parts = []
-                
+
                 for part in parts:
                     if part == "**":
                         # Match any number of tokens
@@ -679,11 +652,11 @@ Takeoff in 3... 2... 1...
                     else:
                         # Regular token
                         regex_parts.append(part)
-                
+
                 # Does NOT start with a slash as only the node name could be specified
                 return "^" + "/".join(regex_parts) + "$"
 
-            # According to the above design document, params files are not allowed to have nesting, 
+            # According to the above design document, params files are not allowed to have nesting,
             # (e.g. my_namespace/: other_namespace/node: ros__parameters), so no need to delve
             for key in params.keys():
                 pattern = path_to_regex(key)
@@ -691,10 +664,10 @@ Takeoff in 3... 2... 1...
                     params = params[key]
                     break
             else:
-                # We didn't find any matching parameters, so this either doesn't contain a section 
+                # We didn't find any matching parameters, so this either doesn't contain a section
                 # for this node, or it is not a ros parameters file
                 raise ValueError(f"No section matching full node name {ns}")
-            
+
             if "ros__parameters" in params:
                 params = params["ros__parameters"]
 
@@ -1430,52 +1403,28 @@ Takeoff in 3... 2... 1...
 
         return comp
 
-    @overload
-    def include(
-        self, launchfile: str, /, pass_launch_func_args: bool = True, **kwargs
-    ) -> None: ...
-
-    @overload
     def include(
         self,
         package: str,
         launchfile: str,
-        /,
-        pass_launch_func_args: bool = True,
-        **kwargs,
-    ) -> None: ...
-
-    @overload
-    def include(
-        self,
-        package: str,
-        subdir: str, 
-        launchfile: str,
-        /,
-        pass_launch_func_args: bool = True,
-        **kwargs,
-    ) -> None: ...
-
-    def include(
-        self,
-        *search_args: str,
+        subdir: str = None,
         pass_launch_func_args: bool = True,
         **kwargs,
     ) -> None:
         """Include another launch file, resolving its path using :py:meth:`find`.
 
         The file is first read into memory and checked. If it seems to be a *better_launch* launch file, it is executed immediately (using :py:func:`exec`). The BetterLaunch instance and global context will be shared. Any arguments to :py:meth:`launch_this` in the included launch file will be ignored.
-        
+
         If the file does not appear to be a *better_launch* launch file, it is assumed to be a regular ROS2 launch file. In this case a :py:class:`launch.actions.IncludeLaunchDescription` instance is created and passed to :py:meth:`ros2_actions`.
 
         Parameters
         ----------
         package : str
-            The package containing the specified launch file.
-        subdir : str
-            Path snippet that should be found inside the package.
+            The package containing the specified launch file. May be `None` (see :py:meth:`find`).
         launchfile : str
             The name of a launch file to execute.
+        subdir : str, optional
+            A path fragment the launch file must be located in.
         pass_launch_func_args : bool, optional
             If True, all :py:meth:`launch_args` will be passed to the included launch file. Additional launch arguments can also be provided via the `kwargs`.
 
@@ -1484,25 +1433,13 @@ Takeoff in 3... 2... 1...
         ValueError
             If the passed in `search_args` cannot be handled.
         """
-        if len(search_args) == 1:
-            package = None
-            subdir = None
-            launchfile = search_args[0]
-        elif len(search_args) == 2:
-            subdir = None
-            package, launchfile = search_args
-        elif len(search_args) == 3:
-            package, subdir, launchfile = search_args
-        else:
-            raise ValueError(f"Incorrect number of arguments: {search_args}")
-        
+        file_path = self.find(package, launchfile, subdir)
+
         # Pass additional arguments, e.g. launch args
         include_args = {}
         if pass_launch_func_args:
             include_args.update(self.launch_args)
         include_args.update(**kwargs)
-
-        file_path = self.find(package, subdir, launchfile)
 
         if find_launchthis_function(file_path):
             try:
@@ -1602,7 +1539,7 @@ Takeoff in 3... 2... 1...
         delay : float
             How long to wait in seconds before calling the callback.
         callback : Callable
-            The function to call after the timeout. Will not be called if :py:meth:`shutdown` is called beforehand. 
+            The function to call after the timeout. Will not be called if :py:meth:`shutdown` is called beforehand.
         *args : Any, optional
             Positional arguments to the callback.
         **kwargs : Any, optional

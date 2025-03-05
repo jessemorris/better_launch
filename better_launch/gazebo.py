@@ -195,6 +195,7 @@ def spawn_gazebo_world_transform(gazebo_world_frame: str = None) -> Node:
 
 
 def gazebo_launch(
+    package: str,
     world_file: str,
     gz_args: list[str] = None,
     world_save_file: str = None,
@@ -204,6 +205,8 @@ def gazebo_launch(
 
     Parameters
     ----------
+    package : str, 
+        A package to locate the world_file in. May be `None` (see :py:meth:`BetterLaunch.find`).
     world_file : str
         Path to the primary world file for the simulation.
     gz_args : _type_, optional
@@ -215,8 +218,8 @@ def gazebo_launch(
     """
     bl = BetterLaunch.instance()
 
-    _, launch_file, launch_arguments = _get_gazebo_launch_args(world_file, gz_args)
-    bl.include(launch_file, **launch_arguments)
+    _, launch_file, launch_arguments = _get_gazebo_launch_args(package, world_file, gz_args)
+    bl.include(None, launch_file, **launch_arguments)
 
     if world_save_file:
         gazebo_save_world(world_save_file, save_after)
@@ -295,6 +298,7 @@ def gazebo_spawn_model(
 
 
 def _get_gazebo_launch_args(
+    package: str,
     world_file: str,
     gz_args: list[str] = None,
 ) -> tuple[str, str, dict]:
@@ -302,6 +306,8 @@ def _get_gazebo_launch_args(
 
     Parameters
     ----------
+    package : str
+        The package to locate the world file in. May be `None` (see :py:meth:`find`).
     world_file : str
         The path to the world file to be loaded in the Gazebo simulator.
     gz_args : list[str], optional
@@ -321,7 +327,7 @@ def _get_gazebo_launch_args(
     """
     bl = BetterLaunch.instance()
 
-    world_file = bl.find(world_file)
+    world_file = bl.find(package, world_file)
     if not os.path.exists(world_file):
         raise ValueError("Could not find world file")
 

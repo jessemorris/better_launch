@@ -15,11 +15,13 @@ from better_launch import BetterLaunch
 from better_launch.elements import Node
 
 
-def rviz(config_file: str = None, suppress_warnings: bool = False) -> Node:
+def rviz(package: str = None, configfile: str = None, suppress_warnings: bool = False) -> Node:
     """Runs RViz with the given config file and optional warning level suppression.
 
     Parameters
     ----------
+    package : str, optional
+        Path to locate the config file in (if one is specified).
     config_file : str, optional
         Path to the RViz configuration file which will be resolved by :py:meth:`BetterLaunch.find`. Otherwise RViz will run with the default config.
     suppress_warnings : bool, optional
@@ -33,9 +35,9 @@ def rviz(config_file: str = None, suppress_warnings: bool = False) -> Node:
     bl = BetterLaunch.instance()
 
     args = []
-    if config_file:
-        config_file = bl.find(config_file)
-        args += ["-d", config_file]
+    if configfile:
+        configfile = bl.find(package, configfile)
+        args += ["-d", configfile]
 
     if not suppress_warnings:
         args += ["--ros-args", "--log-level", "FATAL"]
@@ -55,7 +57,7 @@ def read_robot_description(
     Parameters
     ----------
     package : str, optional
-        The package where the robot description file is located.
+        The package where the robot description file is located. May be `None` (see :py:meth:`BetterLaunch.find`)
     urdf_or_xacro : str, optional
         The name of the robot description file (URDF or XACRO).
     xacro_args : list of str, optional

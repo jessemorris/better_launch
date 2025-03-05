@@ -13,7 +13,7 @@ def tis_a_hungry_function():
     # If no package is given, the current launch file's package is used. Additional keyword 
     # arguments are passed as launch arguments. We could also specify pass_launch_func_args to pass 
     # all arguments of this launch function.
-    bl.include("05_launch_arguments.py", enable=True)
+    bl.include(None, "05_launch_arguments.py", enable=True)
 
     # Since better_launch executes actions immediately, you can also interact with your nodes immediately!
     talker = bl.query_node(".*my_publisher")
