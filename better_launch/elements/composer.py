@@ -334,6 +334,7 @@ class Composer(Node):
         try:
             req.parameters.extend(
                 [
+                    # Parameter will initialize based on the value's type
                     Parameter(name=k, value=v).to_parameter_msg()
                     for k, v in component._flat_params().items()
                 ]

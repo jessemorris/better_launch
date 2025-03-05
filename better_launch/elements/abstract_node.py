@@ -1,7 +1,6 @@
 from typing import Any
 import signal
 import time
-import json
 
 import better_launch.ros.logging as roslog
 from better_launch.elements.lifecycle_manager import LifecycleManager
@@ -152,13 +151,13 @@ class AbstractNode:
 
         return ros_args
 
-    def _flat_params(self) -> dict[str, str]:
-        """Flattens this node's ROS parameters so they conform to what ROS expects when passing them on the command line.
+    def _flat_params(self) -> dict[str, Any]:
+        """Flattens this node's ROS parameters so they conform to what ROS expects.
 
         Returns
         -------
-        dict[str, str]
-            A flattened dict containing param keys separated by '.'s and json-serialized values.
+        dict[str, Any]
+            A flattened dict containing param keys separated by '.'s and their values.
 
         Raises
         ------
@@ -181,7 +180,7 @@ class AbstractNode:
                     new_key = f"{path}.{key}" if path else key
                     delve(val, new_key)
             else:
-                ret[path] = json.dumps(data)
+                ret[path] = data
 
         delve(self.params, "")
         return ret

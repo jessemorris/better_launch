@@ -14,6 +14,7 @@ import selectors
 from concurrent.futures import Future
 from pprint import pformat
 from textwrap import indent
+import json
 
 from better_launch.ros import logging as roslog
 from better_launch.utils.better_logging import PrettyLogFormatter
@@ -154,8 +155,9 @@ class Node(AbstractNode, LiveParamsMixin):
             final_cmd = [cmd] + self.cmd_args + ["--ros-args"]
 
             # Attach node parameters
-            for key, value in self._flat_params().items():
-                final_cmd.extend(["-p", f"{key}:={value}"])
+            for key, value in self._flat_params(True).items():
+                # Make sure the values are parseable for ROS
+                final_cmd.extend(["-p", f"{key}:={json.dumps(value)}"])
 
             # Special args and remaps
             # launch_ros/actions/node.py:206
