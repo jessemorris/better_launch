@@ -51,8 +51,7 @@ class Component(AbstractNode, LiveParamsMixin):
 
     @property
     def composer(self) -> "Composer":
-        """The composer this component is associated with.
-        """
+        """The composer this component is associated with."""
         return self._composer
 
     @property
@@ -94,7 +93,7 @@ class Component(AbstractNode, LiveParamsMixin):
         self._component_id = self.composer.load_component(
             self,
             use_intra_process_comms=use_intra_process_comms,
-            **composer_extra_params
+            **composer_extra_params,
         )
 
     def shutdown(self, reason: str, signum: int = signal.SIGTERM) -> None:
@@ -109,7 +108,7 @@ class Component(AbstractNode, LiveParamsMixin):
         """
         if not self.is_loaded:
             return
-        
+
         self.logger.warning(f"Unloading component {self.name}: {reason}")
         self.composer.unload_component(self)
         self._component_id = None
@@ -135,9 +134,7 @@ class Composer(Node):
         env: dict[str, str] = None,
         isolate_env: bool = False,
         log_level: int = logging.INFO,
-        output_config: (
-            Node.LogSink | dict[Node.LogSource, set[Node.LogSink]]
-        ) = "screen",
+        output: Node.LogSink | dict[Node.LogSource, set[Node.LogSink]] = "screen",
         reparse_logs: bool = True,
         on_exit: Callable = None,
         max_respawns: int = 0,
@@ -174,10 +171,10 @@ class Composer(Node):
             If True, the composer process' env will not be inherited from the parent process. Be aware that this can result in many common things to not work anymore since e.g. keys like *PATH* will be missing.
         log_level : int, optional
             The minimum severity a logged message from this composer must have in order to be published.
-        output_config : Node.LogSink  |  dict[Node.LogSource, set[Node.LogSink]], optional
+        output : Node.LogSink  |  dict[Node.LogSource, set[Node.LogSink]], optional
             How log output from the node should be handled. Sources are `stdout`, `stderr` and `both`. Sinks are `screen`, `log`, `both`, `own_log`, and `full`. See :py:class:`Node` for more details.
         reparse_logs : bool, optional
-            If True, *better_launch* will capture the composer's output and reformat it before publishing. 
+            If True, *better_launch* will capture the composer's output and reformat it before publishing.
         anonymous : bool, optional
             If True, the composer name will be appended with a unique suffix to avoid name conflicts.
         hidden : bool, optional
@@ -221,7 +218,7 @@ class Composer(Node):
             env=env,
             isolate_env=isolate_env,
             log_level=log_level,
-            output_config=output_config,
+            output=output,
             reparse_logs=reparse_logs,
             on_exit=on_exit,
             max_respawns=max_respawns,
@@ -238,20 +235,17 @@ class Composer(Node):
 
     @property
     def language(self) -> str:
-        """The programming language this composer (and its components) use.
-        """
+        """The programming language this composer (and its components) use."""
         return self._language
 
     @property
     def loaded_components(self) -> list[Component]:
-        """The currently loaded components.
-        """
+        """The currently loaded components."""
         return list(self._loaded_components.values())
 
     @property
     def is_lifecycle(self) -> bool:
-        """Composers are not lifecycle nodes.
-        """
+        """Composers are not lifecycle nodes."""
         return False
 
     def start(self) -> None:
@@ -320,7 +314,9 @@ class Composer(Node):
             raise ValueError("Cannot load an already component")
 
         if component.composer != self:
-            self.logger.warning(f"Component {component.name} was created for a different Composer, updating reference")
+            self.logger.warning(
+                f"Component {component.name} was created for a different Composer, updating reference"
+            )
             component._composer = self
 
         # Reference: https://github.com/ros2/launch_ros/blob/rolling/launch_ros/launch_ros/actions/load_composable_nodes.py
@@ -427,8 +423,13 @@ class Composer(Node):
 
     def _get_info_section_general(self):
         info = super()._get_info_section_general()
-        components = "\n".join([f"  - {c.plugin}" for c in self._loaded_components.values()])
-        return info + f"""
+        components = "\n".join(
+            [f"  - {c.plugin}" for c in self._loaded_components.values()]
+        )
+        return (
+            info
+            + f"""
 [bold]Components[/bold]
 {components}
 """
+        )

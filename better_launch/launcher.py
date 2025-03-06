@@ -1070,7 +1070,7 @@ Takeoff in 3... 2... 1...
         env: dict[str, str] = None,
         isolate_env: bool = False,
         log_level: int = logging.INFO,
-        output_config: (
+        output: (
             Node.LogSink | dict[Node.LogSource, set[Node.LogSink]]
         ) = "screen",
         reparse_logs: bool = True,
@@ -1111,7 +1111,7 @@ Takeoff in 3... 2... 1...
             If True, the node process' env will not be inherited from the parent process and only those passed via `env` will be used. Be aware that this can result in many common things to not work anymore since e.g. keys like *PATH* will be missing.
         log_level : int, optional
             The minimum severity a logged message from this node must have in order to be published.
-        output_config : Node.LogSink  |  dict[Node.LogSource, set[Node.LogSink]], optional
+        output : Node.LogSink  |  dict[Node.LogSource, set[Node.LogSink]], optional
             How log output from the node should be handled. Sources are `stdout`, `stderr` and `both`. Sinks are `screen`, `log`, `both`, `own_log`, and `full`. See :py:class:`Node` for more details.
         reparse_logs : bool, optional
             If True, *better_launch* will capture the node's output and reformat it before publishing.
@@ -1178,7 +1178,7 @@ Takeoff in 3... 2... 1...
             env=env,
             isolate_env=isolate_env,
             log_level=log_level,
-            output_config=output_config,
+            output=output,
             reparse_logs=reparse_logs,
             on_exit=on_exit,
             max_respawns=max_respawns,
@@ -1210,7 +1210,7 @@ Takeoff in 3... 2... 1...
         env: dict[str, str] = None,
         isolate_env: bool = False,
         log_level: int = logging.INFO,
-        output_config: (
+        output: (
             Node.LogSink | dict[Node.LogSource, set[Node.LogSink]]
         ) = "screen",
         reparse_logs: bool = True,
@@ -1255,7 +1255,7 @@ Takeoff in 3... 2... 1...
             If True, the composer process' env will not be inherited from the parent process and only those passed via `env` will be used. Be aware that this can result in many common things to not work anymore since e.g. keys like *PATH* will be missing.
         log_level : int, optional
             The minimum severity a logged message from this composer must have in order to be published.
-        output_config : Node.LogSink  |  dict[Node.LogSource, set[Node.LogSink]], optional
+        output : Node.LogSink  |  dict[Node.LogSource, set[Node.LogSink]], optional
             How log output from the composer should be handled. Sources are `stdout`, `stderr` and `both`. Sinks are `screen`, `log`, `both`, `own_log`, and `full`. See :py:class:`Node` for more details.
         reparse_logs : bool, optional
             If True, *better_launch* will capture the composer's output and reformat it before publishing.
@@ -1319,7 +1319,7 @@ Takeoff in 3... 2... 1...
             env=env,
             isolate_env=isolate_env,
             log_level=log_level,
-            output_config=output_config,
+            output=output,
             reparse_logs=reparse_logs,
             on_exit=on_exit,
             max_respawns=max_respawns,

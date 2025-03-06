@@ -40,7 +40,7 @@ class Node(AbstractNode, LiveParamsMixin):
         env: dict[str, str] = None,
         isolate_env: bool = False,
         log_level: int = logging.INFO,
-        output_config: LogSink | dict[LogSource, set[LogSink]] = "screen",
+        output: LogSink | dict[LogSource, set[LogSink]] = "screen",
         reparse_logs: bool = True,
         on_exit: Callable = None,
         max_respawns: int = 0,
@@ -69,7 +69,7 @@ class Node(AbstractNode, LiveParamsMixin):
             If True, the node process' env will not be inherited from the parent process and only those passed via `env` will be used. Be aware that this can result in many common things to not work anymore since e.g. keys like *PATH* will be missing.
         log_level : int, optional
             The minimum severity a logged message from this node must have in order to be published.
-        output_config : Node.LogSink  |  dict[Node.LogSource, set[Node.LogSink]], optional
+        output : Node.LogSink  |  dict[Node.LogSource, set[Node.LogSink]], optional
             How log output from the node should be handled. Sources are `stdout`, `stderr` and `both`. Sinks are `screen`, `log`, `both`, `own_log`, and `full`.
         reparse_logs : bool, optional
             If True, *better_launch* will capture the node's output and reformat it before publishing.
@@ -99,7 +99,7 @@ class Node(AbstractNode, LiveParamsMixin):
         if cmd_args:
             self.cmd_args.extend(cmd_args)
 
-        self.output_config = output_config or {}
+        self.output = output or {}
         self.reparse_logs = reparse_logs
         self.use_shell = use_shell
         self.max_respawns = max_respawns
@@ -148,7 +148,7 @@ class Node(AbstractNode, LiveParamsMixin):
         try:
             # Note that self.process_log_level applies to the process, not our loggers
             logout, logerr = roslog.get_output_loggers(
-                f"{self.name}-{self.node_id}", self.output_config
+                f"{self.name}-{self.node_id}", self.output
             )
 
             cmd = launcher.find(self.package, self.executable)
