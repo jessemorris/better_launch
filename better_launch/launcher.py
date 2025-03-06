@@ -1205,6 +1205,7 @@ Takeoff in 3... 2... 1...
         language: str = "cpp",
         composer_mode: Composer.ComposerMode = "normal",
         *,
+        reuse_if_exists: bool = True,  # TODO
         component_remaps: dict[str, str] = None,
         composer_remaps: dict[str, str] = None,
         params: str | dict[str, Any] = None,
@@ -1400,7 +1401,7 @@ Takeoff in 3... 2... 1...
             raise RuntimeError("Cannot add component outside a compose() node")
 
         if not name:
-            name = f"{package}_{plugin.replace("::", "_")}"
+            name = f"{package}_{plugin.replace('::', '_')}"
             anonymous = True
 
         if anonymous:

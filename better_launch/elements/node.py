@@ -155,7 +155,7 @@ class Node(AbstractNode, LiveParamsMixin):
             final_cmd = [cmd] + self.cmd_args + ["--ros-args"]
 
             # Attach node parameters
-            for key, value in self._flat_params(True).items():
+            for key, value in self._flat_params().items():
                 # Make sure the values are parseable for ROS
                 final_cmd.extend(["-p", f"{key}:={json.dumps(value)}"])
 

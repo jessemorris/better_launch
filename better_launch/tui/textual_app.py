@@ -14,7 +14,7 @@ from ros2node.api import get_node_names
 
 from better_launch.launcher import BetterLaunch
 import better_launch.ros.logging as roslog
-from better_launch.utils.better_logging import RecordForwarder
+from better_launch.utils.better_logging import RecordForwarder, PrettyLogFormatter
 from better_launch.elements import Node, Composer, Component, LifecycleStage
 from .log_entry import LogEntry
 from .node_menu import NodeLabel, NodeInfoScreen
@@ -83,7 +83,7 @@ class BetterUI(App):
             del os.environ["OVERRIDE_LAUNCH_SCREEN_FORMAT"]
 
         # Install the log handler
-        roslog.launch_config.screen_handler = RecordForwarder()
+        roslog.launch_config.screen_handler = RecordForwarder(PrettyLogFormatter(colormode="none"))
 
     def __init__(
         self,

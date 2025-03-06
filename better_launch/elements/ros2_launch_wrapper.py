@@ -69,15 +69,14 @@ def _launchservice_worker(
     def handle_record(record: logging.LogRecord) -> None:
         log_queue.put(record)
 
-    std_handler = RecordForwarder()
-    std_handler.add_listener(handle_record)
-    std_handler.setFormatter(
+    std_handler = RecordForwarder(
         PrettyLogFormatter(
             roslog_pattern=r"\[(.+)] *%%(\w+)%%([\d.]+)%%(.*)",
             pattern_info=["name", "levelname", "created", "msg"],
             color_per_source=True,
         )
     )
+    std_handler.add_listener(handle_record)
 
     # The ROS2 launch system will set new formatters for each node and source, so our formatter
     # wouldn't be used. We either have to make our formatter more stubborn, or we run ROS2

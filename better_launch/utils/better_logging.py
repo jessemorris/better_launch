@@ -187,7 +187,7 @@ class PrettyLogFormatter(logging.Formatter):
 
 
 class RecordForwarder(logging.Handler):
-    def __init__(self, level: int = logging.INFO):
+    def __init__(self, formatter, level: int = logging.INFO):
         """A log handler that forwards any records it receives to callbacks.
 
         Parameters
@@ -196,7 +196,7 @@ class RecordForwarder(logging.Handler):
             The minimum logging level this handler accepts.
         """
         super().__init__(level)
-        self.formatter = PrettyLogFormatter(disable_colors=True)
+        self.formatter = formatter
         self.listeners = []
 
     def add_listener(self, callback: Callable[[logging.LogRecord], None]):
