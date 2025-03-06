@@ -1050,6 +1050,8 @@ Takeoff in 3... 2... 1...
         if self._composition_node:
             raise RuntimeError("Cannot add groups inside a composition node")
 
+        # FIXME handle namespaces with / correctly!
+        # FIXME bl.group(X/Y) ... bl.group(X/Y) should reuse the same group!
         group = Group(self.group_tip, namespace, remaps=remaps)
         self.group_tip.add_group(group)
         self._group_stack.append(group)

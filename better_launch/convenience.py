@@ -1,5 +1,4 @@
-"""Additional convenience methods that aren't general enough to be added to the main namespace.
-"""
+"""Additional convenience methods that aren't general enough to be added to the main namespace."""
 
 __all__ = [
     "rviz",
@@ -15,7 +14,13 @@ from better_launch import BetterLaunch
 from better_launch.elements import Node
 
 
-def rviz(package: str = None, configfile: str = None, suppress_warnings: bool = False) -> Node:
+def rviz(
+    package: str = None,
+    configfile: str = None,
+    subdir: str = None,
+    *,
+    suppress_warnings: bool = False,
+) -> Node:
     """Runs RViz with the given config file and optional warning level suppression.
 
     Parameters
@@ -24,6 +29,8 @@ def rviz(package: str = None, configfile: str = None, suppress_warnings: bool = 
         Path to locate the config file in (if one is specified).
     config_file : str, optional
         Path to the RViz configuration file which will be resolved by :py:meth:`BetterLaunch.find`. Otherwise RViz will run with the default config.
+    subdir : str, optional
+        A path fragment the config file must be located in.
     suppress_warnings : bool, optional
         Whether to suppress warnings.
 
@@ -36,7 +43,7 @@ def rviz(package: str = None, configfile: str = None, suppress_warnings: bool = 
 
     args = []
     if configfile:
-        configfile = bl.find(package, configfile)
+        configfile = bl.find(package, configfile, subdir)
         args += ["-d", configfile]
 
     if not suppress_warnings:
@@ -48,10 +55,12 @@ def rviz(package: str = None, configfile: str = None, suppress_warnings: bool = 
 def read_robot_description(
     package: str = None,
     urdf_or_xacro: str = None,
+    subdir: str = None,
+    *,
     xacro_args: list[str] = None,
 ) -> str | None:
-    """Returns the contents of a robot description after a potential xacro parse. 
-    
+    """Returns the contents of a robot description after a potential xacro parse.
+
     The file is resolved using :py:meth:`BetterLaunch.find`. If the description file ends with `.urdf` and `xacro_args` is not provided, it reads the URDF file directly. Otherwise it runs `xacro` to generate the URDF from a `.xacro` file.
 
     Parameters
@@ -60,6 +69,8 @@ def read_robot_description(
         The package where the robot description file is located. May be `None` (see :py:meth:`BetterLaunch.find`)
     urdf_or_xacro : str, optional
         The name of the robot description file (URDF or XACRO).
+    subdir : str, optional
+        A path fragment the description file must be located in.
     xacro_args : list of str, optional
         Additional arguments to pass to `xacro` when processing `.xacro` files.
 
@@ -70,7 +81,7 @@ def read_robot_description(
     """
     bl = BetterLaunch.instance()
 
-    filepath = bl.find(package, urdf_or_xacro)
+    filepath = bl.find(package, urdf_or_xacro, subdir)
 
     if filepath.endswith("urdf") and xacro_args is None:
         with open(filepath) as f:
@@ -133,6 +144,8 @@ def joint_state_publisher(use_gui: bool, node_name: str = None, **kwargs) -> Nod
 def robot_state_publisher(
     package: str = None,
     urdf_or_xacro: str = None,
+    subdir: str = None,
+    *,
     xacro_args: list[str] = None,
     node_name: str = None,
     **kwargs,
@@ -145,6 +158,8 @@ def robot_state_publisher(
         The name of the package containing the robot description file.
     urdf_or_xacro : str, optional
         The name of the URDF or Xacro file describing the robot model.
+    subdir : str, optional
+        A path fragment the description file must be located in.
     xacro_args : list of str, optional
         Additional arguments to pass to the Xacro processor when processing `.xacro` files.
     node_name : str, optional
@@ -162,6 +177,7 @@ def robot_state_publisher(
     urdf_xml = read_robot_description(
         package,
         urdf_or_xacro,
+        subdir,
         xacro_args=xacro_args,
     )
 
@@ -172,8 +188,7 @@ def robot_state_publisher(
     return bl.node(
         "robot_state_publisher",
         "robot_state_publisher",
-        node_name or "robot_state_publisher",
+        node_name,
         params=params,
         **kwargs,
     )
-
