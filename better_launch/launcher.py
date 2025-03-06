@@ -1062,7 +1062,7 @@ Takeoff in 3... 2... 1...
         self,
         package: str,
         executable: str,
-        name: str,
+        name: str = None,
         *,
         remaps: dict[str, str] = None,
         params: str | dict[str, Any] = None,
@@ -1097,8 +1097,8 @@ Takeoff in 3... 2... 1...
             The package providing the node.
         executable : str
             The executable that should be run.
-        name : str
-            The name you want the node to be known as.
+        name : str, optional
+            The name you want the node to be known as. If `None`, a name will be derived from `package` and `executable` and `anonymous` will be set to True.
         remaps : dict[str, str], optional
             Tells the node to replace any topics it wants to interact with according to the provided dict.
         params : str | dict[str, Any], optional
@@ -1149,6 +1149,10 @@ Takeoff in 3... 2... 1...
         if self._composition_node:
             raise RuntimeError("Cannot add nodes inside a composition node")
 
+        if not name:
+            name = f"{package}_{executable}"
+            anonymous = True
+
         if anonymous:
             name = self.get_unique_name(name)
 
@@ -1195,7 +1199,7 @@ Takeoff in 3... 2... 1...
     @contextmanager
     def compose(
         self,
-        name: str,
+        name: str = None,
         language: str = "cpp",
         composer_mode: Composer.ComposerMode = "normal",
         *,
@@ -1231,8 +1235,8 @@ Takeoff in 3... 2... 1...
 
         Parameters
         ----------
-        name : str
-            The name you want the composer to be known as.
+        name : str, optional
+            The name you want the composer to be known as. `anonymous` will be set to True if no name is provided.
         language : str, optional
             The programming language of the composer (and components) you want to use.
         composer_mode : Composer.ComposerMode, optional
@@ -1285,6 +1289,10 @@ Takeoff in 3... 2... 1...
         if self._composition_node is not None:
             raise RuntimeError("Cannot nest composition nodes")
 
+        if not name:
+            name = "composer"
+            anonymous = True
+
         if anonymous:
             name = self.get_unique_name(name)
 
@@ -1335,10 +1343,12 @@ Takeoff in 3... 2... 1...
         self,
         package: str,
         plugin: str,
-        name: str,
+        name: str = None,
         *,
         remaps: dict[str, str] = None,
         params: str | dict[str, Any] = None,
+        anonymous: bool = False,
+        hidden: bool = False,
         use_intra_process_comms: bool = True,
         ros_waittime: float = 3.0,
         lifecycle_waittime: float = 0.01,
@@ -1355,10 +1365,14 @@ Takeoff in 3... 2... 1...
             The package providing the component implementation.
         plugin : str
             The name the component is registered as, typically of the form `<package>::<Name>`.
-        name : str
-            The name the instantiated component should be known as.
+        name : str, optional
+            The name the instantiated component should be known as. If `None`, a name will be derived from `package` and `plugin`, and `anonymous` will be set to True.
         remaps : dict[str, str], optional
             Tells the node to replace any topics it wants to interact with according to the provided dict.
+        anonymous : bool, optional
+            If True, the composer name will be appended with a unique suffix to avoid name conflicts.
+        hidden : bool, optional
+            If True, the composer name will be prepended with a "_", hiding it from common listings.
         params : str | dict[str, Any], optional
             Any ROS parameters you want to pass to the component. These are the args you would typically have to declare in your launch file. A string will be interpreted as a path to a yaml file which will be lazy loaded using :py:meth:`BetterLaunch.load_params`.
         use_intra_process_comms : bool, optional
@@ -1382,6 +1396,16 @@ Takeoff in 3... 2... 1...
         """
         if self._composition_node is None:
             raise RuntimeError("Cannot add component outside a compose() node")
+
+        if not name:
+            name = f"{package}_{plugin.replace("::", "_")}"
+            anonymous = True
+
+        if anonymous:
+            name = self.get_unique_name(name)
+
+        if hidden and not name.startswith("_"):
+            name = "_" + name
 
         comp = Component(
             self._composition_node,
