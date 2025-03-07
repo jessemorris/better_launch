@@ -142,7 +142,6 @@ class BetterLaunch(metaclass=_BetterLaunchMeta):
             root_namespace = "/"
         root_namespace = "/" + root_namespace.strip("/")
 
-
         self._group_root = Group(None, root_namespace)
         self._group_stack = [self._group_root]
 
@@ -229,8 +228,8 @@ Takeoff in 3... 2... 1...
         # Simplified breadth first search since we don't expect any loops
         while queue:
             g = queue.pop()
-            groups.extend(g.children)
-            queue.extend(g.children)
+            groups.extend(g.children.values())
+            queue.extend(g.children.values())
 
         return groups
 
