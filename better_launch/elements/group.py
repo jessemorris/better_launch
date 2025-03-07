@@ -2,7 +2,7 @@ from .node import Node
 
 
 class Group:
-    def __init__(self, parent: "Group", namespace: str, remaps: dict[str, str] = None):
+    def __init__(self, parent: "Group", namespace: str):
         """Groups are used in better_launch to manage node namespaces and common remaps. Beyond that they don't have any meaning for ROS, and there is usually no reason to interact with them directly.
         
         Parameters
@@ -11,13 +11,10 @@ class Group:
             This group's parent group.
         namespace : str
             The namespace fragment this group represents.
-        remaps : dict[str, str], optional
-            Any remaps this group provides to its descendent groups and nodes.
         """
         self.parent = parent
-        self.children = []
+        self.children = {}
         self.namespace = namespace
-        self.remaps = remaps or {}
         self.nodes = []
 
         self._root_chain = self._get_chain_from_root()
@@ -34,19 +31,6 @@ class Group:
             chain.append(g)
 
         return list(reversed(chain))
-
-    def assemble_remaps(self) -> dict[str, str]:
-        """Collect the remaps from the root group up to this group.
-
-        Returns
-        -------
-        dict[str, str]
-            A collection of topic remaps.
-        """
-        remaps = {}
-        for g in self._root_chain:
-            remaps.update(g.remaps)
-        return remaps
 
     def assemble_namespace(self) -> str:
         """Return the full namespace string this group represents.
@@ -70,15 +54,19 @@ class Group:
 
         return ns
 
-    def add_group(self, group: "Group") -> None:
+    def add_child(self, child: "Group") -> None:
         """Add a child group to this group.
 
         Parameters
         ----------
-        group : Group
+        child : Group
             The group to add.
         """
-        self.children.append(group)
+        ns = child.namespace
+        if ns in self.children:
+            raise ValueError(f"Group {self.namespace} already contains a child group named '{ns}'")
+
+        self.children[ns] = child
 
     def add_node(self, node: Node) -> None:
         """Add a node to this group. This group will not do any magic to enforce its namespace or remaps onto the node.

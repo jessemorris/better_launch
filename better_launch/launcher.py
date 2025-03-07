@@ -142,9 +142,9 @@ class BetterLaunch(metaclass=_BetterLaunchMeta):
             root_namespace = "/"
         root_namespace = "/" + root_namespace.strip("/")
 
+
         self._group_root = Group(None, root_namespace)
-        self._group_stack = deque()
-        self._group_stack.append(self._group_root)
+        self._group_stack = [self._group_root]
 
         self._composition_node = None
 
@@ -1012,30 +1012,38 @@ Takeoff in 3... 2... 1...
         return client
 
     @contextmanager
-    def group(
-        self, namespace: str, remaps: dict[str, str] = None
-    ) -> Generator[Group, None, None]:
-        """Groups are used to bundle nodes into logical collections.
+    def group(self, namespace: str) -> Generator[Group, None, None]:
+        """Groups are used to bundle nodes into namespaces. While they influence the nodes' topics
+        and service name, they have no runtime functionality.
 
-        As in ROS2, groups allow to collect nodes under a common namespace. Additionally, in *better_launch* groups can be used to define topic remaps for all nodes added to them.
-
-        Groups are intended to be used as context objects and can be nested, e.g.
+        Groups are intended to be used as context objects and can be nested. Note that starting a 
+        new root branch (i.e. a group starting with "/") is valid and will change subsequent groups
+        for the duration of the context window.
 
         .. code:: python
 
             bl = BetterLaunch()
             with bl.group("outer"):
-                with bl.group("inner"):
-                    # Node will live within "/outer/inner/"
-                    bl.node("mypkg", "mynode.py", "mynode")
+                # Unless included in another group, "outer" will be attached to "/"
+                with bl.group("inner/sanctum"):
+                    # Regular nesting, nodes will live within "/outer/inner/sanctum"
+                    bl.node(...)
+                with bl.group("/evil/tower"):
+                    # New root branch, nodes will live within "/evil/tower"
+                    bl.node(...)
+                # Root branch exited, nodes will live within "/outer" once again
+                bl.node(...)
+
+        .. seealso::
+
+            * :py:meth:`group_root`
+            * :py:meth:`group_tip`
 
 
         Parameters
         ----------
         namespace : str
             The group's namespace.
-        remaps : dict[str, str], optional
-            Topic remaps that will apply to all nodes in this group or any descendant groups.
 
         Yields
         ------
@@ -1050,15 +1058,30 @@ Takeoff in 3... 2... 1...
         if self._composition_node:
             raise RuntimeError("Cannot add groups inside a composition node")
 
-        # FIXME handle namespaces with / correctly!
-        # FIXME bl.group(X/Y) ... bl.group(X/Y) should reuse the same group!
-        group = Group(self.group_tip, namespace, remaps=remaps)
-        self.group_tip.add_group(group)
-        self._group_stack.append(group)
+        # It's possible to start a new root branch, especially when including launch files. Once 
+        # we exit that branch the previous stack should be restored
+        old_stack = self._group_stack[:]
+        if namespace.startswith("/"):
+            self._group_stack = [self._group_root]
+        
+        tip = self.group_tip
+        for token in namespace.strip("/").split("/"):
+            if token in tip.children:
+                branch = tip.children[token]
+            else:
+                branch = Group(tip, token)
+                tip.add_child(branch)
+            
+            self._group_stack.append(branch)
+            tip = branch
+
         try:
-            yield group
+            yield tip
         finally:
-            self._group_stack.pop()
+            # Restore the old stack. 
+            # Since it is possible to start a new root branch or open up multiple/namespaces/at/
+            # once we replace the entire stack rather than only removing elements from the end
+            self._group_stack = old_stack
 
     def node(
         self,
@@ -1161,13 +1184,8 @@ Takeoff in 3... 2... 1...
         if hidden and not name.startswith("_"):
             name = "_" + name
 
-        # Assemble additional node remaps from our group branch
-        g = self.group_tip
-        remaps = g.assemble_remaps()
-        if remaps:
-            remaps.update(remaps)
-
-        namespace = g.assemble_namespace()
+        group = self.group_tip
+        namespace = group.assemble_namespace()
 
         node = Node(
             package,
@@ -1188,7 +1206,7 @@ Takeoff in 3... 2... 1...
             use_shell=use_shell,
         )
 
-        g.add_node(node)
+        group.add_node(node)
         if autostart_process:
             node.start()
 
@@ -1302,20 +1320,15 @@ Takeoff in 3... 2... 1...
         if hidden and not name.startswith("_"):
             name = "_" + name
 
-        # NOTE: Remaps apply to the components, not the composer
-        g = self.group_tip
-        remaps = g.assemble_remaps()
-        if component_remaps:
-            remaps.update(component_remaps)
-
-        namespace = g.assemble_namespace()
+        group = self.group_tip
+        namespace = group.assemble_namespace()
 
         comp = Composer(
             name,
             namespace,
             language,
             composer_mode,
-            component_remaps=remaps,
+            component_remaps=component_remaps,
             composer_remaps=composer_remaps,
             params=params,
             cmd_args=cmd_args,
@@ -1331,7 +1344,7 @@ Takeoff in 3... 2... 1...
         )
 
         try:
-            g.add_node(comp)
+            group.add_node(comp)
 
             if autostart_process:
                 comp.start()
