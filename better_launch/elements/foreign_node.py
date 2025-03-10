@@ -11,6 +11,20 @@ from . import LiveParamsMixin
 
 
 def find_node_process(namespace: str, name: str) -> list[psutil.Process]:
+    """Find processes that look like ROS2 nodes which have been passed the specified namespace and name.
+
+    Parameters
+    ----------
+    namespace : str
+        The namespace to look for.
+    name : str
+        The node name to look for.
+
+    Returns
+    -------
+    list[psutil.Process]
+        A list processes that match the above criteria.
+    """
     r_pkg = re.compile(rf"__ns:={namespace}")
     r_name = re.compile(rf"__node:={name}")
 
