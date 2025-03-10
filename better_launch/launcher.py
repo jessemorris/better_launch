@@ -1232,9 +1232,11 @@ Takeoff in 3... 2... 1...
         autostart_process: bool = True,
         ros_waittime: float = 3.0,
     ) -> Generator[Composer, None, None]:
-        """Creates a composer node which can be used to load composable components.
+        """Creates a composer node which can be used to load :py:class:`Component`s. Components can be instantiated directly, or preferably via :py:meth:`component`.
 
-        This can be used as a context object, e.g.
+        Existing composers can be reused even if they have been created outside of *better_launch*. See :py:class:`Composer` for further details.
+
+        This method should be used as a context, e.g.
 
         .. code:: python
 
