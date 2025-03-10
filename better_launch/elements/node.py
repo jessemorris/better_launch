@@ -332,9 +332,7 @@ class Node(AbstractNode, LiveParamsMixin):
 
     def shutdown(self, reason: str, signum: int = signal.SIGTERM) -> None:
         signame = signal.Signals(signum).name
-        self.logger.warning(
-            f"{self.name} received shutdown request: {reason} ({signame})"
-        )
+        self.logger.warning(f"Received shutdown request: {reason} ({signame})")
         self._on_signal(signum)
 
     def _on_signal(self, signum) -> None:

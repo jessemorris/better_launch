@@ -1308,9 +1308,6 @@ Takeoff in 3... 2... 1...
                 )
 
                 if fullname in living_nodes:
-                    # Although we know the default composer package and likely implementation, this 
-                    # is in no way guaranteed, so better not make any wild guesses here. If we find 
-                    # a way for the ForeignNode to figure these things out it will be done there.
                     node_ref = ForeignNode(name, namespace)
         
         if node_ref and not Composer.is_composer(node_ref):
