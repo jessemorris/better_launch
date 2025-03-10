@@ -55,7 +55,7 @@ class LifecycleManager:
     def is_lifecycle(cls, node: AbstractNode, timeout: float = None) -> bool:
         """Checks whether a node supports lifecycle management. 
 
-        For a node to support lifecycle management, it must be running, be registered with ROS and offer the ROS lifecycle management services. This method **only** checks whether one of the key topics is present.
+        For a node to support lifecycle management, it must be running, be registered with ROS and offer the ROS lifecycle management services. This method **only** checks whether one of the key services is present.
 
         If a timeout is specified, the check will be repeated until it succeeds or the specified amount of time has passed. This is to ensure that a freshly started node had enough time to create its topics, especially on slower devices. See :py:meth:`AbstractNode.check_lifecycle_node` for additional information.
 
@@ -64,24 +64,18 @@ class LifecycleManager:
         node : AbstractNode
             The node object to check for lifecycle support.
         timeout : float
-            How long to wait at most for the lifecycle topics to appear. Wait forever if negative.
+            How long to wait at most for the lifecycle services to appear. Wait forever if negative.
 
         Returns
         -------
         bool
             True if the node supports lifecycle management, False otherwise.
         """
-        from better_launch import BetterLaunch
-
-        bl = BetterLaunch.instance()
-        if not bl:
-            return None
-
         now = time.time()
         while True:
             # Check if the node provides one of the key lifecycle services
-            services = bl.shared_node.get_service_names_and_types()
-            for srv_name, srv_types in services:
+            services = node.get_live_services()
+            for srv_name, srv_types in services.items():
                 if (
                     srv_name == f"{node.fullname}/get_state"
                     and "lifecycle_msgs/srv/GetState" in srv_types

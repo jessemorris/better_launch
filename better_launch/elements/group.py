@@ -1,4 +1,5 @@
 from .node import Node
+from .abstract_node import AbstractNode
 
 
 class Group:
@@ -13,9 +14,9 @@ class Group:
             The namespace fragment this group represents.
         """
         self.parent = parent
-        self.children = {}
         self.namespace = namespace
-        self.nodes = []
+        self.children: dict[str, Group] = {}
+        self.nodes: list[AbstractNode] = []
 
         self._root_chain = self._get_chain_from_root()
 
@@ -69,13 +70,18 @@ class Group:
         self.children[ns] = child
 
     def add_node(self, node: Node) -> None:
-        """Add a node to this group. This group will not do any magic to enforce its namespace or remaps onto the node.
+        """Add a node to this group. 
+        
+        This group will not do any magic to enforce its namespace or remaps onto the node. Calling this with a node that has been added before will do nothing.
 
         Parameters
         ----------
         node : Node
             The node to add.
         """
+        if node in self.nodes:
+            return
+        
         self.nodes.append(node)
 
     def __repr__(self) -> str:

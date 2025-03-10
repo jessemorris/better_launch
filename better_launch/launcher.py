@@ -1,4 +1,4 @@
-from typing import Any, Callable, Generator, overload, TYPE_CHECKING
+from typing import Any, Callable, Generator, Literal, TYPE_CHECKING
 import importlib
 import sys
 import os
@@ -50,6 +50,7 @@ from better_launch.elements import (
     Component,
     LifecycleStage,
     Ros2LaunchWrapper,
+    ForeignNode,
 )
 from better_launch.utils.better_logging import default_log_colormap, PrettyLogFormatter
 from better_launch.utils.substitutions import (
@@ -258,7 +259,7 @@ Takeoff in 3... 2... 1...
             for n in g.nodes:
                 nodes.append(n)
                 if include_components and isinstance(n, Composer):
-                    nodes.extend(n.loaded_components)
+                    nodes.extend(n.managed_components)
 
         if include_launch_service and self._ros2_launcher:
             nodes.append(self._ros2_launcher)
@@ -427,6 +428,8 @@ Takeoff in 3... 2... 1...
         for n in self.all_nodes():
             try:
                 n.shutdown(reason, signum)
+            except NotImplementedError:
+                pass
             except Exception as e:
                 self.logger.error(
                     f"Node {n.name} raised an exception during shutdown: {e}"
@@ -1220,26 +1223,12 @@ Takeoff in 3... 2... 1...
         self,
         name: str = None,
         language: str = "cpp",
-        composer_mode: Composer.ComposerMode = "normal",
+        variant: Literal["normal", "multithreading", "isolated"] = "normal",
         *,
-        reuse_if_exists: bool = True,  # TODO
+        reuse_existing: bool = True,
         component_remaps: dict[str, str] = None,
-        composer_remaps: dict[str, str] = None,
-        params: str | dict[str, Any] = None,
-        cmd_args: list[str] = None,
-        env: dict[str, str] = None,
-        isolate_env: bool = False,
-        log_level: int = logging.INFO,
-        output: (
-            Node.LogSink | dict[Node.LogSource, set[Node.LogSink]]
-        ) = "screen",
-        reparse_logs: bool = True,
         anonymous: bool = False,
         hidden: bool = False,
-        on_exit: Callable = None,
-        max_respawns: int = 0,
-        respawn_delay: float = 0.0,
-        use_shell: bool = False,
         autostart_process: bool = True,
         ros_waittime: float = 3.0,
     ) -> Generator[Composer, None, None]:
@@ -1258,39 +1247,17 @@ Takeoff in 3... 2... 1...
         name : str, optional
             The name you want the composer to be known as. `anonymous` will be set to True if no name is provided.
         language : str, optional
-            The programming language of the composer (and components) you want to use.
-        composer_mode : Composer.ComposerMode, optional
-            ROS2 provides special composers for components that need multithreading or should be isolated from the rest.
+            The implementation of the standard composer you want to use. Ignored if `reuse_existing` is True and a matching node is found.
+        variant : Literal["normal", "multithreading", "isolated"], optional
+            ROS2 provides special composers for components that need multithreading or should be isolated from the rest. Ignored if `reuse_existing` is True and a matching node is found.
+        reuse_existing : bool, optional
+            If True and a node matching the current namespace and provided name is found, it will be used instead of creating a new node. This will even work for composers not created through better_launch, although in that case it won't be possible to stop them.
         component_remaps : dict[str, str], optional
             Any remaps you want to apply to all *components* loaded into this composer.
-        composer_remaps : dict[str, str], optional
-            Remaps you want to apply for the composer itself. Usually less useful (i.e. not at all).
-        params : str | dict[str, Any], optional
-            Any ROS parameters you want to pass to the composer itself. These are the args you would typically have to declare in your launch file. A string will be interpreted as a path to a yaml file which will be lazy loaded using :py:meth:`BetterLaunch.load_params`.
-        cmd_args : list[str], optional
-            Additional command line arguments to pass to the composer.
-        env : dict[str, str], optional
-            Additional environment variables to set for the composer's process. The composer process will merge these with the environment variables of the better_launch host process unless :py:meth:`isolate_env` is True.
-        isolate_env : bool, optional
-            If True, the composer process' env will not be inherited from the parent process and only those passed via `env` will be used. Be aware that this can result in many common things to not work anymore since e.g. keys like *PATH* will be missing.
-        log_level : int, optional
-            The minimum severity a logged message from this composer must have in order to be published.
-        output : Node.LogSink  |  dict[Node.LogSource, set[Node.LogSink]], optional
-            How log output from the composer should be handled. Sources are `stdout`, `stderr` and `both`. Sinks are `screen`, `log`, `both`, `own_log`, and `full`. See :py:class:`Node` for more details.
-        reparse_logs : bool, optional
-            If True, *better_launch* will capture the composer's output and reformat it before publishing.
         anonymous : bool, optional
-            If True, the composer name will be appended with a unique suffix to avoid name conflicts.
+            If True, the composer name will be appended with a unique suffix to avoid name conflicts. `reuse_existing` will be set to False in this case.
         hidden : bool, optional
             If True, the composer name will be prepended with a "_", hiding it from common listings.
-        on_exit : Callable, optional
-            A function to call when the composer's process terminates (after any possible respawns).
-        max_respawns : int, optional
-            How often to restart the composer process if it terminates.
-        respawn_delay : float, optional
-            How long to wait before restarting the composer process after it terminates.
-        use_shell : bool, optional
-            If True, invoke the composer executable via the system shell. While this gives access to the shell's builtins, this has the downside of running the composer inside a "mystery program" which is platform and user dependent. Generally not advised.
         autostart_process : bool, optional
             If True, start the composer process before returning from this function. Note that setting this to False for a composer will make it unusable as a context object, since you won't be able to load any components.
         ros_waittime : float, optional
@@ -1315,39 +1282,71 @@ Takeoff in 3... 2... 1...
 
         if anonymous:
             name = self.get_unique_name(name)
+            reuse_existing = False
 
         if hidden and not name.startswith("_"):
             name = "_" + name
 
         group = self.group_tip
         namespace = group.assemble_namespace()
+        
+        node_ref = None
 
-        comp = Composer(
-            name,
-            namespace,
-            language,
-            composer_mode,
-            component_remaps=component_remaps,
-            composer_remaps=composer_remaps,
-            params=params,
-            cmd_args=cmd_args,
-            env=env,
-            isolate_env=isolate_env,
-            log_level=log_level,
-            output=output,
-            reparse_logs=reparse_logs,
-            on_exit=on_exit,
-            max_respawns=max_respawns,
-            respawn_delay=respawn_delay,
-            use_shell=use_shell,
-        )
+        if reuse_existing:
+            # Try to find an already running node we can reuse
+            ns = namespace.strip("/")
+            fullname = "/" + ns + ("/" if ns else "") + name
+            
+            # Check if it's a node we've created
+            node_ref = self.query_node(fullname, include_components=False)
+
+            if not node_ref:
+                # Otherwise see if there's a foreign node matching the full name
+                living_nodes = set(
+                    _ns + ("" if _ns.endswith("/") else "/") + _name
+                    for _name, _ns in self.shared_node.get_node_names_and_namespaces()
+                )
+
+                if fullname in living_nodes:
+                    # Although we know the default composer package and likely implementation, this 
+                    # is in no way guaranteed, so better not make any wild guesses here. If we find 
+                    # a way for the ForeignNode to figure these things out it will be done there.
+                    node_ref = ForeignNode(name, namespace)
+        
+        if node_ref and not Composer.is_composer(node_ref):
+            # We will still reuse it but raise some awareness
+            self.logger.warning(
+                f"Reused composer node {node_ref.fullname} does not provide the expected services (yet)"
+            )
+
+        if not node_ref:
+            # Node doesn't exist yet or it should not be reused, create a new composer
+            package = f"rcl{language}_components"
+
+            # The actual implementation of the composer
+            if variant == "normal":
+                executable = "component_container"
+            elif variant == "multithreading":
+                executable = "component_container_mt"
+            elif variant == "isolated":
+                executable = "component_container_isolated"
+            else:
+                raise ValueError(f"Unknown container mode '{variant}")
+
+            node_ref = Node(package, executable, name, namespace)
+
+        if isinstance(node_ref, Composer):
+            comp = node_ref
+        else:
+            comp = Composer(
+                node_ref, component_remaps=component_remaps,
+            )
 
         try:
             group.add_node(comp)
 
             if autostart_process:
-                comp.start()
-                comp.check_ros2_connected(ros_waittime)
+                comp.start(service_timeout=ros_waittime)
 
             self._composition_node = comp
             yield comp

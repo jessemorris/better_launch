@@ -1,8 +1,9 @@
 from typing import Any, Callable, Mapping, Literal
 import signal
-import logging
+import time
+import re
 from rclpy import Parameter
-from composition_interfaces.srv import LoadNode, UnloadNode
+from composition_interfaces.srv import ListNodes, LoadNode, UnloadNode
 
 from .abstract_node import AbstractNode
 from .live_params_mixin import LiveParamsMixin
@@ -117,31 +118,54 @@ class Component(AbstractNode, LiveParamsMixin):
         return f"{self.__class__.__name__} {self.package}/{self.plugin}"
 
 
-class Composer(Node):
-    ComposerMode = Literal["normal", "multithreading", "isolated"]
+class Composer(AbstractNode):
+    @classmethod
+    def is_composer(cls, node: AbstractNode, timeout: float = None) -> bool:
+        """Checks whether a node provides services for loading components.
+
+        For a node to be a composer, it must be running, be registered with ROS and offer the ROS composition services. This method **only** checks whether one of the key services is present.
+
+        If a timeout is specified, the check will be repeated until it succeeds or the specified amount of time has passed. This is to ensure that a freshly started node had enough time to create its topics, especially on slower devices. 
+
+        Parameters
+        ----------
+        node : AbstractNode
+            The node object to check.
+        timeout : float
+            How long to wait at most for the composition services to appear. Wait forever if negative.
+
+        Returns
+        -------
+        bool
+            True if the node supports loading components, False otherwise.
+        """
+        now = time.time()
+        while True:
+            # Check if the node provides one of the key lifecycle services
+            services = node.get_live_services()
+            for srv_name, srv_types in services.items():
+                if (
+                    srv_name == f"{node.fullname}/_container/load_node"
+                    and "composition_interfaces/srv/LoadNode" in srv_types
+                ):
+                    return True
+
+            if timeout is None or (timeout > 0 and time.time() > now + timeout):
+                break
+
+            time.sleep(0.1)
+
+        return False
 
     def __init__(
         self,
-        name: str,
-        namespace: str,
-        language: str,
-        composer_mode: ComposerMode = "normal",
+        wrapped_node: AbstractNode,
         *,
         component_remaps: dict[str, str] = None,
-        composer_remaps: dict[str, str] = None,
-        params: str | dict[str, Any] = None,
-        cmd_args: list[str] = None,
-        env: dict[str, str] = None,
-        isolate_env: bool = False,
-        log_level: int = logging.INFO,
-        output: Node.LogSink | dict[Node.LogSource, set[Node.LogSink]] = "screen",
-        reparse_logs: bool = True,
-        on_exit: Callable = None,
-        max_respawns: int = 0,
-        respawn_delay: float = 0.0,
-        use_shell: bool = False,
     ):
         """A composer is a special ROS2 node that can host other nodes (:py:class:`Component`s) within the same process, reducing overhead and enabling efficient intra process communication for message exchange.
+
+        As it is possible to reuse already running composers (even without a reference to the actual process), this is merely a wrapper around another :py:class:`AbstractNode` providing additional functionality. The wrapped node instance is typically a :py:class:`Node` or :py:class:`ForeignNode`. See `py:meth:`BetterLaunch.compose` for the most common use cases. 
 
         .. seealso::
 
@@ -149,132 +173,117 @@ class Composer(Node):
 
         Parameters
         ----------
-        name : str
-            The name you want the composer to be known as.
-        namespace : str
-            The node's namespace.
-        language : str, optional
-            The programming language of the composer (and components) you want to use.
-        composer_mode : ComposerMode, optional
-            ROS2 provides special composers for components that need multithreading or should be isolated from the rest.
+        wrapped_node : AbstractNode
+            A representation of the actual ROS2 node that will be managed by this composer. This is usually a :py:class:`Node` or :py:class:`ForeignNode` instance.
         component_remaps : dict[str, str], optional
             Any remaps you want to apply to all *components* loaded into this composer.
-        composer_remaps : dict[str, str], optional
-            Remaps you want to apply for the composer itself. Usually less useful (i.e. not at all).
-        params : str | dict[str, Any], optional
-            Any ROS parameters you want to pass to the composer itself. These are the args you would typically have to declare in your launch file. A string will be interpreted as a path to a yaml file which will be lazy loaded using :py:meth:`BetterLaunch.load_params`.
-        cmd_args : list[str], optional
-            Additional command line arguments to pass to the composer.
-        env : dict[str, str], optional
-            Additional environment variables to set for the composer's process.
-        isolate_env : bool, optional
-            If True, the composer process' env will not be inherited from the parent process. Be aware that this can result in many common things to not work anymore since e.g. keys like *PATH* will be missing.
-        log_level : int, optional
-            The minimum severity a logged message from this composer must have in order to be published.
-        output : Node.LogSink  |  dict[Node.LogSource, set[Node.LogSink]], optional
-            How log output from the node should be handled. Sources are `stdout`, `stderr` and `both`. Sinks are `screen`, `log`, `both`, `own_log`, and `full`. See :py:class:`Node` for more details.
-        reparse_logs : bool, optional
-            If True, *better_launch* will capture the composer's output and reformat it before publishing.
-        anonymous : bool, optional
-            If True, the composer name will be appended with a unique suffix to avoid name conflicts.
-        hidden : bool, optional
-            If True, the composer name will be prepended with a "_", hiding it from common listings.
-        on_exit : Callable, optional
-            A function to call when the composer's process terminates (after any possible respawns).
-        max_respawns : int, optional
-            How often to restart the composer process if it terminates.
-        respawn_delay : float, optional
-            How long to wait before restarting the composer process after it terminates.
-        use_shell : bool, optional
-            If True, invoke the composer executable via the system shell. Use only if you know you need it.
 
         Raises
         ------
         ValueError
-            _description_
+            If the composer mode is not recognized.
         """
-        # NOTE: we don't support referencing an already existing composer. If you want to reuse
-        # the container, just keep a reference to it.
-
-        if composer_mode == "normal":
-            executable = "component_container"
-        elif composer_mode == "multithreading":
-            executable = "component_container_mt"
-        elif composer_mode == "isolated":
-            executable = "component_container_isolated"
-        else:
-            raise ValueError(f"Unknown container mode '{composer_mode}")
-
-        package = f"rcl{language}_components"
-
         super().__init__(
-            package,
-            executable,
-            name,
-            namespace,
-            remaps=composer_remaps,
-            params=params,
-            cmd_args=cmd_args,
-            env=env,
-            isolate_env=isolate_env,
-            log_level=log_level,
-            output=output,
-            reparse_logs=reparse_logs,
-            on_exit=on_exit,
-            max_respawns=max_respawns,
-            respawn_delay=respawn_delay,
-            use_shell=use_shell,
+            wrapped_node.package,
+            wrapped_node.executable,
+            wrapped_node.name,
+            wrapped_node.namespace,
         )
 
-        self._language: str = language
+        self._wrapped_node = wrapped_node
+
+        pkg = self._wrapped_node.package
+        m = re.match(r"rcl(.+)_components", pkg)
+        if m:
+            self._language = m.group(1)
+        else:
+            self._language = None
+
         # Remaps are not useful for a composable node, but we can forward them to the components
         self._component_remaps: dict[str, str] = component_remaps or {}
-        self._loaded_components: dict[int, Component] = {}
-        self._load_node_client = None
-        self._unload_node_client = None
+        self._managed_components: dict[int, Component] = {}
+        self._list_components_client = None
+        self._load_component_client = None
+        self._unload_component_client = None
 
     @property
-    def language(self) -> str:
-        """The programming language this composer (and its components) use."""
-        return self._language
-
-    @property
-    def loaded_components(self) -> list[Component]:
-        """The currently loaded components."""
-        return list(self._loaded_components.values())
+    def is_running(self) -> bool:
+        return self._wrapped_node.is_running
 
     @property
     def is_lifecycle(self) -> bool:
         """Composers are not lifecycle nodes."""
         return False
 
-    def start(self) -> None:
-        super().start()
+    @property
+    def language(self) -> str:
+        """The implementation language of this composer, usually `cpp` or `py`. Corresponds to this composer's package (e.g. *rclcpp_composition*), but will be `None` if it's a custom implementation."""
+        self._language
+
+    @property
+    def managed_components(self) -> list[Component]:
+        """The components that were explicitly loaded through this composer instance. This will not contain components that have been loaded via external service calls."""
+        return list(self._managed_components.values())
+
+    def get_live_components(self) -> dict[int, str]:
+        """Use a service call to retrieve the components currently loaded into this composer and their IDs.
+
+        Returns
+        -------
+        dict[int, str]
+            A dict mapping component IDs to full node names.
+        """
+        if not self._wrapped_node.is_running:
+            return []
+
+        res = self._list_components_client.call(ListNodes.Request())
+        return [(uid, name) for uid, name in zip(res.unique_ids, res.full_node_names)]
+
+    def start(self, service_timeout: float = 5.0) -> None:
+        try:
+            self._wrapped_node.start()
+        except NotImplementedError:
+            pass
 
         from better_launch import BetterLaunch
 
-        launcher = BetterLaunch.instance()
-        self._load_node_client = launcher.service_client(
-            f"{self.fullname}/_container/load_node", LoadNode
+        bl = BetterLaunch.instance()
+        self._list_components_client = bl.service_client(
+            f"{self.fullname}/_container/list_nodes", ListNodes
         )
-        if not self._load_node_client.wait_for_service(timeout_sec=5.0):
+        if not self._list_components_client.wait_for_service(
+            timeout_sec=service_timeout
+        ):
             raise RuntimeError("Failed to connect to composer load service")
 
-        self._unload_node_client = launcher.service_client(
+        self._load_component_client = bl.service_client(
+            f"{self.fullname}/_container/load_node", LoadNode
+        )
+        if not self._load_component_client.wait_for_service(
+            timeout_sec=service_timeout
+        ):
+            raise RuntimeError("Failed to connect to composer load service")
+
+        self._unload_component_client = bl.service_client(
             f"{self.fullname}/_container/unload_node", UnloadNode
         )
-        if not self._unload_node_client.wait_for_service(timeout_sec=5.0):
+        if not self._unload_component_client.wait_for_service(
+            timeout_sec=service_timeout
+        ):
             raise RuntimeError("Failed to connect to composer unload service")
 
     def shutdown(self, reason: str, signum: int = signal.SIGTERM) -> None:
-        components = list(self._loaded_components.values())
+        components = list(self.managed_components)
         for comp in components:
             try:
                 self.unload_component(comp)
             except:
                 pass
 
-        super().shutdown(reason, signum)
+        try:
+            self._wrapped_node.shutdown(reason, signum)
+        except NotImplementedError:
+            pass
 
     def load_component(
         self,
@@ -355,7 +364,7 @@ class Composer(Node):
 
         # Call the load_node service
         self.logger.info(f"Loading component {component.name}")
-        res = self._load_node_client.call(req)
+        res = self._load_component_client.call(req)
 
         if res.success:
             if res.full_node_name:
@@ -367,7 +376,7 @@ class Composer(Node):
             cid = res.unique_id
             component._component_id = cid
 
-            self._loaded_components[cid] = component
+            self._managed_components[cid] = component
             return cid
         else:
             self.logger.error(
@@ -394,6 +403,8 @@ class Composer(Node):
         ------
         ValueError
             If this composer is not running.
+        KeyError
+            If the provided component has not been loaded into this node
         """
         if not self.is_running:
             raise ValueError("Cannot unload components from stopped composer")
@@ -402,29 +413,35 @@ class Composer(Node):
             cid = component.component_id
         else:
             cid = component
-            component = self._loaded_components[cid]
+        
+        if cid in self._managed_components:
+            cname = self._managed_components[cid].name
+        else:
+            cname = self.get_live_components()[cid]
 
         req = UnloadNode.Request()
         req.unique_id = cid
 
-        self.logger.info(f"Unloading component {cid} ({component.name})")
-        res = self._unload_node_client.call(req)
+        self.logger.info(f"Unloading component {cid} ({cname})")
+        res = self._unload_component_client.call(req)
 
         if res.success:
-            # Component.shutdown() takes care of this, but the user can call unload_component directly
-            component._component_id = None
-            del self._loaded_components[cid]
+            # Usually Component.shutdown() takes care of this, but the user can call 
+            # unload_component() directly
+            if isinstance(component, Component):
+                component._component_id = None
+            self._managed_components.pop(cid, None)
             return True
 
         self.logger.error(
-            f"Unloading component {cid} ({component.name}) failed: {res.error_message}"
+            f"Unloading component {cid} ({cname}) failed: {res.error_message}"
         )
         return False
 
     def _get_info_section_general(self):
         info = super()._get_info_section_general()
         components = "\n".join(
-            [f"  - {c.plugin}" for c in self._loaded_components.values()]
+            [f"  - {c.plugin}" for c in self.managed_components]
         )
         return (
             info

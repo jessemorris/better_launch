@@ -3,14 +3,16 @@ from .abstract_node import AbstractNode
 from .live_params_mixin import LiveParamsMixin
 from .lifecycle_manager import LifecycleStage, LifecycleManager
 from .node import Node
+from .foreign_node import ForeignNode
 from .composer import Composer, Component
 from .ros2_launch_wrapper import Ros2LaunchWrapper
 
 __all__ = [
     "Group",
+    "Node",
     "LifecycleStage",
     "LifecycleManager",
-    "Node",
     "Composer",
-    "Component"
+    "Component",
+    "ForeignNode",
 ]
