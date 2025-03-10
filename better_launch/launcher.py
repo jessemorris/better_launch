@@ -1308,7 +1308,7 @@ Takeoff in 3... 2... 1...
                 )
 
                 if fullname in living_nodes:
-                    node_ref = ForeignNode(name, namespace)
+                    node_ref = ForeignNode(namespace, name)
         
         if node_ref and not Composer.is_composer(node_ref):
             # We will still reuse it but raise some awareness
