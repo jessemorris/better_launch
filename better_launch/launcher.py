@@ -640,6 +640,9 @@ Takeoff in 3... 2... 1...
 
             ns = ns.strip("/")
 
+            # TODO according to this we should combine all matching sections
+            # https://docs.ros.org/en/jazzy/How-To-Guides/Node-arguments.html
+
             # See https://github.com/ros2/design/blob/gh-pages/articles/160_ros_command_line_arguments.md
             def path_to_regex(path: str) -> str:
                 parts = path.strip("/").split("/")

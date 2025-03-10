@@ -118,6 +118,10 @@ class ForeignNode(AbstractNode, LiveParamsMixin):
             is_ros_args = False
             skip = 1
 
+            from better_launch import BetterLaunch
+            
+            bl = BetterLaunch.instance()
+
             for i, arg in enumerate(args):
                 if skip > 0:
                     # Skip the executable
@@ -140,8 +144,19 @@ class ForeignNode(AbstractNode, LiveParamsMixin):
                             skip = 1
                             key, val = args[i+1].split(":=")
                             if key not in ["__ns", "__node"]:
+                                if ":" in key:
+                                    # ROS2 supports a pattern where the key is preceded by the 
+                                    # node's name to make node-specific remaps for e.g. components
+                                    node_name, key = key.split(":", maxsplit=1)
+                                    if node_name != name:
+                                        continue
                                 remaps[key] = val
                             continue
+
+                        elif arg == "--params-file":
+                            skip = 1
+                            param_file = args[i+1]
+                            params.update(bl.load_params(None, param_file, node_or_namespace=self))
 
                         else:
                             # No special handling
