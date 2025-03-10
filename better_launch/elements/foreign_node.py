@@ -1,4 +1,3 @@
-from typing import Any
 import os
 import psutil
 import signal

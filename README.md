@@ -241,8 +241,6 @@ ROS2 launch has a bad reputation of leaving stale and abandoned processes behind
 
 # What doesn't work yet
 As of now *better_launch* supports the most important use cases, like starting nodes, proper (nicer!) logging, being awesome. However, there are still a couple of features that I have to work on to make it feature complete (roughly sorted by priority):
-- [ ] rewrite group namespace resolution
-- [ ] composers should be reusable by name
 - [ ] test include from ros
 - [ ] test tui web interface
 - [ ] document benchmarks
