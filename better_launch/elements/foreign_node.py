@@ -115,6 +115,7 @@ class ForeignNode(AbstractNode, LiveParamsMixin):
             params = {}
             remaps = {}
             additional_args = []
+            is_ros_args = False
             skip = 1
 
             for i, arg in enumerate(args):
@@ -125,20 +126,26 @@ class ForeignNode(AbstractNode, LiveParamsMixin):
 
                 if arg.startswith("-"):
                     if arg == "--ros-args":
+                        is_ros_args = True
                         continue
 
-                    if arg in ["-p", "--param"]:
-                        skip = 1
-                        key, val = args[i+1].split(":=")
-                        params[key] = val
-                        continue
-                    
-                    elif arg in ["-r", "--remap"]:
-                        skip = 1
-                        key, val = args[i+1].split(":=")
-                        if key not in ["__ns", "__node"]:
-                            remaps[key] = val
-                        continue
+                    if is_ros_args:
+                        if arg in ["-p", "--param"]:
+                            skip = 1
+                            key, val = args[i+1].split(":=")
+                            params[key] = val
+                            continue
+                        
+                        elif arg in ["-r", "--remap"]:
+                            skip = 1
+                            key, val = args[i+1].split(":=")
+                            if key not in ["__ns", "__node"]:
+                                remaps[key] = val
+                            continue
+
+                        else:
+                            # No special handling
+                            pass
 
                 # Nothing we handle, assume it's a regular command line arg
                 additional_args.append(arg)
