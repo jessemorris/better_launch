@@ -50,7 +50,7 @@ def find_node_process(namespace: str, name: str) -> list[psutil.Process]:
 def get_package_for_path(path: str) -> tuple[str, str]:
     """Find the ROS2 package associated with the specified path.
 
-    This will first check the currently registered packages (which are stored in `$AMENT_PREFIX_PATH`). If none of these match it will search through the path starting from the end for a valid `package.xml` file. 
+    This will first check the currently registered packages (which are stored in `$AMENT_PREFIX_PATH`). If none of these match it will search through the path starting from the end for a valid `package.xml` file to get the package name.
 
     Parameters
     ----------
@@ -72,7 +72,7 @@ def get_package_for_path(path: str) -> tuple[str, str]:
     else:
         # Not a package currently sourced, look for a package.xml somewhere on the path. This search
         # is somewhat expensive, but we expect it to be rare since usually packages should already 
-        # be sourced
+        # be sourced 99.9% of the time
         while os.pathsep in path:
             # The package.xml is usually found in install/<package>/share/<package>
             package_candidate = os.path.basename(path)
