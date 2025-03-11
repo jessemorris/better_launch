@@ -9,7 +9,6 @@ import re
 import threading
 from concurrent.futures import Future
 from contextlib import contextmanager
-from collections import deque
 import logging
 import yaml
 
@@ -51,8 +50,8 @@ from better_launch.elements import (
     LifecycleStage,
     Ros2LaunchWrapper,
     ForeignNode,
+    get_package_for_path,
 )
-from better_launch.utils.better_logging import default_log_colormap, PrettyLogFormatter
 from better_launch.utils.substitutions import (
     default_substitution_handlers,
     substitute_tokens,
@@ -64,7 +63,6 @@ from better_launch.utils.introspection import (
 )
 from better_launch.ros.ros_adapter import ROSAdapter
 from better_launch.ros import logging as roslog
-from better_launch.ros.logging import LaunchConfig as LogConfig
 
 
 _bl_singleton_instance = "__better_launch_instance"
@@ -513,15 +511,7 @@ Takeoff in 3... 2... 1...
                 return filename
 
         if not package:
-            # Search the launch file directory tree for a "package.xml"
-            searchpath = os.path.normpath(os.path.dirname(self.launchfile))
-            while os.pathsep in searchpath:
-                files = os.listdir(searchpath)
-                if "package.xml" in files:
-                    # TODO should get package name from xml
-                    package = os.path.basename(searchpath)
-                    break
-                searchpath = searchpath.rsplit(os.pathsep, maxsplit=1)[0]
+            _, package = get_package_for_path(os.path.dirname(self.launchfile))
 
         if package:
             if "/" in package or os.pathsep in package:
