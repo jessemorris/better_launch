@@ -633,15 +633,14 @@ Takeoff in 3... 2... 1...
             # Return the entire config if it doesn't contain sections for different nodes/namespaces
             return params["ros__parameters"]
 
+        final_params = {}
+
         if node_or_namespace:
             ns = node_or_namespace
-            if isinstance(ns, Node):
+            if isinstance(ns, AbstractNode):
                 ns = ns.fullname
 
             ns = ns.strip("/")
-
-            # TODO according to this we should combine all matching sections
-            # https://docs.ros.org/en/jazzy/How-To-Guides/Node-arguments.html
 
             # See https://github.com/ros2/design/blob/gh-pages/articles/160_ros_command_line_arguments.md
             def path_to_regex(path: str) -> str:
@@ -659,7 +658,7 @@ Takeoff in 3... 2... 1...
                         # Regular token
                         regex_parts.append(part)
 
-                # Does NOT start with a slash as only the node name could be specified
+                # We do NOT start with a slash as only the node name could be specified
                 return "^" + "/".join(regex_parts) + "$"
 
             # According to the above design document, params files are not allowed to have nesting,
@@ -667,17 +666,24 @@ Takeoff in 3... 2... 1...
             for key in params.keys():
                 pattern = path_to_regex(key)
                 if re.match(pattern, ns) is not None:
-                    params = params[key]
-                    break
-            else:
+                    final_params.update(params[key])
+                    # Don't break as there can be multiple matching entries due to wildcards
+                    # See https://docs.ros.org/en/jazzy/How-To-Guides/Node-arguments.html
+            
+            if not final_params:
                 # We didn't find any matching parameters, so this either doesn't contain a section
                 # for this node, or it is not a ros parameters file
                 raise ValueError(f"No section matching full node name {ns}")
+        else:
+            # No node or namespace provided, so we don't know which section we should resolve
+            final_params = params
 
-            if "ros__parameters" in params:
-                params = params["ros__parameters"]
+        # Discard the ros__parameters section if it's at the root
+        if "ros__parameters" in final_params:
+            final_params.update(final_params["ros__parameters"])
+            final_params.pop("ros__parameters", None)
 
-        return params
+        return final_params
 
     def get_ros_message_type(self, message_string: str) -> type:
         """Loads a ROS2 message type from a string representation.
