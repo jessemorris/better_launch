@@ -673,7 +673,7 @@ Takeoff in 3... 2... 1...
             if not final_params:
                 # We didn't find any matching parameters, so this either doesn't contain a section
                 # for this node, or it is not a ros parameters file
-                raise ValueError(f"No section matching full node name {ns}")
+                raise ValueError(f"No param section matching '{ns}'")
         else:
             # No node or namespace provided, so we don't know which section we should resolve
             final_params = params
