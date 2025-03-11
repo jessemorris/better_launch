@@ -70,21 +70,31 @@ def get_package_for_path(path: str) -> tuple[str, str]:
         if path.startswith(pkg_path):
             return pkg, pkg_path
     else:
-        # Not a package currently sourced, look for a package.xml somewhere on the path
+        # Not a package currently sourced, look for a package.xml somewhere on the path. This search
+        # is somewhat expensive, but we expect it to be rare since usually packages should already 
+        # be sourced
         while os.pathsep in path:
-            files = os.listdir(path)
+            # The package.xml is usually found in install/<package>/share/<package>
+            package_candidate = os.path.basename(path)
+            candidates = [
+                os.path.join("share", package_candidate, "package.xml"),
+                "package.xml",
+            ]
 
-            if "package.xml" in files:
-                tree = ElementTree.parse(os.path.join(path, "package.xml"))
-                root = tree.getroot()
-                if root.tag != "package":
-                    # Not an actual package file
-                    continue
+            for package_xml in candidates:
+                if os.path.isfile(package_xml):
+                    # Unfortunately the package name can be different from the package's folder, so 
+                    # we get it from the package.xml instead
+                    tree = ElementTree.parse(package_xml)
+                    root = tree.getroot()
+                    if root.tag != "package":
+                        # Not an actual package file
+                        continue
 
-                name_tag = root.find("name")
-                if name_tag:
-                    # Found it!
-                    return name_tag.text, path
+                    name_tag = root.find("name")
+                    if name_tag:
+                        # Found it!
+                        return name_tag.text, path
 
             # Go up one level
             path = path.rsplit(os.pathsep, maxsplit=1)[0]
