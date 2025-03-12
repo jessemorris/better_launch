@@ -17,6 +17,7 @@ class Component(AbstractNode, LiveParamsMixin):
         package: str,
         plugin: str,
         name: str,
+        namespace: str,
         *,
         remaps: dict[str, str] = None,
         params: str | dict[str, Any] = None,
@@ -41,12 +42,23 @@ class Component(AbstractNode, LiveParamsMixin):
             The special string that can be used for loading the component.
         name : str
             The name of the component in ROS.
+        namespace : str
+            The node's namespace. Must be absolute, i.e. start with a '/'.
         remaps : dict[str, str], optional
             Tells the node to replace any topics it wants to interact with according to the provided dict.
         params : str | dict[str, Any], optional
             Any arguments you want to provide to the node. These are the args you would typically have to declare in your launch file. A string will be interpreted as a path to a yaml file which will be lazy loaded using :py:meth:`BetterLaunch.load_params`.
+        
+        Raises
+        ------
+        RuntimeError
+            If the component does not reside in the same namespace as its composer.
         """
-        super().__init__(package, plugin, name, composer.namespace, remaps, params)
+        if not namespace.startswith(composer.namespace):
+            raise ValueError("Components must reside in the same namespace as their composer.")
+
+        super().__init__(package, plugin, name, namespace, remaps, params)
+
         self._component_id: int = None
         self._composer = composer
 

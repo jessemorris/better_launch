@@ -24,9 +24,10 @@ def not_a_song():
         # Instead of calling bl.component we can also create the Component directly
         listener = Component(
             composer, 
-            "composition", 
-            "composition::Listener", 
-            "comp_listener"
+            package="composition", 
+            plugin="composition::Listener", 
+            name="comp_listener",
+            namespace="/",  # must be provided for manual instantiation
         )
     
         # Two ways to start the component

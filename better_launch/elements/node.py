@@ -57,6 +57,8 @@ class Node(AbstractNode, LiveParamsMixin):
             The executable that should be run.
         name : str, optional
             The name you want the node to be known as.
+        namespace : str
+            The node's namespace. Must be absolute, i.e. start with a '/'.
         remaps : dict[str, str], optional
             Tells the node to replace any topics it wants to interact with according to the provided dict.
         params : str | dict[str, Any], optional
