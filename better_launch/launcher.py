@@ -1049,7 +1049,15 @@ Takeoff in 3... 2... 1...
         ------
         Generator[Group, None, None]
             Places the group on the group stack and yields it. Exiting the context will pop the group from the group stack.
+        
+        Raises
+        ------
+        RuntimeError
+            If the group is created within a compose context.
         """
+        if self._composition_node:
+            raise ValueError("Cannot create a group inside a compose context")
+
         # It's possible to start a new root branch, especially when including launch files. Once 
         # we exit that branch the previous stack should be restored
         old_stack = self._group_stack[:]
@@ -1222,7 +1230,7 @@ Takeoff in 3... 2... 1...
         autostart_process: bool = True,
         ros_waittime: float = 3.0,
     ) -> Generator[Composer, None, None]:
-        """Creates a composer node which can be used to load :py:class:`Component`s. Components can be instantiated directly, or preferably via :py:meth:`component`. Only groups and components can reside within a composer.
+        """Creates a composer node which can be used to load :py:class:`Component`s. Components can be instantiated directly, or preferably via :py:meth:`component`. Only components can reside within a composer.
 
         Existing composers can be reused even if they have been created outside of *better_launch*. See :py:class:`Composer` for further details.
 
