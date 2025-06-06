@@ -15,7 +15,14 @@ from ros2node.api import get_node_names
 from better_launch.launcher import BetterLaunch
 import better_launch.ros.logging as roslog
 from better_launch.utils.better_logging import RecordForwarder, PrettyLogFormatter
-from better_launch.elements import Node, Composer, Component, LifecycleStage
+from better_launch.elements import (
+    Node,
+    Composer,
+    Component,
+    LifecycleStage,
+    ForeignNode,
+    discover_ros2_nodes,
+)
 from .log_entry import LogEntry
 from .node_menu import NodeLabel, NodeInfoScreen
 from .choice_dialog import ChoiceDialog
@@ -72,8 +79,7 @@ class BetterUI(App):
 
     @classmethod
     def setup_logging(cls):
-        """Sets up a few things to make sure log messages can be parsed by the TUI.
-        """
+        """Sets up a few things to make sure log messages can be parsed by the TUI."""
 
         # Make sure all ros loggers follow a parsable format
         os.environ["RCUTILS_COLORIZED_OUTPUT"] = "0"
@@ -83,22 +89,28 @@ class BetterUI(App):
             del os.environ["OVERRIDE_LAUNCH_SCREEN_FORMAT"]
 
         # Install the log handler
-        roslog.launch_config.screen_handler = RecordForwarder(PrettyLogFormatter(colormode="none"))
+        roslog.launch_config.screen_handler = RecordForwarder(
+            PrettyLogFormatter(colormode="none")
+        )
 
     def __init__(
         self,
         launch_func: Callable,
+        manage_foreign_nodes: bool = False,
         disable_colors: bool = False,
         max_log_length: bool = 1000,
     ):
         """Creates a new TUI instance. Only one of these should be created and started.
 
-        Since UIs (including TUIs) should usually run on the main thread, the passed in launch function will actually be run on a separate thread. 
+        Since UIs (including TUIs) should usually run on the main thread, the passed in launch function will actually be run on a separate thread.
 
         Parameters
         ----------
         launch_func : Callable
             The launch function of the launch file. Note that no arguments will be provided to this function - use `partial` or a wrapper with bound arguments for anything you need to pass to the function.
+        manage_foreign_nodes : bool, optional
+            If True, the TUI will also discover nodes not instantiated by this process. Note that this allows interacting with these nodes, but will not capture their output unless
+            a takeover is executed by the user.
         disable_colors : bool, optional
             If True, the TUI will not render any colors (and hopefully nothing else will either). This will set the `NO_COLOR` environment variable.
         max_log_length : bool, optional
@@ -119,6 +131,7 @@ class BetterUI(App):
         self.show_log_icons = True
 
         self.launch_func = launch_func
+        self.manage_foreign_nodes = manage_foreign_nodes
 
     def compose(self) -> ComposeResult:
         yield Header(show_clock=True)
@@ -142,7 +155,7 @@ class BetterUI(App):
         # This might be invoked more than once
         if not self.exit_reason:
             self.exit_reason = reason
-        
+
         bl = BetterLaunch.instance()
         if bl and not bl.is_shutdown:
             bl.shutdown(self.exit_reason)
@@ -157,12 +170,14 @@ class BetterUI(App):
 
             # Passing a message to super.exit will be treated as an error, so we instead handle any
             # post-shutdown stuff here
-            Console().print(f"[bright_green]BetterUI exit: {self.exit_reason}[/bright_green]")
+            Console().print(
+                f"[bright_green]BetterUI exit: {self.exit_reason}[/bright_green]"
+            )
 
     @work(thread=True, exit_on_error=True, group="launch_func")
     def run_launch_function(self):
-        """Runs the launch function passed to the constructor and sets up the log capturing mechanism.
-        """
+        """Runs the launch function passed to the constructor and sets up the log capturing mechanism."""
+
         def log_to_ui(record: logging.LogRecord):
             if self.is_running:
                 self.call_later(self.on_log_record, record)
@@ -183,10 +198,15 @@ class BetterUI(App):
         self.exit("BetterLaunch terminated")
 
     def add_nodes_to_sidebar(self):
-        """Populates the sidebar with node items.
-        """
+        """Populates the sidebar with node items."""
         bl = BetterLaunch.wait_for_instance()
-        for idx, n in enumerate(bl.all_nodes(include_components=True)):
+
+        if self.manage_foreign_nodes:
+            all_nodes = discover_ros2_nodes(True)
+        else:
+            all_nodes = bl.all_nodes(include_components=True)
+
+        for idx, n in enumerate(all_nodes):
             key = self._get_node_key(idx)
             item = ListItem(NodeLabel(n, key))
             if key:
@@ -231,7 +251,7 @@ class BetterUI(App):
     def _log(self, *records):
         if self._exit:
             return
-        
+
         self.logview.extend([ListItem(LogEntry(r)) for r in records])
 
         # restrict number of list items
@@ -269,6 +289,12 @@ class BetterUI(App):
             if choice:
                 node.lifecycle.transition(LifecycleStage[choice.upper()])
 
+        def on_takeover_choice(choice: str):
+            if choice == "yes":
+                nonlocal node
+                node = node.takeover(kill_after=3.0)
+                label.node = node
+
         def on_kill_choice(choice: str):
             if choice == "yes":
                 node.shutdown("Shutdown by user")
@@ -285,15 +311,28 @@ class BetterUI(App):
                     on_lifecycle_choice,
                 )
 
+            elif action == "takeover":
+                self.push_screen(
+                    ChoiceDialog(
+                        ["yes", "cancel"],
+                        f"Takeover requires restarting the node process. Proceed?",
+                    ),
+                    on_takeover_choice,
+                )
+
             elif action in ["kill", "unload"]:
                 self.push_screen(
-                    ChoiceDialog(["yes", "cancel"], f"{action.capitalize()} {node.name}?"),
+                    ChoiceDialog(
+                        ["yes", "cancel"], f"{action.capitalize()} {node.name}?"
+                    ),
                     on_kill_choice,
                 )
 
         is_lifecycle = node.check_lifecycle_node()
         if is_lifecycle:
             choices = ["info", "lifecycle", "kill"]
+        elif isinstance(node, ForeignNode):
+            choices = ["info", "takeover", "kill"]
         elif isinstance(node, Component):
             choices = ["info", "unload"]
         else:
@@ -316,10 +355,15 @@ class BetterUI(App):
         if pyperclip.is_available():
             text = "[{created}] [{name}] {message}".format(**entry.record.__dict__)
             pyperclip.copy(text)
-            self.notify("Copied to clipboard! To select text instead, use shift+click.", timeout=2.0)
+            self.notify(
+                "Copied to clipboard! To select text instead, use shift+click.",
+                timeout=2.0,
+            )
         else:
             self.notify(
-                "pyperclip failed, see documentation. You can still copy using shift+click.", severity="error", timeout=3.0
+                "pyperclip failed, see documentation. You can still copy using shift+click.",
+                severity="error",
+                timeout=3.0,
             )
 
         self.logview.index = None

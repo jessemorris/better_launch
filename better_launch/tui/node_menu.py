@@ -5,7 +5,7 @@ from textual.widgets import Label, Static, Button
 from textual.containers import VerticalScroll, HorizontalGroup
 from textual.screen import ModalScreen
 
-from better_launch.elements import AbstractNode, Composer, Component
+from better_launch.elements import AbstractNode, Composer, Component, ForeignNode
 
 
 class NodeLabel(HorizontalGroup):
@@ -44,6 +44,8 @@ class NodeLabel(HorizontalGroup):
         yield Static(f"[u]{self.keybind or ' '}[/u] ", id="keybind")
 
         suffix = ""
+        if isinstance(self.node, ForeignNode):
+            suffix += "F"
         if self.node.check_lifecycle_node():
             suffix += "L"
         if isinstance(self.node, Composer):

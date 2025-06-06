@@ -360,6 +360,39 @@ Takeoff in 3... 2... 1...
         """The most recent group."""
         return self._group_stack[-1]
 
+    def find_group_for_namespace(self, namespace: str, create: bool = False) -> Group:
+        """Find the group representing the passed namespace.
+
+        Parameters
+        ----------
+        namespace : str
+            The namespace in question.
+        create : bool
+            If True, create missing groups along the way.
+
+        Returns
+        -------
+        Group
+            The group representing the final segment of the namespace, or None if no such group exists and create == False.
+        """
+        if not namespace or namespace == "/":
+            return self.group_root
+
+        g = self.group_root
+
+        for part in namespace.split("/"):
+            child = g.children.get(part)
+            if not child:
+                if not create:
+                    return None
+                
+                child = Group(g, part)
+                g.add_child(child)
+            
+            g = child
+
+        return g
+
     def _on_sigint(self, sig: int, frame: inspect.FrameInfo) -> None:
         if not self._sigint_received:
             self.logger.warning(f"Received (SIGINT), forwarding to child processes...")
@@ -488,7 +521,7 @@ Takeoff in 3... 2... 1...
         subdir : str, optional
             Path snippet that should be located inside the base path.
         resolve_result : bool, optional
-            If True, the result will be passed through :py:metho:`resolve_string` before returning.
+            If True, the result will be passed through :py:meth:`resolve_string` before returning.
 
         Returns
         -------

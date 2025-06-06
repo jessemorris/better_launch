@@ -6,8 +6,9 @@ from .node import Node
 from .foreign_node import (
     ForeignNode,
     find_process_for_node,
+    find_ros2_node_processes,
+    discover_ros2_nodes,
     get_package_for_path,
-    parse_process_args,
 )
 from .composer import Composer, Component
 from .ros2_launch_wrapper import Ros2LaunchWrapper

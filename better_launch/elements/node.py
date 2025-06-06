@@ -362,10 +362,6 @@ class Node(AbstractNode, LiveParamsMixin):
         self.logger.info(f"Sending signal '{signame}' to process [{self.name}]")
 
         try:
-            if signum == signal.SIGKILL:
-                self._process.kill()
-                return
-
             self._process.send_signal(signum)
         except ProcessLookupError:
             self.logger.info(

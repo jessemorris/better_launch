@@ -1,5 +1,6 @@
 from typing import Any
 import os
+import time
 import psutil
 import signal
 import re
@@ -8,11 +9,11 @@ from xml.etree import ElementTree
 
 from ament_index_python.packages import get_packages_with_prefixes
 
-from . import AbstractNode
+from . import AbstractNode, Node
 from . import LiveParamsMixin
 
 
-def find_node_processes() -> list[psutil.Process]:
+def find_ros2_node_processes() -> list[psutil.Process]:
     # NOTE we won't be able to discover nodes started by ros2 run this way, but there's really
     # nothing distinctive about those, e.g.:
     #
@@ -192,7 +193,7 @@ def parse_process_args(
     return namespace, node_name, params, remaps, additional_args
 
 
-def find_ros2_nodes(include_stopped: bool = False) -> list[AbstractNode]:
+def discover_ros2_nodes(include_stopped: bool = False) -> list[AbstractNode]:
     """Searches the running processes for ROS2 nodes and wraps them in ForeignNode instances. Any
     processes that have been started by this better_launch process will have their appropriate
     instances returned instead (e.g. Node, Component, etc.).
@@ -213,7 +214,7 @@ def find_ros2_nodes(include_stopped: bool = False) -> list[AbstractNode]:
 
     # bl.query_node would iterate over all nodes every time
     bl_nodes = {n.fullname: n for n in bl.all_nodes(True, False)}
-    process_nodes = [ForeignNode.wrap_process(p) for p in find_node_processes()]
+    process_nodes = [ForeignNode.wrap_process(p) for p in find_ros2_node_processes()]
 
     # Use ForeignNode unless we have a better representation already
     for i, node in enumerate(process_nodes):
@@ -232,9 +233,19 @@ def find_ros2_nodes(include_stopped: bool = False) -> list[AbstractNode]:
 class ForeignNode(AbstractNode, LiveParamsMixin):
     @classmethod
     def wrap_process(cls, process: psutil.Process) -> "ForeignNode":
+        from better_launch import BetterLaunch
+
+        bl = BetterLaunch.instance()
+
         namespace, name, params, remaps, additional_args = parse_process_args(process)
         exec_dir = os.path.dirname(process.cmdline()[0])
         package, _ = get_package_for_path(exec_dir)
+
+        if not namespace:
+            bl.logger.warning("Process did not specify a node namespace")
+
+        if not name:
+            bl.logger.warning("Process did not specify a node name")
 
         return ForeignNode(
             process,
@@ -345,6 +356,63 @@ class ForeignNode(AbstractNode, LiveParamsMixin):
             f"Forwarding shutdown signal to foreign process: {reason} ({signame})"
         )
         self._process.send_signal(signum)
+
+    def takeover(self, kill_after: float = 0, **node_args) -> Node:
+        """Turns a foreign node into a node belonging to this better_launch process. This allows 
+        to e.g. capture the node's output and control a few additional runtime parameters. Any 
+        interactions with this foreign node instance after this function returns are undefined 
+        behavior.
+
+        **NOTE:** Currently the only way to takeover a node is to stop the original process, then 
+        recreate and restart the node with the same arguments as the original node.
+
+        Parameters
+        ----------
+        kill_after: float, optional
+            Kill the node process if it takes longer than this many seconds to shutdown. Disabled when <= 0.
+        node_args : dict[str, Any], optional
+            Additional arguments to pass to the node. See :py:class:`Node` for additional details.
+
+        Returns
+        -------
+        Node
+            The new node instance that should replace this foreign node.
+        """
+        from better_launch import BetterLaunch
+        
+        start = time.time()
+        self.shutdown("Taking over node")
+        
+        while True:
+            if self.is_running:
+                break
+
+            time.sleep(0.1)
+            now = time.time()
+
+            if kill_after > 0 and now - start > kill_after:
+                self._process.kill()
+                break
+
+        node = Node(
+            self.package,
+            self.executable,
+            self.name,
+            self.namespace,
+            remaps=self.remaps,
+            params=self.params,
+            cmd_args=self.cmd_args,
+            **node_args
+        )
+
+        bl = BetterLaunch.instance()
+        g = bl.find_group_for_namespace(self.namespace, True)
+        g.add_node(node)
+
+        # This ForeignNode instance should not be used anymore
+        self._process = None
+
+        return node
 
     def _get_info_section_general(self):
         info = super()._get_info_section_general()
