@@ -43,7 +43,7 @@ class ROSAdapter:
         )
         self.ros_executor = SingleThreadedExecutor(context=self.ros_context)
 
-        # TODO Cannot run in a daemon thread for some reason
+        # NOTE Cannot run in a daemon thread for some reason
         self._thread = threading.Thread(target=self._run)
         self._thread.start()
 

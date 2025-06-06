@@ -5,7 +5,7 @@ from .lifecycle_manager import LifecycleStage, LifecycleManager
 from .node import Node
 from .foreign_node import (
     ForeignNode,
-    find_node_process,
+    find_process_for_node,
     get_package_for_path,
     parse_process_args,
 )

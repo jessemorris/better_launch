@@ -57,8 +57,7 @@ class AbstractNode:
             remaps = {}
 
         global _node_counter
-        # TODO see if we can remove this, otherwise make it a property
-        self.node_id = _node_counter
+        self._node_id = _node_counter
         _node_counter += 1
 
         self._pkg = package
@@ -70,6 +69,10 @@ class AbstractNode:
         self._lifecycle_manager: LifecycleManager = None
 
         self.logger = roslog.get_logger(self.fullname)
+
+    @property
+    def node_id(self) -> int:
+        return self._node_id
 
     @property
     def package(self) -> str:

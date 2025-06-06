@@ -51,6 +51,7 @@ from better_launch.elements import (
     Ros2LaunchWrapper,
     ForeignNode,
     get_package_for_path,
+    find_process_for_node,
 )
 from better_launch.utils.substitutions import (
     default_substitution_handlers,
@@ -77,7 +78,6 @@ class _BetterLaunchMeta(type):
     def __call__(cls, *args, **kwargs):
         existing_instance = globals().get(_bl_singleton_instance, None)
         if existing_instance is not None:
-            # TODO raise or warn?
             return existing_instance
 
         obj = cls.__new__(cls, *args, **kwargs)
@@ -566,7 +566,7 @@ Takeoff in 3... 2... 1...
         """
         if not s:
             return ""
-        # TODO works but could be designed nicer. Consider these non-public API for now
+        
         return substitute_tokens(s, default_substitution_handlers("full"))
 
     def load_params(
@@ -1308,7 +1308,22 @@ Takeoff in 3... 2... 1...
                 )
 
                 if fullname in living_nodes:
-                    node_ref = ForeignNode(namespace, name)
+                    node_processes = find_process_for_node(namespace, name)
+                    if not node_processes:
+                        self.logger.error(
+                            "Could not identify process for node %s/%s, creating new composer",
+                            namespace,
+                            name,
+                        )
+                    elif len(node_processes) > 1:
+                        self.logger.warning(
+                            "Found multiple node processes matching %s/%s, using most recent", 
+                            namespace, 
+                            name,
+                        )
+                        node_ref = ForeignNode.wrap_process(node_processes[-1])
+                    else:
+                        node_ref = ForeignNode.wrap_process(node_processes[0])
         
         if node_ref and not Composer.is_composer(node_ref):
             # We will still reuse it but raise some awareness
@@ -1500,7 +1515,6 @@ Takeoff in 3... 2... 1...
                 )
                 raise
         else:
-            # TODO could be stricter about verification here
             # Was not a better_launch launch file, assume it's a ROS2 launch file (py, xml, yaml)
             self._include_ros2_launchfile(file_path, **include_args)
 

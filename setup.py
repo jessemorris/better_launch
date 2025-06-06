@@ -14,4 +14,8 @@ setup(
         "setproctitle",
         "textual",
     ],
+    maintainer='Nikolas Dahn',
+    maintainer_email='nikolas.dahn@gmail.com',
+    description='A better replacement for the ROS2 launch system: intuitive, simple, memorable.',
+    license='MIT',
 )

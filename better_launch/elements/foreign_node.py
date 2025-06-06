@@ -1,7 +1,9 @@
+from typing import Any
 import os
 import psutil
 import signal
 import re
+import json
 from xml.etree import ElementTree
 
 from ament_index_python.packages import get_packages_with_prefixes
@@ -10,7 +12,16 @@ from . import AbstractNode
 from . import LiveParamsMixin
 
 
-def find_node_process(namespace: str, name: str) -> list[psutil.Process]:
+def find_node_processes() -> list[psutil.Process]:
+    # NOTE we won't be able to discover nodes started by ros2 run this way, but there's really
+    # nothing distinctive about those, e.g.:
+    #
+    # /usr/bin/python3 /opt/ros/humble/bin/ros2 run examples_rclpy_minimal_publisher publisher_local_function
+    # /usr/bin/python3 /opt/ros/humble/lib/examples_rclpy_minimal_publisher/publisher_local_function
+    return [p for p in psutil.process_iter() if "--ros-args" in p.cmdline()]
+
+
+def find_process_for_node(namespace: str, name: str) -> list[psutil.Process]:
     """Find processes that look like ROS2 nodes which have been passed the specified namespace and name.
 
     Parameters
@@ -71,7 +82,7 @@ def get_package_for_path(path: str) -> tuple[str, str]:
             return pkg, pkg_path
     else:
         # Not a package currently sourced, look for a package.xml somewhere on the path. This search
-        # is somewhat expensive, but we expect it to be rare since usually packages should already 
+        # is somewhat expensive, but we expect it to be rare since usually packages should already
         # be sourced 99.9% of the time
         while os.pathsep in path:
             # The package.xml is usually found in install/<package>/share/<package>
@@ -83,7 +94,7 @@ def get_package_for_path(path: str) -> tuple[str, str]:
 
             for package_xml in candidates:
                 if os.path.isfile(package_xml):
-                    # Unfortunately the package name can be different from the package's folder, so 
+                    # Unfortunately the package name can be different from the package's folder, so
                     # we get it from the package.xml instead
                     tree = ElementTree.parse(package_xml)
                     root = tree.getroot()
@@ -103,9 +114,9 @@ def get_package_for_path(path: str) -> tuple[str, str]:
 
 
 def parse_process_args(
-    cmd_args: list[str], node: AbstractNode = None
-) -> tuple[dict[str, str], dict[str, str], list[str]]:
-    """Parse ROS2 command line arguments and return the user-specified parts. 
+    process: psutil.Process, node: AbstractNode = None
+) -> tuple[str, str, dict[str, str], dict[str, str], list[str]]:
+    """Parse ROS2 command line arguments and return the user-specified parts.
 
     In particular, this will return the passed ROS2 params, remaps and additional command line arguments. Special ROS2 arguments like `--ros-args`, `--remap`, etc. will not be included. A node may be passed in order to resolve `nodename:key:=value` style args and load parameter files from `--params-file`.
 
@@ -119,73 +130,132 @@ def parse_process_args(
     Returns
     -------
     tuple[dict[str, str], dict[str, str], list[str]]
-        The ROS2 params, remaps and additional command line args.
+        The node's namespace and name, followed by its ROS2 params, remaps and additional command line args.
     """
+    from better_launch import BetterLaunch
+
+    node_name = ""
+    namespace = ""
     params = {}
     remaps = {}
     additional_args = []
     is_ros_args = False
     skip = 1
 
-    from better_launch import BetterLaunch
-
+    cmd_args = process.cmdline()
     bl = BetterLaunch.instance()
 
     for i, arg in enumerate(cmd_args):
         if skip > 0:
-            # Skip the executable
+            # Skip the executable and args we already parsed
             skip -= 1
             continue
 
-        if arg.startswith("-"):
-            if arg == "--ros-args":
-                is_ros_args = True
-                continue
+        if arg == "--ros-args":
+            is_ros_args = True
+            continue
 
-            if is_ros_args:
-                if arg in ["-p", "--param"]:
-                    skip = 1
-                    key, val = cmd_args[i + 1].split(":=")
-                    params[key] = val
-                    continue
+        if is_ros_args:
+            if arg in ["-p", "--param"]:
+                skip = 1
+                key, val = cmd_args[i + 1].split(":=")
+                params[key] = val
 
-                elif arg in ["-r", "--remap"]:
-                    skip = 1
-                    key, val = cmd_args[i + 1].split(":=")
-                    if key not in ["__ns", "__node"]:
-                        if ":" in key:
-                            # ROS2 supports a pattern where the key is preceded by the
-                            # node's name to make node-specific remaps for e.g. components
-                            name, key = key.split(":", maxsplit=1)
-                            if node and name != node.name:
-                                continue
-                        remaps[key] = val
-                    continue
-
-                elif arg == "--params-file":
-                    skip = 1
-                    param_file = cmd_args[i + 1]
-                    params.update(
-                        bl.load_params(None, param_file, node_or_namespace=node)
-                    )
-
+            elif arg in ["-r", "--remap"]:
+                skip = 1
+                key, val = cmd_args[i + 1].split(":=")
+                if key == "__ns":
+                    namespace = val
+                elif key in ["__name", "__node"]:
+                    node_name = val
                 else:
-                    # No special handling
-                    pass
+                    if ":" in key:
+                        # ROS2 supports a pattern where the key is preceded by the
+                        # node's name to make node-specific remaps for e.g. components
+                        name, key = key.split(":", maxsplit=1)
+                        if node and name != node.name:
+                            continue
+                    remaps[key] = val
 
-        # Nothing we handle, assume it's a regular command line arg
-        additional_args.append(arg)
+            elif arg == "--params-file":
+                skip = 1
+                param_file = cmd_args[i + 1]
+                params.update(bl.load_params(None, param_file, node_or_namespace=node))
 
-    return params, remaps, additional_args
+            else:
+                # No special handling
+                bl.logger.warning("parse_process_args: unhandled ros-arg %s", arg)
+        else:
+            # Nothing we handle, assume it's a regular command line arg
+            additional_args.append(arg)
+
+    return namespace, node_name, params, remaps, additional_args
+
+
+def find_ros2_nodes(include_stopped: bool = False) -> list[AbstractNode]:
+    """Searches the running processes for ROS2 nodes and wraps them in ForeignNode instances. Any
+    processes that have been started by this better_launch process will have their appropriate
+    instances returned instead (e.g. Node, Component, etc.).
+
+    Parameters
+    ----------
+    include_stopped : bool, optional
+        Whether to include better_launch nodes that have been created but are not running.
+
+    Returns
+    -------
+    list[AbstractNode]
+        A list of nodes representing discovered ROS2 processes and nodes instantiated through better_launch.
+    """
+    from better_launch import BetterLaunch
+
+    bl = BetterLaunch.instance()
+
+    # bl.query_node would iterate over all nodes every time
+    bl_nodes = {n.fullname: n for n in bl.all_nodes(True, False)}
+    process_nodes = [ForeignNode.wrap_process(p) for p in find_node_processes()]
+
+    # Use ForeignNode unless we have a better representation already
+    for i, node in enumerate(process_nodes):
+        bln = bl_nodes.get(node.fullname, None)
+        if bln:
+            process_nodes[i] = bln
+
+    if include_stopped:
+        for node in bl_nodes.values():
+            if node not in process_nodes:
+                process_nodes.append(node)
+
+    return process_nodes
 
 
 class ForeignNode(AbstractNode, LiveParamsMixin):
+    @classmethod
+    def wrap_process(cls, process: psutil.Process) -> "ForeignNode":
+        namespace, name, params, remaps, additional_args = parse_process_args(process)
+        exec_dir = os.path.dirname(process.cmdline()[0])
+        package, _ = get_package_for_path(exec_dir)
+
+        return ForeignNode(
+            process,
+            package,
+            name,
+            namespace,
+            remaps=remaps,
+            params=params,
+            cmd_args=additional_args,
+        )
+
     def __init__(
         self,
-        namespace: str,
+        process: psutil.Process,
+        package: str,
         name: str,
+        namespace: str,
         *,
-        forward_shutdown: bool = False,
+        remaps: dict[str, str] = None,
+        params: str | dict[str, Any] = None,
+        cmd_args: list[str] = None,
     ):
         """This class is used for representing nodes not managed by this better_launch process.
 
@@ -197,46 +267,18 @@ class ForeignNode(AbstractNode, LiveParamsMixin):
             The node's namespace. Must be absolute, i.e. start with a '/'.
         name : str
             This node's name. If it is a ROS node it should be how the node registers with ROS.
-        forward_shutdown : bool, optional
-            If True, any calls to :py:meth:`shutdown` will be forwarded to the foreign node's process.
         """
-        super().__init__(None, None, name, namespace, None, None)
+        super().__init__(
+            package,
+            process.cmdline()[0],
+            name,
+            namespace,
+            remaps=remaps,
+            params=params,
+        )
 
-        self.forward_shutdown = forward_shutdown
-        self.cmd_args: list[str] = []
-
-        # So far, it is not possible to get detailed information about an already running node in
-        # ROS2. Even the package and executable are not available, so we have to go from the
-        # process info instead.
-        self._process: psutil.Process = None
-        candidates = find_node_process(namespace, name)
-
-        if not candidates:
-            self.logger.warning(f"No processes matching foreign node {self.fullname}")
-        elif len(candidates > 1):
-            self.logger.warning(
-                f"Found multiple processes matching foreign node {self.fullname}"
-            )
-        else:
-            process = candidates[0]
-
-            args = process.cmdline()
-            exec_path = args[0]
-
-            # Executable is easy, package has some caveats
-            self._exec = os.path.basename(exec_path)
-            self._pkg, _ = get_package_for_path(os.path.dirname(exec_path))
-
-            if not self._pkg:
-                self.logger.warning(
-                    f"Could not determine package of foreign node {self.fullname}"
-                )
-
-            # Remaps and other command line args
-            params, remaps, additional_args = parse_process_args(args, self)
-            self._params = params
-            self._remaps = remaps
-            self.cmd_args = additional_args
+        self._process = process
+        self.cmd_args = cmd_args
 
     @property
     def pid(self) -> int:
@@ -255,16 +297,47 @@ class ForeignNode(AbstractNode, LiveParamsMixin):
         return self._process and self._process.is_running()
 
     def start(self) -> None:
-        raise NotImplementedError("ForeignNode cannot be started")
+        from better_launch import BetterLaunch
+
+        launcher = BetterLaunch.instance()
+        if launcher.is_shutdown:
+            self.logger.warning(
+                f"Node {self} will not be started as the launcher has already shut down"
+            )
+            return
+
+        if self.is_running:
+            self.logger.warning(f"Node {self} is already started")
+            return
+
+        final_cmd = [self.executable] + self.cmd_args + ["--ros-args"]
+
+        # Attach node parameters
+        for key, value in self._flat_params().items():
+            # Make sure the values are parseable for ROS
+            final_cmd.extend(["-p", f"{key}:={json.dumps(value)}"])
+
+        # Special args and remaps
+        # launch_ros/actions/node.py:206
+        for src, dst in self._ros_args().items():
+            # launch_ros/actions/node.py:481
+            final_cmd.extend(["-r", f"{src}:={dst}"])
+
+        self.logger.info(f"Starting process '{' '.join(final_cmd)}'")
+
+        # Start the node process
+        # TODO Once a foreign node is restarted by us we could capture its stdout and stderr,
+        # but I suspect that would be inconsistent and confusing to the user. Instead we should
+        # provide a "takeover" option which replaces a foreign node with our own
+        self._process = psutil.Popen(
+            final_cmd,
+            cwd=None,
+            shell=False,
+            text=True,
+        )
 
     def shutdown(self, reason: str, signum: int = signal.SIGTERM) -> None:
         if not self.is_running:
-            return
-
-        if not self.forward_shutdown:
-            self.logger.info(
-                "Shutdown request will NOT be forwarded to foreign process"
-            )
             return
 
         signame = signal.Signals(signum).name

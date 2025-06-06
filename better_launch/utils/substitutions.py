@@ -106,12 +106,82 @@ def default_substitution_handlers(
     }
 
 
-def substitute_tokens(text: str, substitution_handlers: dict) -> list[str]:
+def _parse_substitution_syntax(s: str) -> list[list | str]:
+    """Parses a string containing substitution tokens into a list of lists and strings.
+
+    Parameters
+    ----------
+    s : str
+        The input string to parse.
+
+    Returns
+    -------
+    list[list | str]
+        A list containing unchanged strings and nested lists of strings/lists. These nested lists
+        will consist of the substitution key and its arguments, which again may be lists.
+
+    Raises
+    ------
+    ValueError
+        If the input string contains unbalanced parentheses or quotes.
+    """
+    def tokenize(s):
+        i = 0
+        n = len(s)
+        while i < n:
+            if s[i].isspace():
+                i += 1
+                continue
+            elif s[i] == '$' and i + 1 < n and s[i+1] == '(':
+                yield '$('
+                i += 2
+            elif s[i] == ')':
+                yield ')'
+                i += 1
+            elif s[i] in '"\'':
+                quote = s[i]
+                i += 1
+                start = i
+                while i < n:
+                    if s[i] == quote and s[i-1] != '\\':
+                        break
+                    i += 1
+                else:
+                    raise ValueError("Missing closing quote")
+                yield s[start:i]
+                i += 1  # skip closing quote
+            else:
+                start = i
+                while i < n and not s[i].isspace() and s[i] not in '$()':
+                    i += 1
+                yield s[start:i]
+
+    def parse(tokens):
+        stack = []
+        current = []
+        for tok in tokens:
+            if tok == '$(':
+                stack.append(current)
+                current = []
+            elif tok == ')':
+                if not stack:
+                    raise ValueError("Unbalanced )")
+                completed = current
+                current = stack.pop()
+                current.append(completed)
+            else:
+                current.append(tok)
+        if stack:
+            raise ValueError("Unbalanced $(")
+        return current
+
+    return parse(tokenize(s))
+
+
+def substitute_tokens(text: str, substitutions: dict[str, Callable[..., str]]) -> str:
     """Parses a string and replaces all substitution strings according to the provided handler functions.
 
     Substitution strings are expected to follow the "ROS1 pattern": `$(key *args)`, where `key` is a substitution type and `*args` are additional arguments passed to the substitution handler.
-
-    Note that this always finds the innermost set of brackets with no brackets in between to work on. This effectively prevents the use of brackets in our expressions. This behavior may be changed in the future to be more flexible.
 
     .. seealso::
 
@@ -120,33 +190,33 @@ def substitute_tokens(text: str, substitution_handlers: dict) -> list[str]:
     Parameters
     ----------
     text : str
-        _description_
-    substitution_handlers : dict
-        _description_
+        A string that may contain substitution tokens.
+    substitutions : dict[str, Callable[..., str]]
+        A dict mapping substitution tokens to handler functions.
 
     Returns
     -------
-    list[str]
-        _description_
+    str
+        The input string with all substitution tokens handled.
 
     Raises
     ------
     ValueError
-        _description_
+        If the input string contains unbalanced parentheses or quotes.
     """
-    # Always find the innermost set of brackets with no brackets in between.
-    # TODO This effectively prevents the use of brackets in our expressions
-    pattern = re.compile(r"\$\(([^()]+)\)")
+    parsed = _parse_substitution_syntax(text)
 
-    def substitute(m: re.Match):
-        cmd, *args = m.group(1).split(" ")
+    def delve(node: list | str):
+        if isinstance(node, list):
+            # Evaluate nested elements first
+            evaluated = [delve(token) for token in node]
+            key, *args = evaluated
 
-        if cmd not in substitution_handlers:
-            raise ValueError(f"Unknown substitution command '{cmd}'")
+            if key not in substitutions:
+                raise KeyError(f"Unknown substitution key: {key}")
+            
+            return substitutions[key](*args)
+        else:
+            return node
 
-        return str(substitution_handlers[cmd](*args))
-
-    while "$(" in text:
-        text = pattern.sub(substitute, text)
-
-    return text
+    return delve(parsed)
