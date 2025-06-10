@@ -73,7 +73,7 @@ _bl_include_args = "__better_launch_include_args"
 class _BetterLaunchMeta(type):
     _singleton_future = Future()
 
-    # Allows reusing an already existing BetterLaunch instance.
+    # Allows (and enforces) reusing an already existing BetterLaunch instance.
     # Important for launch file includes.
     def __call__(cls, *args, **kwargs):
         existing_instance = globals().get(_bl_singleton_instance, None)
@@ -88,12 +88,36 @@ class _BetterLaunchMeta(type):
         return obj
 
     def instance(cls) -> "BetterLaunch":
+        """Immediately retrieve the BetterLaunch singleton instance.
+
+        Returns
+        -------
+        BetterLaunch
+            The BetterLaunch singleton instance, or None if it doesn't exist yet.
+        """
         try:
             return cls._singleton_future.result(0.0)
         except TimeoutError:
             return None
 
     def wait_for_instance(cls, timeout: float = None) -> "BetterLaunch":
+        """Retrieve the BetterLaunch singleton instance as soon as possible.
+
+        Parameters
+        ----------
+        timeout : float, optional
+            How long to wait for the singleton instance to appear. Wait forever if timeout is None. Don't wait at all if timeout is 0.0.
+
+        Returns
+        -------
+        BetterLaunch
+            The BetterLaunch singleton instance. 
+
+        Raises
+        ------
+        TimeoutError
+            If the timeout has passed and no instance has appeared yet. 
+        """
         return cls._singleton_future.result(timeout)
 
 

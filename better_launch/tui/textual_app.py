@@ -38,6 +38,7 @@ class BetterUI(App):
         Binding("f1", "toggle_sidebar", "Sidebar"),
         Binding("f2", "toggle_log_names", "Names"),
         Binding("f3", "toggle_log_icons", "Icons"),
+        Binding("f5", "refresh_nodes", "Refresh Nodes"),
     ]
 
     DEFAULT_CSS = """
@@ -96,7 +97,7 @@ class BetterUI(App):
     def __init__(
         self,
         launch_func: Callable,
-        manage_foreign_nodes: bool = False,
+        manage_foreign_nodes: bool = True,
         disable_colors: bool = False,
         max_log_length: bool = 1000,
     ):
@@ -204,7 +205,10 @@ class BetterUI(App):
         if self.manage_foreign_nodes:
             all_nodes = discover_ros2_nodes(True)
         else:
-            all_nodes = bl.all_nodes(include_components=True)
+            all_nodes = bl.all_nodes(include_components=True, include_launch_service=True)
+
+        # This way we can use this method to refresh the sidebar, too
+        self.sidebar.clear()
 
         for idx, n in enumerate(all_nodes):
             key = self._get_node_key(idx)
@@ -291,9 +295,15 @@ class BetterUI(App):
 
         def on_takeover_choice(choice: str):
             if choice == "yes":
-                nonlocal node
-                node = node.takeover(kill_after=3.0)
-                label.node = node
+                # Updating the NodeLabel will cause problems, but we have to repopulate the 
+                # node sidebar anyways
+                node.takeover(kill_after=3.0)
+                self.action_refresh_nodes()
+
+        def on_restart_choice(choice: str):
+            if choice == "yes":
+                node.shutdown("Restarting node", timeout=None)
+                node.start()
 
         def on_kill_choice(choice: str):
             if choice == "yes":
@@ -315,9 +325,15 @@ class BetterUI(App):
                 self.push_screen(
                     ChoiceDialog(
                         ["yes", "cancel"],
-                        f"Takeover requires restarting the node process. Proceed?",
+                        f"Restart {node.name} for takeover?",
                     ),
                     on_takeover_choice,
+                )
+
+            elif action == "restart":
+                self.push_screen(
+                    ChoiceDialog(["yes", "cancel"], f"Restart {node.name}?"),
+                    on_restart_choice,
                 )
 
             elif action in ["kill", "unload"]:
@@ -330,13 +346,13 @@ class BetterUI(App):
 
         is_lifecycle = node.check_lifecycle_node()
         if is_lifecycle:
-            choices = ["info", "lifecycle", "kill"]
+            choices = ["info", "lifecycle", "restart", "kill"]
         elif isinstance(node, ForeignNode):
             choices = ["info", "takeover", "kill"]
         elif isinstance(node, Component):
-            choices = ["info", "unload"]
+            choices = ["info", "restart", "unload"]
         else:
-            choices = ["info", "kill"]
+            choices = ["info", "restart", "kill"]
 
         lifecycle = "LC " if is_lifecycle else ""
         title = f"{node.name} ({lifecycle}{node.__class__.__name__})"
@@ -411,8 +427,8 @@ class BetterUI(App):
         else:
             self.mute = True
 
-    def action_close_node_menu(self):
-        self.node_menu.display = False
+    def action_refresh_nodes(self):
+        self.call_later(self.add_nodes_to_sidebar)
 
     def action_quit(self):
         def on_quit_choice(reply: str):

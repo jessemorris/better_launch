@@ -19,7 +19,16 @@ def find_ros2_node_processes() -> list[psutil.Process]:
     #
     # /usr/bin/python3 /opt/ros/humble/bin/ros2 run examples_rclpy_minimal_publisher publisher_local_function
     # /usr/bin/python3 /opt/ros/humble/lib/examples_rclpy_minimal_publisher/publisher_local_function
-    return [p for p in psutil.process_iter() if "--ros-args" in p.cmdline()]
+    ret = []
+    
+    for p in psutil.process_iter():
+        try:
+            if p.is_running() and "--ros-args" in p.cmdline():
+                ret.append(p)
+        except psutil.ZombieProcess:
+            pass
+    
+    return ret
 
 
 def find_process_for_node(namespace: str, name: str) -> list[psutil.Process]:
@@ -214,6 +223,7 @@ def discover_ros2_nodes(include_stopped: bool = False) -> list[AbstractNode]:
 
     # bl.query_node would iterate over all nodes every time
     bl_nodes = {n.fullname: n for n in bl.all_nodes(True, False)}
+    # TODO this will not capture e.g. components started by us, needs a rewrite
     process_nodes = [ForeignNode.wrap_process(p) for p in find_ros2_node_processes()]
 
     # Use ForeignNode unless we have a better representation already
@@ -230,6 +240,8 @@ def discover_ros2_nodes(include_stopped: bool = False) -> list[AbstractNode]:
     return process_nodes
 
 
+# FIXME TUI has some horrible performance problems?
+# TODO nicer, less colorful logging
 class ForeignNode(AbstractNode, LiveParamsMixin):
     @classmethod
     def wrap_process(cls, process: psutil.Process) -> "ForeignNode":
@@ -289,7 +301,7 @@ class ForeignNode(AbstractNode, LiveParamsMixin):
         )
 
         self._process = process
-        self.cmd_args = cmd_args
+        self._cmd_args = cmd_args
 
     @property
     def pid(self) -> int:
@@ -301,7 +313,7 @@ class ForeignNode(AbstractNode, LiveParamsMixin):
     @property
     def cmd_args(self) -> list[str]:
         """Additional arguments passed to the node process."""
-        return self.cmd_args
+        return self._cmd_args
 
     @property
     def is_running(self) -> bool:
@@ -347,7 +359,7 @@ class ForeignNode(AbstractNode, LiveParamsMixin):
             text=True,
         )
 
-    def shutdown(self, reason: str, signum: int = signal.SIGTERM) -> None:
+    def shutdown(self, reason: str, signum: int = signal.SIGTERM, timeout: float = 0.0) -> None:
         if not self.is_running:
             return
 
@@ -356,6 +368,14 @@ class ForeignNode(AbstractNode, LiveParamsMixin):
             f"Forwarding shutdown signal to foreign process: {reason} ({signame})"
         )
         self._process.send_signal(signum)
+
+        if timeout == 0.0:
+            return
+
+        try:
+            self._process.wait(timeout)
+        except psutil.TimeoutExpired:
+            raise TimeoutError("Node did not shutdown within the specified timeout")
 
     def takeover(self, kill_after: float = 0, **node_args) -> Node:
         """Turns a foreign node into a node belonging to this better_launch process. This allows 
@@ -394,6 +414,7 @@ class ForeignNode(AbstractNode, LiveParamsMixin):
                 self._process.kill()
                 break
 
+        self.logger.info("Old process has terminated, restarting node")
         node = Node(
             self.package,
             self.executable,
@@ -408,6 +429,8 @@ class ForeignNode(AbstractNode, LiveParamsMixin):
         bl = BetterLaunch.instance()
         g = bl.find_group_for_namespace(self.namespace, True)
         g.add_node(node)
+
+        node.start()
 
         # This ForeignNode instance should not be used anymore
         self._process = None

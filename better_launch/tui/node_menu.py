@@ -65,8 +65,7 @@ class NodeLabel(HorizontalGroup):
     async def update_node_state(self):
         """Worker to check whether the underlying :py:class:`AbstractNode` is still alive.
         """
-        while True:
-            label = self.query_one("#node")
+        while self.is_running:
             if self.node.is_running:
                 self.styles.background = "green"
             else:

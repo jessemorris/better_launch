@@ -109,7 +109,7 @@ class Component(AbstractNode, LiveParamsMixin):
             **composer_extra_params,
         )
 
-    def shutdown(self, reason: str, signum: int = signal.SIGTERM) -> None:
+    def shutdown(self, reason: str, signum: int = signal.SIGTERM, timeout: float = 0.0) -> None:
         """Unload this component if it was loaded.
 
         Parameters
@@ -123,7 +123,7 @@ class Component(AbstractNode, LiveParamsMixin):
             return
 
         self.logger.warning(f"Unloading component {self.name}: {reason}")
-        self.composer.unload_component(self)
+        self.composer.unload_component(self, timeout=timeout)
         self._component_id = None
 
     def __repr__(self) -> str:
@@ -284,16 +284,32 @@ class Composer(AbstractNode):
         ):
             raise RuntimeError("Failed to connect to composer unload service")
 
-    def shutdown(self, reason: str, signum: int = signal.SIGTERM) -> None:
+    def shutdown(self, reason: str, signum: int = signal.SIGTERM, timeout: float = 0.0) -> None:
+        """This will unload all components first, then shutdown the composer node.
+
+        Parameters
+        ----------
+        reason : str
+            A human-readable string describing why the composer and its components are being shutdown.
+        signum : int, optional
+            The signal that should be send to the composer.
+        timeout : float, optional
+            How long to wait for each component and the composer to shutdown before returning. Don't wait if timeout is 0.0. Wait forever if timeout is None. 
+
+        Raises
+        ------
+        TimeoutError
+            If a timeout > 0 was set and any of the components or the composer did not shutdown before then.
+        """
         components = list(self.managed_components)
         for comp in components:
             try:
-                self.unload_component(comp)
+                self.unload_component(comp, timeout=timeout)
             except:
                 pass
 
         try:
-            self._wrapped_node.shutdown(reason, signum)
+            self._wrapped_node.shutdown(reason, signum, timeout)
         except NotImplementedError:
             pass
 
@@ -329,10 +345,12 @@ class Composer(AbstractNode):
             If loading the component failed.
         """
         if not self.is_running:
-            raise ValueError("Cannot load components into stopped composer")
+            self.logger.error("Cannot load components into stopped composer")
+            return -1
 
         if component.is_running:
-            raise ValueError("Cannot load an already component")
+            self.logger.error("Cannot load an already running component")
+            return -1
 
         if component.composer != self:
             self.logger.warning(
@@ -396,7 +414,7 @@ class Composer(AbstractNode):
             )
             raise RuntimeError(res.error_message)
 
-    def unload_component(self, component: Component | int) -> bool:
+    def unload_component(self, component: Component | int, timeout: float = 0.0) -> None:
         """Unload the specified component, essentially stopping its node.
 
         Note that an unload request will be issued even if the component reports it is not loaded.
@@ -405,6 +423,8 @@ class Composer(AbstractNode):
         ----------
         component : Component | int
             The component or a component's ID to stop.
+        timeout : float, optional
+            How long to wait for the component to be unloaded before returning. Don't wait if timeout is 0.0. Wait forever if timeout is None. 
 
         Returns
         -------
@@ -435,9 +455,26 @@ class Composer(AbstractNode):
         req.unique_id = cid
 
         self.logger.info(f"Unloading component {cid} ({cname})")
-        res = self._unload_component_client.call(req)
+        res = self._unload_component_client.call_async(req)
 
-        if res.success:
+        # ROS2 has its own implementation of a future that doesn't support timeouts...
+        if timeout == 0.0:
+            return True
+
+        elif timeout is None:
+            while not res.done():
+                time.sleep(0.05)
+
+        else:
+            start = time.time()
+            while time.time() - start < timeout:
+                if res.done():
+                    break
+                time.sleep(0.05)
+            else:
+                raise TimeoutError("Component did not unload within the specified timeout")
+
+        if res.result().success:
             # Usually Component.shutdown() takes care of this, but the user can call 
             # unload_component() directly
             if isinstance(component, Component):
@@ -446,7 +483,7 @@ class Composer(AbstractNode):
             return True
 
         self.logger.error(
-            f"Unloading component {cid} ({cname}) failed: {res.error_message}"
+            f"Unloading component {cid} ({cname}) failed: {res.result().error_message}"
         )
         return False
 

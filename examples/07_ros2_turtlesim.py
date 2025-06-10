@@ -25,7 +25,7 @@ def a_relic_of_the_past(
     bl = BetterLaunch()
 
     # If you really want to you can do this, but I will heavily frown on you
-    bl.ros2_actions(*[
+    bl.ros2_actions(
         Node(
             package='turtlesim',
             namespace=turtlesim_ns,
@@ -73,7 +73,7 @@ def a_relic_of_the_past(
                 )
             ]
         ),
-    ])
+    )
 
     # When running without the TUI, the launch function will run on the main thread. In the TUI however, the launch function will be executed on a separate thread, so this will still be okay
     bl.logger.info(f"Waiting for {kill_after}s before shutting down turtlesim")

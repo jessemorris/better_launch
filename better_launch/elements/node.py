@@ -107,11 +107,6 @@ class Node(AbstractNode, LiveParamsMixin):
         self.max_respawns = max_respawns
         self.respawn_delay = respawn_delay
         self._respawn_retries = 0
-
-        self.shutdown_future = None
-        """Use this if you want to join the node process.
-        """
-
         self._process: subprocess.Popen = None
         self._on_exit_callback = on_exit
 
@@ -127,8 +122,6 @@ class Node(AbstractNode, LiveParamsMixin):
         return (
             self._process is not None
             and self._process.poll() is None
-            and self.shutdown_future is not None
-            and not self.shutdown_future.done()
         )
 
     def start(self) -> None:
@@ -144,8 +137,6 @@ class Node(AbstractNode, LiveParamsMixin):
         if self.is_running:
             self.logger.warning(f"Node {self} is already started")
             return
-
-        self.shutdown_future = Future()
 
         try:
             # Note that self.process_log_level applies to the process, not our loggers
@@ -269,8 +260,6 @@ class Node(AbstractNode, LiveParamsMixin):
 
             if (
                 not BetterLaunch.instance().is_shutdown
-                and self.shutdown_future is not None
-                and not self.shutdown_future.done()
                 and (self.max_respawns < 0 or self._respawn_retries < self.max_respawns)
             ):
                 self.logger.info(f"Restarting {self.name} after unexpected shutdown")
@@ -279,13 +268,12 @@ class Node(AbstractNode, LiveParamsMixin):
                 if self.respawn_delay > 0.0:
                     time.sleep(self.respawn_delay)
 
-                if not self.shutdown_future.done():
-                    self.start()
-                    return
-
-            process.wait()
-            self._on_shutdown()
-            self.shutdown_future.set_result(None)
+                # Not nice: this will run start from the watcher thread, which will then create 
+                # another watcher thread before this one here exits. Should be fine, just not 
+                # elegant.
+                self.start()
+            else:
+                self._on_shutdown()
 
     def _collect_output_bundled(
         self, source: io.IOBase, buffer: io.StringIO, logger: logging.Logger
@@ -332,10 +320,21 @@ class Node(AbstractNode, LiveParamsMixin):
         if last_line is not None:
             buffer.write(last_line)
 
-    def shutdown(self, reason: str, signum: int = signal.SIGTERM) -> None:
+    def shutdown(self, reason: str, signum: int = signal.SIGTERM, timeout: float = 0.0) -> None:
+        if not self.is_running:
+            return
+            
         signame = signal.Signals(signum).name
         self.logger.warning(f"Received shutdown request: {reason} ({signame})")
         self._on_signal(signum)
+
+        if timeout == 0.0:
+            return
+
+        try:
+            self._process.wait(timeout)
+        except subprocess.TimeoutExpired:
+            raise TimeoutError("Node did not shutdown within the specified timeout")
 
     def _on_signal(self, signum) -> None:
         if not self._process or self._process.poll() is not None:
@@ -369,8 +368,7 @@ class Node(AbstractNode, LiveParamsMixin):
             )
 
     def _on_shutdown(self) -> None:
-        if self.shutdown_future is None or self.shutdown_future.done():
-            # Execution not started or already done, nothing to do.
+        if not self.is_running:
             return
 
         # Send SIGTERM and SIGKILL if not shutting down fast enough

@@ -159,10 +159,13 @@ def _parse_substitution_syntax(s: str) -> list[list | str]:
     def parse(tokens):
         stack = []
         current = []
+        is_key = False
         for tok in tokens:
             if tok == '$(':
                 stack.append(current)
                 current = []
+                # Next token should be marked as a substitution key
+                is_key = True
             elif tok == ')':
                 if not stack:
                     raise ValueError("Unbalanced )")
@@ -170,6 +173,9 @@ def _parse_substitution_syntax(s: str) -> list[list | str]:
                 current = stack.pop()
                 current.append(completed)
             else:
+                if is_key:
+                    tok = "$" + tok
+                    is_key = False
                 current.append(tok)
         if stack:
             raise ValueError("Unbalanced $(")
@@ -212,10 +218,16 @@ def substitute_tokens(text: str, substitutions: dict[str, Callable[..., str]]) -
             evaluated = [delve(token) for token in node]
             key, *args = evaluated
 
-            if key not in substitutions:
-                raise KeyError(f"Unknown substitution key: {key}")
-            
-            return substitutions[key](*args)
+            # Substitution keys will start with a $ (see parse() above)
+            if key.startswith("$"):
+                key = key[1:]
+
+                if key not in substitutions:
+                    raise KeyError(f"Unknown substitution key: {key}")
+                
+                return substitutions[key](*args)
+            else:
+                return " ".join(evaluated)
         else:
             return node
 

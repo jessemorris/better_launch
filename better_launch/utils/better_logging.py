@@ -68,7 +68,7 @@ class PrettyLogFormatter(logging.Formatter):
         roslog_pattern: str = r"%%(\w+)%%([\d.]+)%%(.*)",
         pattern_info: list[str] = ("levelname", "created", "msg"),
         level_colormap: dict[int, str] = None,
-        color_per_source: bool = True,
+        color_per_source: bool = False,
         colormode: Colormode = "all",
     ):
         """A specialized formatter that will try to extract various details from messages logged by ROS2 nodes and reformat them.

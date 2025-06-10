@@ -1,6 +1,6 @@
 from typing import Any
-import sys
 import os
+import time
 import platform
 import signal
 import logging
@@ -258,7 +258,7 @@ class Ros2LaunchWrapper(AbstractNode):
 
         self._process.close()
 
-    def shutdown(self, reason: str, signum: int = signal.SIGTERM) -> None:
+    def shutdown(self, reason: str, signum: int = signal.SIGTERM, timeout: float = 0.0) -> None:
         if self._terminate_requested and self.is_running:
             # Give the process a little bit of time to terminate
             try:
@@ -293,6 +293,14 @@ class Ros2LaunchWrapper(AbstractNode):
                 self.send_signal(signal.SIGINT)
         except:
             pass
+
+        if timeout == 0.0:
+            return
+
+        try:
+            self._process.join(timeout)
+        except subprocess.TimeoutExpired:
+            raise TimeoutError("ROS2 launch service did not shutdown within the specified timeout")
 
     def send_signal(self, signum: int) -> None:
         if not self.is_running:

@@ -185,7 +185,7 @@ class AbstractNode:
         """Start this node. Once this succeeds, :py:meth:`is_running` will return True."""
         raise NotImplementedError()
 
-    def shutdown(self, reason: str, signum: int = signal.SIGTERM) -> None:
+    def shutdown(self, reason: str, signum: int = signal.SIGTERM, timeout: float = 0.0) -> None:
         """Shutdown this node. Once this succeeds, :py:meth:`is_running` will return False.
 
         Parameters
@@ -194,6 +194,13 @@ class AbstractNode:
             A human-readable string describing why this node is being shutdown.
         signum : int, optional
             The signal that should be send to the node (if supported).
+        timeout : float, optional
+            How long to wait for the node to shutdown before returning. Don't wait if timeout is 0.0. Wait forever if timeout is None. 
+
+        Raises
+        ------
+        TimeoutError
+            If a timeout > 0 was set and the node did not shutdown before then.
         """
         raise NotImplementedError()
 
