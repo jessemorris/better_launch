@@ -28,6 +28,7 @@ def my_main(enable_x: bool = True):
 $> bl my_package my_launch_file.py --enable_x True
 ```
 
+**TODO update**
 ![TUI](media/tui.svg)
 
 *Do I have your attention? Read on to learn more!*
@@ -195,6 +196,23 @@ def my_start(
 See the [examples](examples/) for more details on what *better_launch* can do! 
 
 
+# The TUI
+*better_launch* comes with a sneak, unobstrusive TUI (terminal user interface) based on [prompt_toolkit](https://github.com/prompt-toolkit/python-prompt-toolkit), which will hover below the log output. You can start it by either passing `ui=True` to the `launch_this` wrapper, or by adding `--bl_ui_override=True` on the command line. 
+
+**TODO screenshot** 
+
+The TUI allows you a comfortable degree of control over all nodes managed by the *better_launch* process it is running in:
+- listing a node's services and topics
+- starting and stopping nodes
+- triggering lifecycle transitions
+- changing the stdout log level
+- etc.
+
+The TUI is also able to manage nodes started from different shells and processes, even if they have been started by ROS2 or other means. To do so, pass the `manage_foreign_nodes` flag to the wrapper or command line. Be aware though that this will not capture their output - to get their output you will have to use the *takeover* action from the TUI, which will restart the node process with the original arguments.
+
+> Foreign node processes are identified by having one of the following parameters in their arguments: `__ns`, `__name`, `__node`. This is usually not true for nodes started via `ros2 run` or other means. 
+
+
 # What are the differences?
 Because *better_launch* does not use the ROS2 launch system, some aspects work differently from what you may be used to.
 
@@ -206,9 +224,9 @@ While you indeed *can* launch *better_launch* launch files via `ros2 launch`, th
 ## Action immediacy
 In ROS2 launch, launch files create tasks that are then passed to an asynchronous event loop. This is the reason why e.g. checking for launch parameter values is so incredibly weird - they simply don't exist yet by the time you define the actions. In *better_launch* however, all actions are taken immediately: if you create a node, its process is started right away; if you include another *better_launch* launch file, its contents will be handled before the function returns. 
 
-The only exception to this is adding ROS2 launch actions, like including regular ROS2 launch files. Since these still rely on the ROS2 launch system, they need to be turned into asynchronous tasks and passed to the event loop. Usually a ROS2 `LaunchService` sub-process is started the first time a ROS2 action is passed to *better_launch*. From then on this process will handle all ROS2 actions asynchronously in the background. 
+The only exception to this is adding ROS2 launch actions, e.g. including regular ROS2 launch files. Since these still rely on the ROS2 launch system, they need to be turned into asynchronous tasks and passed to the event loop. Usually a ROS2 `LaunchService` sub-process is started the first time a ROS2 action is passed to *better_launch*. From then on this process will handle all ROS2 actions asynchronously in the background. 
 
-> While the output of the ROS2 launch service process (and its nodes) is captured and formatted by *better_launch* just like for all other nodes, these cannot be managed individually (e.g from the UI).
+> While the output of the ROS2 launch service process (and its nodes) is captured and formatted by *better_launch* just like for all other nodes, these will usually appear and behave as one single `launch_service` unit in the TUI (unless `manage_foreign_nodes` is true, see above).
 
 
 ## Lifecycle nodes
@@ -218,7 +236,7 @@ Lifecycle nodes differ from regular nodes in that they don't become fully active
 
 
 ## Type checking
-When passing arguments to a node in ROS2, in the end everything is passed as stringified command line arguments. So why bother with overly strict type checking? *better_launch* does not C-like strict type checking on you and will happily accept `int`, `string`, `float`, etc. for any given argument. In addition, sensible and *unsurprising* types have been chosen for all arguments you may provide (e.g. remaps are defined as a `dict[str, str]`, not a list of tuples).
+When passing arguments to a node in ROS2, in the end everything is passed as stringified command line arguments. So why bother with overly strict type checking? *better_launch* does not impose C-like strict type checking on you and will happily accept `int`, `string`, `float`, etc. for any given argument. In addition, sensible and *unsurprising* types have been chosen for all arguments you may provide (e.g. remaps are defined as a `dict[str, str]`, not a list of tuples).
 
 
 ## Declaring launch arguments
@@ -242,12 +260,9 @@ ROS2 launch has a bad reputation of leaving stale and abandoned processes behind
 # What doesn't work yet
 As of now *better_launch* supports the most important use cases, like starting nodes, proper (nicer!) logging, being awesome. However, there are still a couple of features that I have to work on to make it feature complete (roughly sorted by priority):
 - [ ] test include from ros
-- [ ] test tui web interface
 - [ ] document benchmarks
-- [ ] integrate convenience module once it's done
+- [ ] text convenience module
 - [ ] exception handling is barebones, so if something fails, everything fails (this is fine?)
-- [ ] see if we can make the TUI even faster
-- [ ] check how well the TUI handles high-volume logging
 
 
 # Installation
@@ -270,6 +285,7 @@ I am not an expert on profiling code. That being said, in my tests *better_launc
 
 The scripts, launch files and results from the benchmarks can be found under [media/benchmarks](media/benchmarks/). This section will only show the most relevant parts.
 
+**TODO**
 
 
 

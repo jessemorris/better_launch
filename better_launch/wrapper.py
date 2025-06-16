@@ -285,7 +285,7 @@ def _launch_this_wrapper(
 
         if ui:
             # TODO pass CLI args to TUI
-            from better_launch.tui.tui2 import BetterTui
+            from better_launch.tui.better_tui import BetterTui
             app = BetterTui(launch_func_wrapper)
             app.run()
         else:
