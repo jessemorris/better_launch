@@ -5,8 +5,9 @@ import logging
 import threading
 from dataclasses import dataclass
 
-from prompt_toolkit import Application
+from prompt_toolkit import Application, print_formatted_text
 from prompt_toolkit.output.color_depth import ColorDepth
+from prompt_toolkit.cursor_shapes import CursorShape
 from prompt_toolkit.application.current import get_app
 from prompt_toolkit.layout.containers import HSplit, Window, ConditionalContainer
 from prompt_toolkit.layout.controls import FormattedTextControl
@@ -14,7 +15,6 @@ from prompt_toolkit.layout.layout import Layout
 from prompt_toolkit.filters import Condition
 from prompt_toolkit.key_binding import KeyBindings, KeyPressEvent
 from prompt_toolkit.widgets import TextArea
-from prompt_toolkit.auto_suggest import AutoSuggest, Suggestion
 from prompt_toolkit.formatted_text import HTML
 from prompt_toolkit.history import InMemoryHistory
 from prompt_toolkit.buffer import Buffer
@@ -68,6 +68,8 @@ logging.addLevelName(999, "MUTE")
 
 
 class BetterTui:
+    footer_default = HTML(" <reverse>^C</reverse> Quit | <reverse>space</reverse> Mute | <reverse>F1</reverse> Find  <reverse>F9</reverse> Log Level")
+
     def __init__(
         self,
         launch_func: Callable,
@@ -88,7 +90,7 @@ class BetterTui:
         self.bindings = KeyBindings()
 
         self.mode = AppMode.STANDARD
-        self.footer_text: str = ""
+        self.footer_text: str = self.footer_default
         self.nodes_snapshot: list[AbstractNode] = []
         self.selected_node: AbstractNode = None
 
@@ -106,17 +108,17 @@ class BetterTui:
 
     def run(self):
         layout = self._make_layout()
-        self._switch_mode(AppMode.STANDARD)
         app = Application(
             layout=layout,
             key_bindings=self.bindings,
             full_screen=False,
             color_depth=self.color_depth,
+            cursor=CursorShape.BLOCK,
         )
 
-        def _run_launch_func(self) -> None:
+        def _run_launch_func() -> None:
             """Runs the launch function passed to the constructor and sets up the log capturing mechanism."""
-            self._launch_func()
+            self.launch_func()
 
             bl = BetterLaunch.wait_for_instance()
             set_title(os.path.basename(bl.launchfile))
@@ -125,7 +127,7 @@ class BetterTui:
 
         launch_thread = threading.Thread(target=_run_launch_func)
 
-        with patch_stdout():
+        with patch_stdout(raw=True):
             launch_thread.start()
             app.run()
 
@@ -143,11 +145,9 @@ class BetterTui:
         return self.mode in (AppMode.SEARCH_NODE,)
 
     def _is_menu_visible(self) -> bool:
-        return self.mode in (
-            AppMode.CONFIRM_EXIT,
-            AppMode.SEARCH_NODE,
-            AppMode.NODE_MENU,
-            AppMode.LOG_LEVEL,
+        return self.mode not in (
+            AppMode.STANDARD, 
+            AppMode.NODE_INFO,
         )
 
     def set_log_level(self, level: LogLevel) -> None:
@@ -157,7 +157,7 @@ class BetterTui:
         handler.setLevel(level.level)
 
     def _menu_cancel(self) -> None:
-        self.mode = AppMode.STANDARD
+        self._switch_mode(AppMode.STANDARD)
         get_app().layout.focus(self.footer_window)
 
     # Setup user interactions
@@ -222,8 +222,7 @@ class BetterTui:
         self.mode = mode
 
         if mode == AppMode.STANDARD:
-            self.footer_text = " [^C] Quit | [space] Mute | [F1] Find  [F9] Log Level"
-            self._menu_cancel()
+            self.footer_text = self.footer_default
 
         elif mode == AppMode.CONFIRM_EXIT:
             self.footer_text = "Shutdown nodes and quit?"
@@ -250,18 +249,23 @@ class BetterTui:
             # Contains the format, node name, and a reference to the AbstractNode
             # (see SEARCH_NODE above)
             item = self.footer_menu.get_selected_item()
-            node = item[-1]
+            node = item[2]
             self.selected_node = node
 
-            if isinstance(node, ForeignNode):
-                choices = ["info", "takeover", "kill"]
-            elif isinstance(node, ComponentNode):
-                choices = ["info", "restart", "unload"]
-            else:
-                choices = ["info", "restart", "kill"]
+            choices = ["info"]
 
-            if node.check_lifecycle_node():
-                choices.insert(1, "lifecycle")
+            if node.is_running:
+                if node.check_lifecycle_node():
+                    choices.append("lifecycle")
+
+                if isinstance(node, ForeignNode):
+                    choices.append("takeover")
+                elif isinstance(node, ComponentNode):
+                    choices.extend("restart", "unload")
+                else:
+                    choices.extend("restart", "kill")
+            else:
+                choices.append("start")
 
             self.footer_text = node.fullname
             self.footer_menu.set_items(choices)
@@ -271,7 +275,7 @@ class BetterTui:
             cols = get_app().output.get_size().columns
             bar = "\n" + "=" * cols + "\n"
             text = self.selected_node.get_info_sheet()
-            print(bar + text + bar)
+            print_formatted_text(bar, "\n", HTML(text), bar)
             
             self._menu_cancel()
 
@@ -296,8 +300,10 @@ class BetterTui:
 
         elif mode == AppMode.LOG_LEVEL:
             self.footer_text = "Select log level"
-            items = [(l.style, l.name) for l in _log_levels.values()]
-            self.footer_menu.set_items(items, self.log_level)
+            levels = list(_log_levels.values())
+            items = [(l.style, l.name) for l in levels]
+            active = levels.index(self.log_level)
+            self.footer_menu.set_items(items, active)
 
     def _handle_menu_accept(self, idx: int) -> None:
         item = self.footer_menu.get_selected_item()
@@ -306,9 +312,12 @@ class BetterTui:
             if item == "yes":
                 self.quit("user request")
                 return
+            
+            self._menu_cancel()
 
         elif self.mode == AppMode.SEARCH_NODE:
             self._switch_mode(AppMode.NODE_MENU)
+            # Don't cancel the menu here
 
         elif self.mode == AppMode.NODE_MENU:
             action = self.footer_menu.get_selected_item()
@@ -328,22 +337,34 @@ class BetterTui:
             elif action in ("kill", "unload"):
                 self._switch_mode(AppMode.CONFIRM_NODE_KILL)
 
+            elif action == "start":
+                # No confirmation needed here
+                self.selected_node.start()
+                self._menu_cancel()
+
+            else:
+                self._menu_cancel()
+
         elif self.mode == AppMode.NODE_LIFECYCLE:
             target_stage = LifecycleStage[item]
             self.selected_node.lifecycle.transition(target_stage)
+            self._menu_cancel()
 
         elif self.mode == AppMode.CONFIRM_NODE_TAKEOVER:
             if item == "yes":
                 self.selected_node.takeover(kill_after=3.0)
+            self._menu_cancel()
 
         elif self.mode == AppMode.CONFIRM_NODE_RESTART:
             if item == "yes":
                 self.selected_node.shutdown("restarting node", timeout=None)
                 self.selected_node.start()
+            self._menu_cancel()
 
         elif self.mode == AppMode.CONFIRM_NODE_KILL:
             if item == "yes":
                 self.selected_node.shutdown("terminated by user")
+            self._menu_cancel()
 
         elif self.mode == AppMode.LOG_LEVEL:
             if isinstance(item, tuple):
@@ -351,8 +372,7 @@ class BetterTui:
 
             level = _log_levels[item]
             self.set_log_level(level)
-
-        self._menu_cancel()
+            self._menu_cancel()
 
     def _make_layout(self) -> Layout:
 

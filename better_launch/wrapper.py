@@ -284,17 +284,9 @@ def _launch_this_wrapper(
         BetterLaunch._launch_func_args = dict(bound_args.arguments)
 
         if ui:
-            # from tui.pyterm_app import BetterUI
-            #
-            # BetterUI.setup_logging()
-            # app = BetterUI()
-            # app.start(launch_func_wrapper)
-
-            from better_launch.tui.textual_app import BetterUI
-
-            BetterUI.setup_logging()
-            # TODO add tui command line options (foreign nodes)
-            app = BetterUI(launch_func_wrapper)
+            # TODO pass CLI args to TUI
+            from better_launch.tui.tui2 import BetterTui
+            app = BetterTui(launch_func_wrapper)
             app.run()
         else:
             launch_func_wrapper()

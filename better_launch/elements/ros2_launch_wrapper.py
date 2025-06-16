@@ -318,14 +318,14 @@ class Ros2LaunchWrapper(AbstractNode):
         return (
             super()._get_info_section_general()
             + f"""\
-[bold]Launch Service[/bold]
+<bold>Launch Service</bold>
   PID:       {self.pid}
 """
         )
 
     def _get_info_section_ros(self) -> str:
         return f"""\
-[bold]Loaded Actions[/bold]
+<bold>Loaded Actions</bold>
 {self.describe_launch_actions()}
 """
 

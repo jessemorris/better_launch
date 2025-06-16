@@ -442,7 +442,7 @@ class ForeignNode(AbstractNode, LiveParamsMixin):
         return (
             info
             + f"""
-[bold]Process[/bold]
+<bold>Process</bold>
   PID:       {self.pid}
   Cmd Args:  {self.cmd_args}
 """

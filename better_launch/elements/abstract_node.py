@@ -361,8 +361,8 @@ class AbstractNode:
 
     def _get_info_section_general(self) -> str:
         return f"""\
-[bold]{self.name} ({self.__class__.__name__})[/bold]
-  Status:    {'[green]alive[/green]' if self.is_running else '[red]dead[/red]'}
+<bold>{self.name} ({self.__class__.__name__})</bold>
+  Status:    {'<green>alive</green>' if self.is_running else '<red>dead</red>'}
   Lifecycle: {self.lifecycle.current_stage.name if self.lifecycle else 'None'}
   Package:   {self.package}
   Command:   {self.executable}
@@ -371,7 +371,7 @@ class AbstractNode:
 
     def _get_info_section_config(self) -> str:
         return f"""\
-[bold]Config[/bold]
+<bold>Config</bold>
   Node Args: {self.params}
   Remaps:    {self.remaps}
 """
@@ -414,11 +414,11 @@ class AbstractNode:
             services_text = ""
 
         return f"""\
-[bold]Publishers:[/bold] {pubs_text}
+<bold>Publishers:</bold> {pubs_text}
 
-[bold]Subscriptions:[/bold] {subs_text}
+<bold>Subscriptions:</bold> {subs_text}
 
-[bold]Services:[/bold] {services_text}
+<bold>Services:</bold> {services_text}
 """
 
     def __repr__(self):

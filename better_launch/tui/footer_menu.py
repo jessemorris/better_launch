@@ -43,7 +43,7 @@ class FooterMenu(FormattedTextControl):
 
         for i, txt in enumerate(self.items):
             if isinstance(txt, tuple):
-                style, txt = txt
+                style, txt, *_ = txt
             else:
                 style = ""
             
