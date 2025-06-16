@@ -1,6 +1,9 @@
-from typing import Literal
-from enum import IntEnum, Enum, auto
+import os
+from typing import Literal, Callable
+from enum import IntEnum, auto
 import logging
+import threading
+from dataclasses import dataclass
 
 from prompt_toolkit import Application
 from prompt_toolkit.output.color_depth import ColorDepth
@@ -16,8 +19,19 @@ from prompt_toolkit.formatted_text import HTML
 from prompt_toolkit.history import InMemoryHistory
 from prompt_toolkit.buffer import Buffer
 from prompt_toolkit.patch_stdout import patch_stdout
+from prompt_toolkit.shortcuts import set_title
 
-from footer_menu import FooterMenu
+from better_launch import BetterLaunch
+from better_launch.elements import (
+    AbstractNode,
+    ForeignNode,
+    Component as ComponentNode,
+    discover_ros2_nodes,
+    LifecycleStage,
+)
+import better_launch.ros.logging as roslog
+
+from better_launch.tui.footer_menu import FooterMenu
 
 
 class NodeAutoSuggest(AutoSuggest):
@@ -46,21 +60,45 @@ class AppMode(IntEnum):
     CONFIRM_EXIT = auto()
     SEARCH_NODE = auto()
     NODE_MENU = auto()
+    NODE_INFO = auto()
+    NODE_LIFECYCLE = auto()
+    CONFIRM_NODE_TAKEOVER = auto()
+    CONFIRM_NODE_RESTART = auto()
+    CONFIRM_NODE_KILL = auto()
     LOG_LEVEL = auto()
 
 
-_log_levels = [
-    ("ansibrightgreen", "INFO"),
-    ("yellow", "WARNING"),
-    ("ansibrightred", "ERROR"),
-    ("ansibrightmagenta", "CRITICAL"),
-    ("ansibrightblue", "DEBUG"),
-]
+@dataclass
+class LogLevel:
+    name: str
+    level: int
+    style: str
+
+
+_log_levels = {
+    "INFO": LogLevel("INFO", logging.INFO, "ansibrightgreen"),
+    "WARNING": LogLevel("WARNING", logging.WARNING, "yellow"),
+    "ERROR": LogLevel("ERROR", logging.ERROR, "ansibrightred"),
+    "CRITICAL": LogLevel("CRITICAL", logging.CRITICAL, "ansibrightmagenta"),
+    "DEBUG": LogLevel("DEBUG", logging.DEBUG, "ansibrightblue"),
+    "MUTE": LogLevel("MUTE", 999, "grey"),
+}
+
+
+logging.addLevelName(999, "MUTE")
 
 
 class BetterTui:
-    def __init__(self, *, color_depth: Literal[1, 4, 8, 24] = 8):
-        self._color_depth = {
+    def __init__(
+        self,
+        launch_func: Callable,
+        *,
+        manage_foreign_nodes: bool = False,
+        color_depth: Literal[1, 4, 8, 24] = 8
+    ):
+        self.launch_func = launch_func
+        self.manage_foreign_nodes = manage_foreign_nodes
+        self.color_depth = {
             1: ColorDepth.DEPTH_1_BIT,
             4: ColorDepth.DEPTH_4_BIT,
             8: ColorDepth.DEPTH_8_BIT,
@@ -71,23 +109,12 @@ class BetterTui:
         self.bindings = KeyBindings()
 
         self.mode = AppMode.STANDARD
-        # TODO remove test values
-        self.nodes_snapshot: list[str] = [
-            "node1",
-            "node2",
-            "another_node",
-            "robert",
-            "günter",
-            "hildegard",
-            "walter",
-            "freud",
-            "johnny keats",
-            "gladstone",
-            "sol weintraub",
-        ]
-        self.selected_node: str = None
+        self.footer_text: str = ""
+        self.nodes_snapshot: list[AbstractNode] = []
+        self.selected_node: AbstractNode = None
 
-        self.log_level = 0
+        self.prev_log_level = _log_levels["MUTE"]
+        self.log_level = _log_levels["INFO"]
         self.muted = False
 
         self.title: FormattedTextControl = None
@@ -96,22 +123,37 @@ class BetterTui:
         self.search_buffer: Buffer = None
         self.footer_menu: FooterMenu = None
 
-        self._setup_bindings()
+        self._setup_key_bindings()
 
     def run(self):
         layout = self._make_layout()
+        self._switch_mode(AppMode.STANDARD)
         app = Application(
             layout=layout,
             key_bindings=self.bindings,
             full_screen=False,
-            color_depth=self._color_depth,
+            color_depth=self.color_depth,
         )
 
+        def _run_launch_func(self) -> None:
+            """Runs the launch function passed to the constructor and sets up the log capturing mechanism."""
+            self._launch_func()
+
+            bl = BetterLaunch.wait_for_instance()
+            set_title(os.path.basename(bl.launchfile))
+            bl.spin()
+            self.quit()
+
+        launch_thread = threading.Thread(target=_run_launch_func)
+
         with patch_stdout():
+            launch_thread.start()
             app.run()
 
-    def quit(self) -> None:
-        # TODO shutdown nodes
+    def quit(self, reason: str) -> None:
+        bl = BetterLaunch.instance()
+        if bl:
+            bl.shutdown(reason)
         get_app().exit()
 
     # Some common helpers
@@ -129,85 +171,52 @@ class BetterTui:
             AppMode.LOG_LEVEL,
         )
 
+    def set_log_level(self, level: LogLevel) -> None:
+        self.prev_log_level = self.log_level
+        self.log_level = level
+        handler: logging.Handler = roslog.launch_config.get_screen_handler()
+        handler.setLevel(level.level)
+
     def _menu_cancel(self) -> None:
         self.mode = AppMode.STANDARD
         get_app().layout.focus(self.footer_window)
 
-    def _handle_menu_accept(self, idx: int, answer: str) -> None:
-        if self.mode == AppMode.CONFIRM_EXIT:
-            if answer == "yes":
-                self.quit()
-                return
-
-        elif self.mode == AppMode.SEARCH_NODE:
-            self.mode = AppMode.NODE_MENU
-            # TODO get proper node reference
-            self.selected_node = self.footer_menu.get_selected_item()
-            # TODO items depend on node type
-            self.footer_menu.set_items([
-                "info",
-                "restart",
-                "kill",
-            ])
-
-        elif self.mode == AppMode.NODE_MENU:
-            # TODO do something with the node
-            pass
-
-        elif self.mode == AppMode.LOG_LEVEL:
-            # TODO configure logger
-            self.log_level = idx
-
-        self._menu_cancel()
-
-    # TUI setup
-    def _setup_bindings(self) -> None:
+    # Setup user interactions
+    def _setup_key_bindings(self) -> None:
         bind = self.bindings.add
 
+        mode_standard = Condition(lambda: self.mode == AppMode.STANDARD)
         menu_visible = Condition(self._is_menu_visible)
 
         @bind("c-c")
         async def _(event: KeyPressEvent):
-            self.mode = AppMode.CONFIRM_EXIT
-            self.footer_menu.set_items(["yes", "no"])
-            event.app.invalidate()
+            self._switch_mode(AppMode.CONFIRM_EXIT)
 
         @bind("space", filter=~Condition(self._is_search_visible))
         def _(event: KeyPressEvent):
-            # TODO configure our logger or stdout
             self.muted = not self.muted
+            level = _log_levels["MUTE"] if self.muted else self.prev_log_level
+            self.set_log_level(level)
 
-        @bind("f1")
+        @bind("f1", filter=mode_standard)
         def _(event: KeyPressEvent):
-            if self.mode == AppMode.SEARCH_NODE:
-                return
+            self._switch_mode(AppMode.SEARCH_NODE)
 
-            self.mode = AppMode.SEARCH_NODE
-            self.footer_menu.set_items(self.nodes_snapshot)
-            self.search_buffer.text = ""
-            event.app.layout.focus(self.search_field)
-
-        @bind("f9")
+        @bind("f9", filter=mode_standard)
         def _(event: KeyPressEvent):
-            if self.mode == AppMode.LOG_LEVEL:
-                return
-
-            self.mode = AppMode.LOG_LEVEL
-            self.footer_menu.set_items(_log_levels, self.log_level)
+            self._switch_mode(AppMode.LOG_LEVEL)
 
         # Menu interactions
         @bind("escape", filter=menu_visible, eager=True)
         def _(event: KeyPressEvent):
-            self._menu_cancel()
+            self._switch_mode(AppMode.STANDARD)
 
         @bind("enter", filter=menu_visible)
         def _(event: KeyPressEvent):
             if not self.footer_menu.items:
                 self._menu_cancel()
-
             else:
-                answer = self.footer_menu.get_selected_item()
-                self._handle_menu_accept(self.footer_menu.selected, answer)
+                self._handle_menu_accept(self.footer_menu.selected)
 
         @bind("tab", filter=menu_visible)
         def _(event: KeyPressEvent):
@@ -228,18 +237,156 @@ class BetterTui:
             )
             def _(event: KeyPressEvent):
                 self.footer_menu.select((i - 1) % 10)
-                answer = self.footer_menu.get_selected_item()
-                self._handle_menu_accept(self.footer_menu.selected, answer)
+                self._handle_menu_accept(self.footer_menu.selected)
+
+    def _switch_mode(self, mode: AppMode) -> None:
+        if mode == AppMode.STANDARD:
+            self.footer_text = " [^C] Quit | [space] Mute | [F1] Find  [F9] Log Level"
+            self._menu_cancel()
+
+        elif mode == AppMode.CONFIRM_EXIT:
+            self.footer_text = "Shutdown nodes and quit?"
+            self.footer_menu.set_items(["yes", "no"])
+
+        elif mode == AppMode.SEARCH_NODE:
+            self.footer_text = ""
+
+            if self.manage_foreign_nodes:
+                self.nodes_snapshot = discover_ros2_nodes(True)
+            else:
+                bl = BetterLaunch.instance()
+                self.nodes_snapshot = bl.all_nodes(
+                    include_components=True, include_launch_service=True
+                )
+
+            items = [("", n.name, n) for n in self.nodes_snapshot]
+            self.footer_menu.set_items(items)
+
+            if self.mode != AppMode.SEARCH_NODE:
+                self.mode = AppMode.SEARCH_NODE
+                self.search_buffer.text = ""
+                get_app().layout.focus(self.search_field)
+
+        elif mode == AppMode.NODE_MENU:
+            # Contains the format, node name, and a reference to the AbstractNode
+            # (see SEARCH_NODE above)
+            item = self.footer_menu.get_selected_item()
+            node = item[-1]
+            self.selected_node = node
+
+            if isinstance(node, ForeignNode):
+                choices = ["info", "takeover", "kill"]
+            elif isinstance(node, ComponentNode):
+                choices = ["info", "restart", "unload"]
+            else:
+                choices = ["info", "restart", "kill"]
+
+            if node.check_lifecycle_node():
+                choices.insert(1, "lifecycle")
+
+            self.footer_text = node.fullname
+            self.footer_menu.set_items(choices)
+
+        elif mode == AppMode.NODE_INFO:
+            # TODO not implemented yet
+            pass
+
+        elif mode == AppMode.NODE_LIFECYCLE:
+            self.footer_text = "Choose target state for " + self.selected_node.fullname
+
+            valid_stages = list([s.name for s in LifecycleStage])
+            active = valid_stages.index(self.selected_node.lifecycle.current_stage.name)
+            self.footer_menu.set_items(valid_stages, active)
+
+        elif mode == AppMode.CONFIRM_NODE_TAKEOVER:
+            self.footer_text = f"Restart {self.selected_node.fullname} for takeover?"
+            self.footer_menu.set_items(["yes", "no"])
+
+        elif mode == AppMode.CONFIRM_NODE_RESTART:
+            self.footer_text = f"Restart {self.selected_node.fullname}?"
+            self.footer_menu.set_items(["yes", "no"])
+
+        elif mode == AppMode.CONFIRM_NODE_KILL:
+            self.footer_text = f"Terminate {self.selected_node.fullname}?"
+            self.footer_menu.set_items(["yes", "no"])
+
+        elif mode == AppMode.LOG_LEVEL:
+            self.footer_text = "Select log level"
+            items = [(l.style, l.name) for l in _log_levels.values()]
+            self.footer_menu.set_items(items, self.log_level)
+
+        self.mode = mode
+
+    def _handle_menu_accept(self, idx: int) -> None:
+        item = self.footer_menu.get_selected_item()
+
+        if self.mode == AppMode.CONFIRM_EXIT:
+            if item == "yes":
+                self.quit("user request")
+                return
+
+        elif self.mode == AppMode.SEARCH_NODE:
+            self._switch_mode(AppMode.NODE_MENU)
+
+        elif self.mode == AppMode.NODE_MENU:
+            action = self.footer_menu.get_selected_item()
+
+            if action == "info":
+                self._switch_mode(AppMode.NODE_INFO)
+
+            elif action == "lifecycle":
+                self._switch_mode(AppMode.NODE_LIFECYCLE)
+
+            elif action == "takeover":
+                self._switch_mode(AppMode.CONFIRM_NODE_TAKEOVER)
+
+            elif action == "restart":
+                self._switch_mode(AppMode.CONFIRM_NODE_RESTART)
+
+            elif action in ("kill", "unload"):
+                self._switch_mode(AppMode.CONFIRM_NODE_KILL)
+
+        elif self.mode == AppMode.NODE_LIFECYCLE:
+            target_stage = LifecycleStage[item]
+            self.selected_node.lifecycle.transition(target_stage)
+
+        elif self.mode == AppMode.CONFIRM_NODE_TAKEOVER:
+            if item == "yes":
+                self.selected_node.takeover(kill_after=3.0)
+
+        elif self.mode == AppMode.CONFIRM_NODE_RESTART:
+            if item == "yes":
+                self.selected_node.shutdown("restarting node", timeout=None)
+                self.selected_node.start()
+
+        elif self.mode == AppMode.CONFIRM_NODE_KILL:
+            if item == "yes":
+                self.selected_node.shutdown("terminated by user")
+
+        elif self.mode == AppMode.LOG_LEVEL:
+            if isinstance(item, tuple):
+                item = item[1]
+
+            level = _log_levels[item]
+            self.set_log_level(level)
+
+        self._menu_cancel()
 
     def _make_layout(self) -> Layout:
 
         def on_search_update(_) -> None:
             new_text = self.search_buffer.text
-            matches = [x for x in self.nodes_snapshot if new_text.lower() in x.lower()]
+
+            if new_text.startswith("/"):
+                nodes = [n.fullname for n in self.nodes_snapshot]
+            else:
+                nodes = [n.name for n in self.nodes_snapshot]
+
+            matches = [x for x in nodes if new_text.lower() in x.lower()]
             self.footer_menu.update_items(matches)
 
         self.title = FormattedTextControl("")
-        self.footer_window = Window(FormattedTextControl(self._get_toolbar))
+        self.footer_window = Window(FormattedTextControl(lambda: self.footer_text))
 
         self.search_field = TextArea(
             prompt="Search: ",
@@ -275,39 +422,3 @@ class BetterTui:
                 ]
             )
         )
-
-    def _get_toolbar(self) -> str:
-        if self.mode == AppMode.CONFIRM_EXIT:
-            return "Shutdown nodes and quit?"
-
-        elif self.mode == AppMode.SEARCH_NODE:
-            # Not shown
-            return ""
-
-        elif self.mode == AppMode.NODE_MENU:
-            # TODO get full node name
-            return self.selected_node
-
-        elif self.mode == AppMode.LOG_LEVEL:
-            return "Select log level"
-
-        # AppMode.STANDARD
-        return " [^C] Quit | [space] Mute | [F1] Find  [F9] Log Level"
-
-
-if __name__ == "__main__":
-    from threading import Thread
-    import time
-
-    def gen():
-        i = 0
-        while True:
-            i += 1
-            print(i)
-            time.sleep(1)
-
-    t = Thread(target=gen, daemon=True)
-    t.start()
-
-    tui = BetterTui()
-    tui.run()

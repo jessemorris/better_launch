@@ -1,3 +1,4 @@
+from typing import Any
 from prompt_toolkit.layout.controls import FormattedTextControl
 from prompt_toolkit.application.current import get_app
 
@@ -5,12 +6,26 @@ from prompt_toolkit.application.current import get_app
 class FooterMenu(FormattedTextControl):
     def __init__(
         self,
-        items: list[str] = None,
+        items: list[str | tuple[str]] = None,
         *,
         empty_prompt: str = "---",
         ellipses: str = "…",
         highlight_style: str = "reverse",
     ):
+        """_summary_
+
+        Parameters
+        ----------
+        items : list[str  |  tuple[str]], optional
+            tuple[style, name] or 
+            tuple[style, name, actual_value]
+        empty_prompt : str, optional
+            _description_, by default "---"
+        ellipses : str, optional
+            _description_, by default "…"
+        highlight_style : str, optional
+            _description_, by default "reverse"
+        """
         super().__init__(self.render, focusable=False)
 
         self.items = items or []
@@ -89,7 +104,7 @@ class FooterMenu(FormattedTextControl):
         self.selected = idx
         get_app().invalidate()
 
-    def get_selected_item(self) -> str:
+    def get_selected_item(self) -> str | Any:
         return self.items[self.selected]
 
     def set_items(self, items: list[str], default: int = 0) -> None:
