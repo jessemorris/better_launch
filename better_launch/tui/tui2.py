@@ -34,27 +34,6 @@ import better_launch.ros.logging as roslog
 from better_launch.tui.footer_menu import FooterMenu
 
 
-class NodeAutoSuggest(AutoSuggest):
-    def get_suggestion(self, buffer, document):
-        history = buffer.history
-        # Consider only the last line for the suggestion.
-        text = document.text.rsplit("\n", 1)[-1]
-
-        if text.strip():
-            if text.startswith("/"):
-                # TODO search nodes based on full name
-                full_node_name = "/namespace/abc"
-                if full_node_name.startswith(text):
-                    return Suggestion(full_node_name[len(text) :])
-            else:
-                # TODO Search based on node names
-                node_name = "abc"
-                if node_name.startswith(text):
-                    return Suggestion(node_name[len(text) :])
-
-        return None
-
-
 class AppMode(IntEnum):
     STANDARD = auto()
     CONFIRM_EXIT = auto()
@@ -240,6 +219,8 @@ class BetterTui:
                 self._handle_menu_accept(self.footer_menu.selected)
 
     def _switch_mode(self, mode: AppMode) -> None:
+        self.mode = mode
+
         if mode == AppMode.STANDARD:
             self.footer_text = " [^C] Quit | [space] Mute | [F1] Find  [F9] Log Level"
             self._menu_cancel()
@@ -262,10 +243,8 @@ class BetterTui:
             items = [("", n.name, n) for n in self.nodes_snapshot]
             self.footer_menu.set_items(items)
 
-            if self.mode != AppMode.SEARCH_NODE:
-                self.mode = AppMode.SEARCH_NODE
-                self.search_buffer.text = ""
-                get_app().layout.focus(self.search_field)
+            self.search_buffer.text = ""
+            get_app().layout.focus(self.search_field)
 
         elif mode == AppMode.NODE_MENU:
             # Contains the format, node name, and a reference to the AbstractNode
@@ -288,8 +267,13 @@ class BetterTui:
             self.footer_menu.set_items(choices)
 
         elif mode == AppMode.NODE_INFO:
-            # TODO not implemented yet
-            pass
+            # Simply print to our captured stdout
+            cols = get_app().output.get_size().columns
+            bar = "\n" + "=" * cols + "\n"
+            text = self.selected_node.get_info_sheet()
+            print(bar + text + bar)
+            
+            self._menu_cancel()
 
         elif mode == AppMode.NODE_LIFECYCLE:
             self.footer_text = "Choose target state for " + self.selected_node.fullname
@@ -314,8 +298,6 @@ class BetterTui:
             self.footer_text = "Select log level"
             items = [(l.style, l.name) for l in _log_levels.values()]
             self.footer_menu.set_items(items, self.log_level)
-
-        self.mode = mode
 
     def _handle_menu_accept(self, idx: int) -> None:
         item = self.footer_menu.get_selected_item()
