@@ -293,6 +293,7 @@ def _launch_this_wrapper(
             from better_launch.tui.textual_app import BetterUI
 
             BetterUI.setup_logging()
+            # TODO add tui command line options (foreign nodes)
             app = BetterUI(launch_func_wrapper)
             app.run()
         else:
