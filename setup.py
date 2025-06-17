@@ -12,7 +12,7 @@ setup(
         "PyYAML",
         "rich",
         "setproctitle",
-        "textual",
+        "prompt_toolkit",
     ],
     maintainer='Nikolas Dahn',
     maintainer_email='nikolas.dahn@gmail.com',

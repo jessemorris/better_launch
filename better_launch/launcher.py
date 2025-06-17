@@ -52,6 +52,7 @@ from better_launch.elements import (
     ForeignNode,
     get_package_for_path,
     find_process_for_node,
+    find_foreign_nodes,
 )
 from better_launch.utils.substitutions import (
     default_substitution_handlers,
@@ -112,12 +113,12 @@ class _BetterLaunchMeta(type):
         Returns
         -------
         BetterLaunch
-            The BetterLaunch singleton instance. 
+            The BetterLaunch singleton instance.
 
         Raises
         ------
         TimeoutError
-            If the timeout has passed and no instance has appeared yet. 
+            If the timeout has passed and no instance has appeared yet.
         """
         return cls._singleton_future.result(timeout)
 
@@ -258,7 +259,11 @@ Takeoff in 3... 2... 1...
         return groups
 
     def all_nodes(
-        self, include_components: bool = False, include_launch_service: bool = True
+        self,
+        *,
+        include_components: bool = False,
+        include_launch_service: bool = True,
+        include_foreign: bool = False,
     ) -> list[AbstractNode]:
         """Returns a list of all nodes in the order they were added. Components will be added right after their composers. If a ROS2 launch service has been started it will be added at the very end.
 
@@ -266,9 +271,10 @@ Takeoff in 3... 2... 1...
         ----------
         include_components : bool, optional
             Whether to include :py:class:`Component` instances.
-
         include_launch_service : bool, optional
             Whether to include the ROS2 launch service wrapper if it was created.
+        include_foreign : bool, optional
+            Whether to include foreign nodes that have not been started by this launcher instance.
 
         Returns
         -------
@@ -287,6 +293,9 @@ Takeoff in 3... 2... 1...
         if include_launch_service and self._ros2_launcher:
             nodes.append(self._ros2_launcher)
 
+        if include_foreign:
+            nodes.extend(find_foreign_nodes())
+
         return nodes
 
     def query_node(
@@ -295,6 +304,7 @@ Takeoff in 3... 2... 1...
         *,
         include_components: bool = True,
         include_launch_service: bool = False,
+        include_foreign: bool = False,
     ) -> AbstractNode:
         """Retrieve the first node whos :py:meth:`AbstractNode.fullname` matches the provided regex.
 
@@ -306,6 +316,8 @@ Takeoff in 3... 2... 1...
             Whether to include components in the results, if any.
         include_launch_service : bool, optional
             Whether to include the ROS2 launch service in the result (if it exists).
+        include_foreign : bool, optional
+            Whether to include foreign nodes not created by this launcher.
 
         Returns
         -------
@@ -316,6 +328,7 @@ Takeoff in 3... 2... 1...
         for node in self.all_nodes(
             include_components=include_components,
             include_launch_service=include_launch_service,
+            include_foreign=include_foreign,
         ):
             if reg.match(node.fullname):
                 return node
@@ -328,6 +341,7 @@ Takeoff in 3... 2... 1...
         *,
         include_components: bool = True,
         include_launch_service: bool = False,
+        include_foreign: bool = False,
     ) -> list[AbstractNode]:
         """Retrieve all nodes whos :py:meth:`AbstractNode.fullname` matches the provided regex.
 
@@ -339,6 +353,8 @@ Takeoff in 3... 2... 1...
             Whether to include components in the results, if any.
         include_launch_service : bool, optional
             Whether to include the ROS2 launch service in the result (if it exists).
+        include_foreign : bool, optional
+            Whether to include foreign nodes not created by this launcher.
 
         Returns
         -------
@@ -351,6 +367,7 @@ Takeoff in 3... 2... 1...
             for node in self.all_nodes(
                 include_components=include_components,
                 include_launch_service=include_launch_service,
+                include_foreign=include_foreign,
             )
             if reg.match(node.fullname)
         ]
@@ -410,10 +427,10 @@ Takeoff in 3... 2... 1...
             if not child:
                 if not create:
                     return None
-                
+
                 child = Group(g, part)
                 g.add_child(child)
-            
+
             g = child
 
         return g
@@ -481,7 +498,9 @@ Takeoff in 3... 2... 1...
                 )
 
         # Tell all nodes to shut down
-        for n in self.all_nodes():
+        for n in self.all_nodes(
+            include_components=True, include_launch_service=True, include_foreign=False
+        ):
             try:
                 n.shutdown(reason, signum)
             except NotImplementedError:
@@ -624,7 +643,7 @@ Takeoff in 3... 2... 1...
         """
         if not s:
             return ""
-        
+
         return substitute_tokens(s, default_substitution_handlers("full"))
 
     def load_params(
@@ -717,7 +736,7 @@ Takeoff in 3... 2... 1...
                     final_params.update(params[key])
                     # Don't break as there can be multiple matching entries due to wildcards
                     # See https://docs.ros.org/en/jazzy/How-To-Guides/Node-arguments.html
-            
+
             if not final_params:
                 # We didn't find any matching parameters, so this either doesn't contain a section
                 # for this node, or it is not a ros parameters file
@@ -1075,7 +1094,7 @@ Takeoff in 3... 2... 1...
         """Groups are used to bundle nodes into namespaces. While they influence the nodes' topics
         and service name, they have no runtime functionality.
 
-        Groups are intended to be used as context objects and can be nested. Note that starting a 
+        Groups are intended to be used as context objects and can be nested. Note that starting a
         new root branch (i.e. a group starting with "/") is valid and will change subsequent groups
         for the duration of the context window.
 
@@ -1107,7 +1126,7 @@ Takeoff in 3... 2... 1...
         ------
         Generator[Group, None, None]
             Places the group on the group stack and yields it. Exiting the context will pop the group from the group stack.
-        
+
         Raises
         ------
         RuntimeError
@@ -1116,12 +1135,12 @@ Takeoff in 3... 2... 1...
         if self._composition_node:
             raise ValueError("Cannot create a group inside a compose context")
 
-        # It's possible to start a new root branch, especially when including launch files. Once 
+        # It's possible to start a new root branch, especially when including launch files. Once
         # we exit that branch the previous stack should be restored
         old_stack = self._group_stack[:]
         if namespace.startswith("/"):
             self._group_stack = [self._group_root]
-        
+
         tip = self.group_tip
         for token in namespace.strip("/").split("/"):
             if token in tip.children:
@@ -1129,14 +1148,14 @@ Takeoff in 3... 2... 1...
             else:
                 branch = Group(tip, token)
                 tip.add_child(branch)
-            
+
             self._group_stack.append(branch)
             tip = branch
 
         try:
             yield tip
         finally:
-            # Restore the old stack. 
+            # Restore the old stack.
             # Since it is possible to start a new root branch or open up multiple/namespaces/at/
             # once we replace the entire stack rather than only removing elements from the end
             self._group_stack = old_stack
@@ -1344,14 +1363,14 @@ Takeoff in 3... 2... 1...
 
         group = self.group_tip
         namespace = group.assemble_namespace()
-        
+
         node_ref = None
 
         if reuse_existing:
             # Try to find an already running node we can reuse
             ns = namespace.strip("/")
             fullname = "/" + ns + ("/" if ns else "") + name
-            
+
             # Check if it's a node we've created
             node_ref = self.query_node(fullname, include_components=False)
 
@@ -1372,14 +1391,14 @@ Takeoff in 3... 2... 1...
                         )
                     elif len(node_processes) > 1:
                         self.logger.warning(
-                            "Found multiple node processes matching %s/%s, using most recent", 
-                            namespace, 
+                            "Found multiple node processes matching %s/%s, using most recent",
+                            namespace,
                             name,
                         )
                         node_ref = ForeignNode.wrap_process(node_processes[-1])
                     else:
                         node_ref = ForeignNode.wrap_process(node_processes[0])
-        
+
         if node_ref and not Composer.is_composer(node_ref):
             # We will still reuse it but raise some awareness
             self.logger.warning(
@@ -1405,9 +1424,7 @@ Takeoff in 3... 2... 1...
         if isinstance(node_ref, Composer):
             comp = node_ref
         else:
-            comp = Composer(
-                node_ref, component_remaps=component_remaps, output=output
-            )
+            comp = Composer(node_ref, component_remaps=component_remaps, output=output)
 
         try:
             group.add_node(comp)
@@ -1628,7 +1645,9 @@ Takeoff in 3... 2... 1...
         """
         if not self._ros2_launcher:
             self._ros2_launcher = Ros2LaunchWrapper(
-                name=name, launchservice_args=launchservice_args, output=output,
+                name=name,
+                launchservice_args=launchservice_args,
+                output=output,
             )
 
         if start_immediately:

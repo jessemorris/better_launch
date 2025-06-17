@@ -15,20 +15,41 @@ from . import LiveParamsMixin
 
 
 def find_ros2_node_processes() -> list[psutil.Process]:
+    """Finds processes that seem to be ROS2 nodes.
+
+    Unfortunately, ROS2 doesn't provide any means of discovering node internals other than by looking at the process command line. Lucky for us, there are a couple of distinct command line arguments that are somewhat unique to ROS. These are:
+    - --ros-args for passing arguments
+    - __ns:=<namespace>
+    - __node:=<name>
+    - __name:=<name>
+
+    If any of these are present, the process will be added to the returned list.
+
+    Returns
+    -------
+    list[psutil.Process]
+        The processes that appear to be ROS2 nodes.
+    """
     # NOTE we won't be able to discover nodes started by ros2 run this way, but there's really
     # nothing distinctive about those, e.g.:
     #
     # /usr/bin/python3 /opt/ros/humble/bin/ros2 run examples_rclpy_minimal_publisher publisher_local_function
     # /usr/bin/python3 /opt/ros/humble/lib/examples_rclpy_minimal_publisher/publisher_local_function
     ret = []
-    
+
     for p in psutil.process_iter():
         try:
-            if p.is_running() and "--ros-args" in p.cmdline():
+            cmd = p.cmdline()
+            if p.is_running() and (
+                "--ros-args" in cmd
+                or "__ns:=" in cmd
+                or "__node:=" in cmd
+                or "__name:=" in cmd
+            ):
                 ret.append(p)
         except psutil.ZombieProcess:
             pass
-    
+
     return ret
 
 
@@ -203,50 +224,35 @@ def parse_process_args(
     return namespace, node_name, params, remaps, additional_args
 
 
-def discover_ros2_nodes(include_stopped: bool = False) -> list[AbstractNode]:
-    """Searches the running processes for ROS2 nodes and wraps them in ForeignNode instances. Any
-    processes that have been started by this better_launch process will have their appropriate
-    instances returned instead (e.g. Node, Component, etc.).
-
-    Parameters
-    ----------
-    include_stopped : bool, optional
-        Whether to include better_launch nodes that have been created but are not running.
+def find_foreign_nodes() -> list[AbstractNode]:
+    """Searches the running processes for ROS2 nodes that have not been started by this *better_launch* process and wraps them in ForeignNode instances.
 
     Returns
     -------
     list[AbstractNode]
-        A list of nodes representing discovered ROS2 processes and nodes instantiated through better_launch.
+        A list of discovered foreign ROS2 nodes.
     """
     from better_launch import BetterLaunch
 
     bl = BetterLaunch.instance()
 
     # bl.query_node would iterate over all nodes every time
-    bl_nodes = {n.fullname: n for n in bl.all_nodes(True, False)}
-    # TODO this will not capture e.g. components started by us, needs a rewrite
-    process_nodes = [ForeignNode.wrap_process(p) for p in find_ros2_node_processes()]
-
-    # Use ForeignNode unless we have a better representation already
-    for i, node in enumerate(process_nodes):
-        bln = bl_nodes.get(node.fullname, None)
-        if bln:
-            process_nodes[i] = bln
-
-    if include_stopped:
-        for node in bl_nodes.values():
-            if node not in process_nodes:
-                process_nodes.append(node)
-
-    return process_nodes
+    bln = {
+        n.fullname
+        for n in bl.all_nodes(
+            include_components=True, include_launch_service=False, include_foreign=False
+        )
+    }
+    foreign = [ForeignNode.wrap_process(p) for p in find_ros2_node_processes()]
+    return filter(lambda n: n.fullname not in bln, foreign)
 
 
 class ForeignNode(AbstractNode, LiveParamsMixin):
     @classmethod
     def wrap_process(cls, process: psutil.Process) -> "ForeignNode":
-        """Collect information like namespace, package, executable and so on from a process and wrap it in a ForeignNode instance. 
-        
-        Note that there is no way to verify whether the process actually belongs to a ROS node. Consider using e.g. :py:meth:`discover_ros2_nodes` to that effect.
+        """Collect information like namespace, package, executable and so on from a process and wrap it in a ForeignNode instance.
+
+        Note that there is no way to verify whether the process actually belongs to a ROS node. Consider using e.g. :py:meth:`find_ros2_node_processes` to that effect.
 
         Parameters
         ----------
@@ -292,7 +298,7 @@ class ForeignNode(AbstractNode, LiveParamsMixin):
         remaps: dict[str, str] = None,
         params: str | dict[str, Any] = None,
         cmd_args: list[str] = None,
-        output: LogSink | set[LogSink] = "screen"
+        output: LogSink | set[LogSink] = "screen",
     ):
         """This class is used for representing nodes not managed by this better_launch process.
 
@@ -378,7 +384,7 @@ class ForeignNode(AbstractNode, LiveParamsMixin):
         self.logger.info(f"Starting process '{' '.join(final_cmd)}'")
 
         # Start the node process
-        # NOTE it is very difficult if not impossible to capture a process' output if we did not 
+        # NOTE it is very difficult if not impossible to capture a process' output if we did not
         # set it up ourselves. The clean way is to terminate the process and restart it from this
         # process. See the takeover function below which does precisely that.
         self._process = psutil.Popen(
@@ -388,7 +394,9 @@ class ForeignNode(AbstractNode, LiveParamsMixin):
             text=True,
         )
 
-    def shutdown(self, reason: str, signum: int = signal.SIGTERM, timeout: float = 0.0) -> None:
+    def shutdown(
+        self, reason: str, signum: int = signal.SIGTERM, timeout: float = 0.0
+    ) -> None:
         if not self.is_running:
             return
 
@@ -407,12 +415,12 @@ class ForeignNode(AbstractNode, LiveParamsMixin):
             raise TimeoutError("Node did not shutdown within the specified timeout")
 
     def takeover(self, kill_after: float = 0, **node_args) -> Node:
-        """Turns a foreign node into a node belonging to this better_launch process. This allows 
-        to e.g. capture the node's output and control a few additional runtime parameters. Any 
-        interactions with this foreign node instance after this function returns are undefined 
+        """Turns a foreign node into a node belonging to this better_launch process. This allows
+        to e.g. capture the node's output and control a few additional runtime parameters. Any
+        interactions with this foreign node instance after this function returns are undefined
         behavior.
 
-        **NOTE:** Currently the only way to takeover a node is to stop the original process, then 
+        **NOTE:** Currently the only way to takeover a node is to stop the original process, then
         recreate and restart the node with the same arguments as the original node.
 
         Parameters
@@ -428,10 +436,10 @@ class ForeignNode(AbstractNode, LiveParamsMixin):
             The new node instance that should replace this foreign node.
         """
         from better_launch import BetterLaunch
-        
+
         start = time.time()
         self.shutdown("Taking over node")
-        
+
         while True:
             if self.is_running:
                 break
@@ -452,7 +460,7 @@ class ForeignNode(AbstractNode, LiveParamsMixin):
             remaps=self.remaps,
             params=self.params,
             cmd_args=self.cmd_args,
-            **node_args
+            **node_args,
         )
 
         bl = BetterLaunch.instance()

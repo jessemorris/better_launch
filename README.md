@@ -1,3 +1,6 @@
+![Logo](media/logo.png)
+
+
 # About
 Let's face it: ROS2 has been a severe downgrade in terms of usability compared to ROS1. While there are many considerable improvements, the current launch system is borderline unusable. I've listed my personal gripes below, but if you're here you likely feel the same. This is why I wrote ***better_launch***.
 
@@ -28,9 +31,6 @@ def my_main(enable_x: bool = True):
 $> bl my_package my_launch_file.py --enable_x True
 ```
 
-**TODO update**
-![TUI](media/tui.svg)
-
 *Do I have your attention? Read on to learn more!*
 
 
@@ -57,7 +57,6 @@ Everything you would expect and a little more! The `BetterLaunch` instance allow
 - let regular ROS2 launch files *include your better_launch launch files*
 - configure *logging* just as you would in ROS2, yet have much more readable output
 - manage your node using a nice *terminal UI* reminiscent of [rosmon](https://github.com/xqms/rosmon)
-- serve the *terminal UI as a web page* courtesy of [textual](https://textual.textualize.io/) - how crazy is that?!
 
 For a quick comparison, bravely unfold the sections below:
 <details>
@@ -199,18 +198,18 @@ See the [examples](examples/) for more details on what *better_launch* can do!
 # The TUI
 *better_launch* comes with a sneak, unobstrusive TUI (terminal user interface) based on [prompt_toolkit](https://github.com/prompt-toolkit/python-prompt-toolkit), which will hover below the log output. You can start it by either passing `ui=True` to the `launch_this` wrapper, or by adding `--bl_ui_override=True` on the command line. 
 
-**TODO screenshot** 
+![TUI](media/tui.png)
 
-The TUI allows you a comfortable degree of control over all nodes managed by the *better_launch* process it is running in:
+See the single line of shortcuts at the bottom? That's the TUI, and it will never take up more than 3 lines to be as unobtrusive as possible. Despite its simplicity, the TUI allows you a comfortable degree of control over all nodes managed by the *better_launch* process it is running in:
 - listing a node's services and topics
 - starting and stopping nodes
 - triggering lifecycle transitions
-- changing the stdout log level
+- changing the log level
 - etc.
 
 The TUI is also able to manage nodes started from different shells and processes, even if they have been started by ROS2 or other means. To do so, pass the `manage_foreign_nodes` flag to the wrapper or command line. Be aware though that this will not capture their output - to get their output you will have to use the *takeover* action from the TUI, which will restart the node process with the original arguments.
 
-> Foreign node processes are identified by having one of the following parameters in their arguments: `__ns`, `__name`, `__node`. This is usually not true for nodes started via `ros2 run` or other means. 
+> Foreign node processes are identified by having one of the following parameters in their arguments: `__ns`, `__name`, `__node`, `--ros-args`. This is usually not true for nodes started via `ros2 run` or other means. 
 
 
 # What are the differences?
@@ -261,8 +260,7 @@ ROS2 launch has a bad reputation of leaving stale and abandoned processes behind
 As of now *better_launch* supports the most important use cases, like starting nodes, proper (nicer!) logging, being awesome. However, there are still a couple of features that I have to work on to make it feature complete (roughly sorted by priority):
 - [ ] test include from ros
 - [ ] document benchmarks
-- [ ] text convenience module
-- [ ] exception handling is barebones, so if something fails, everything fails (this is fine?)
+- [ ] test convenience module
 
 
 # Installation
@@ -286,7 +284,6 @@ I am not an expert on profiling code. That being said, in my tests *better_launc
 The scripts, launch files and results from the benchmarks can be found under [media/benchmarks](media/benchmarks/). This section will only show the most relevant parts.
 
 **TODO**
-
 
 
 # What's so bad about ROS2 launch?

@@ -26,7 +26,6 @@ from better_launch.elements import (
     AbstractNode,
     ForeignNode,
     Component as ComponentNode,
-    discover_ros2_nodes,
     LifecycleStage,
 )
 import better_launch.ros.logging as roslog
@@ -69,7 +68,7 @@ logging.addLevelName(999, "MUTE")
 
 class BetterTui:
     footer_default = HTML(
-        " <reverse>^C</reverse> Quit | <reverse>space</reverse> Mute | <reverse>F1</reverse> Nodes  <reverse>F9</reverse> Log Level"
+        " <orange>^C</orange> Quit  <orange>space</orange> Mute  <orange>F1</orange> Nodes  <orange>F9</orange> Log Level"
     )
 
     def __init__(
@@ -125,11 +124,7 @@ class BetterTui:
             bl = BetterLaunch.wait_for_instance()
             set_title(os.path.basename(bl.launchfile))
             bl.spin()
-            try:
-                self.quit("launch function exited")
-            except Exception:
-                # Might already have exited
-                pass
+            self.quit("launch function exited")
 
         launch_thread = threading.Thread(target=_run_launch_func)
 
@@ -139,9 +134,17 @@ class BetterTui:
 
     def quit(self, reason: str) -> None:
         bl = BetterLaunch.instance()
-        if bl:
-            bl.shutdown(reason)
-        get_app().exit()
+        try:
+            if bl:
+                bl.shutdown(reason)
+        except Exception as e:
+            print(e)
+
+        try:
+            get_app().exit()
+        except Exception as e:
+            # Might already have exited
+            print(e)
 
     # Some common helpers
     def _is_footer_visible(self) -> bool:
@@ -159,7 +162,7 @@ class BetterTui:
     def _get_matching_node_items(self, filter: str) -> tuple[str, str, AbstractNode]:
         filter = filter.lower()
         ret = []
-        
+
         for n in self.nodes_snapshot:
             if filter in n.fullname.lower():
                 style = "green" if n.is_running else "red"
@@ -248,13 +251,12 @@ class BetterTui:
         elif mode == AppMode.SEARCH_NODE:
             self.footer_text = ""
 
-            if self.manage_foreign_nodes:
-                self.nodes_snapshot = discover_ros2_nodes(True)
-            else:
-                bl = BetterLaunch.instance()
-                self.nodes_snapshot = bl.all_nodes(
-                    include_components=True, include_launch_service=True
-                )
+            bl = BetterLaunch.instance()
+            self.nodes_snapshot = bl.all_nodes(
+                include_components=True,
+                include_launch_service=True,
+                include_foreign=self.manage_foreign_nodes,
+            )
 
             items = self._get_matching_node_items("")
             self.footer_menu.set_items(items)

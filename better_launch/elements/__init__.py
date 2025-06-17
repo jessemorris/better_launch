@@ -7,7 +7,7 @@ from .foreign_node import (
     ForeignNode,
     find_process_for_node,
     find_ros2_node_processes,
-    discover_ros2_nodes,
+    find_foreign_nodes,
     get_package_for_path,
 )
 from .composer import Composer, Component
