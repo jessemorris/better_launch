@@ -1,13 +1,13 @@
-from typing import Any, Callable, Mapping, Literal
+from typing import Any
 import signal
 import time
 import re
 from rclpy import Parameter
 from composition_interfaces.srv import ListNodes, LoadNode, UnloadNode
 
+from better_launch.utils.better_logging import LogSink
 from .abstract_node import AbstractNode
 from .live_params_mixin import LiveParamsMixin
-from .node import Node
 
 
 class Component(AbstractNode, LiveParamsMixin):
@@ -19,6 +19,7 @@ class Component(AbstractNode, LiveParamsMixin):
         name: str,
         namespace: str,
         *,
+        output: LogSink | set[LogSink] = "screen",
         remaps: dict[str, str] = None,
         params: str | dict[str, Any] = None,
     ):
@@ -48,7 +49,9 @@ class Component(AbstractNode, LiveParamsMixin):
             Tells the node to replace any topics it wants to interact with according to the provided dict.
         params : str | dict[str, Any], optional
             Any arguments you want to provide to the node. These are the args you would typically have to declare in your launch file. A string will be interpreted as a path to a yaml file which will be lazy loaded using :py:meth:`BetterLaunch.load_params`.
-        
+        output : LogSink | set[LogSink], optional
+            Determines if and where this node's output should be directed. Common choices are `screen` to print to terminal, `log` to write to a common log file, `own_log` to write to a node-specific log file, and `none` to not write any output anywhere. See :py:meth:`configure_logger` for details.
+
         Raises
         ------
         RuntimeError
@@ -57,7 +60,7 @@ class Component(AbstractNode, LiveParamsMixin):
         if not namespace.startswith(composer.namespace):
             raise ValueError("Components must reside in the same namespace as their composer.")
 
-        super().__init__(package, plugin, name, namespace, remaps, params)
+        super().__init__(package, plugin, name, namespace, remaps, params, output=output)
 
         self._component_id: int = None
         self._composer = composer
@@ -174,6 +177,7 @@ class Composer(AbstractNode):
         wrapped_node: AbstractNode,
         *,
         component_remaps: dict[str, str] = None,
+        output: LogSink | set[LogSink] = "screen",
     ):
         """A composer is a special ROS2 node that can host other nodes (:py:class:`Component`s) within the same process, reducing overhead and enabling efficient intra process communication for message exchange.
 
@@ -189,6 +193,8 @@ class Composer(AbstractNode):
             A representation of the actual ROS2 node that will be managed by this composer. This is usually a :py:class:`Node` or :py:class:`ForeignNode` instance.
         component_remaps : dict[str, str], optional
             Any remaps you want to apply to all *components* loaded into this composer.
+        output : LogSink | set[LogSink], optional
+            Determines if and where this node's output should be directed. Common choices are `screen` to print to terminal, `log` to write to a common log file, `own_log` to write to a node-specific log file, and `none` to not write any output anywhere. See :py:meth:`configure_logger` for details.
 
         Raises
         ------
@@ -200,6 +206,7 @@ class Composer(AbstractNode):
             wrapped_node.executable,
             wrapped_node.name,
             wrapped_node.namespace,
+            output=output,
         )
 
         self._wrapped_node = wrapped_node

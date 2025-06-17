@@ -68,14 +68,16 @@ logging.addLevelName(999, "MUTE")
 
 
 class BetterTui:
-    footer_default = HTML(" <reverse>^C</reverse> Quit | <reverse>space</reverse> Mute | <reverse>F1</reverse> Find  <reverse>F9</reverse> Log Level")
+    footer_default = HTML(
+        " <reverse>^C</reverse> Quit | <reverse>space</reverse> Mute | <reverse>F1</reverse> Nodes  <reverse>F9</reverse> Log Level"
+    )
 
     def __init__(
         self,
         launch_func: Callable,
         *,
         manage_foreign_nodes: bool = False,
-        color_depth: Literal[1, 4, 8, 24] = 8
+        color_depth: Literal[1, 4, 8, 24] = 8,
     ):
         self.launch_func = launch_func
         self.manage_foreign_nodes = manage_foreign_nodes
@@ -123,7 +125,11 @@ class BetterTui:
             bl = BetterLaunch.wait_for_instance()
             set_title(os.path.basename(bl.launchfile))
             bl.spin()
-            self.quit()
+            try:
+                self.quit("launch function exited")
+            except Exception:
+                # Might already have exited
+                pass
 
         launch_thread = threading.Thread(target=_run_launch_func)
 
@@ -146,9 +152,20 @@ class BetterTui:
 
     def _is_menu_visible(self) -> bool:
         return self.mode not in (
-            AppMode.STANDARD, 
+            AppMode.STANDARD,
             AppMode.NODE_INFO,
         )
+
+    def _get_matching_node_items(self, filter: str) -> tuple[str, str, AbstractNode]:
+        filter = filter.lower()
+        ret = []
+        
+        for n in self.nodes_snapshot:
+            if filter in n.fullname.lower():
+                style = "green" if n.is_running else "red"
+                ret.append((style, n.name, n))
+
+        return ret
 
     def set_log_level(self, level: LogLevel) -> None:
         self.prev_log_level = self.log_level
@@ -239,7 +256,7 @@ class BetterTui:
                     include_components=True, include_launch_service=True
                 )
 
-            items = [("", n.name, n) for n in self.nodes_snapshot]
+            items = self._get_matching_node_items("")
             self.footer_menu.set_items(items)
 
             self.search_buffer.text = ""
@@ -253,7 +270,6 @@ class BetterTui:
             self.selected_node = node
 
             choices = ["info"]
-
             if node.is_running:
                 if node.check_lifecycle_node():
                     choices.append("lifecycle")
@@ -261,9 +277,9 @@ class BetterTui:
                 if isinstance(node, ForeignNode):
                     choices.append("takeover")
                 elif isinstance(node, ComponentNode):
-                    choices.extend("restart", "unload")
+                    choices.extend(["restart", "unload"])
                 else:
-                    choices.extend("restart", "kill")
+                    choices.extend(["restart", "kill"])
             else:
                 choices.append("start")
 
@@ -276,7 +292,7 @@ class BetterTui:
             bar = "\n" + "=" * cols + "\n"
             text = self.selected_node.get_info_sheet()
             print_formatted_text(bar, "\n", HTML(text), bar)
-            
+
             self._menu_cancel()
 
         elif mode == AppMode.NODE_LIFECYCLE:
@@ -312,7 +328,7 @@ class BetterTui:
             if item == "yes":
                 self.quit("user request")
                 return
-            
+
             self._menu_cancel()
 
         elif self.mode == AppMode.SEARCH_NODE:
@@ -378,13 +394,7 @@ class BetterTui:
 
         def on_search_update(_) -> None:
             new_text = self.search_buffer.text
-
-            if new_text.startswith("/"):
-                nodes = [n.fullname for n in self.nodes_snapshot]
-            else:
-                nodes = [n.name for n in self.nodes_snapshot]
-
-            matches = [x for x in nodes if new_text.lower() in x.lower()]
+            matches = self._get_matching_node_items(new_text)
             self.footer_menu.update_items(matches)
 
         self.title = FormattedTextControl("")

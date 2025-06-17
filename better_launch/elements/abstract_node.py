@@ -1,8 +1,9 @@
-from typing import Any, Callable
+from typing import Any
 import signal
 import time
 
 import better_launch.ros.logging as roslog
+from better_launch.utils.better_logging import LogSink, configure_logger
 from better_launch.elements.lifecycle_manager import LifecycleManager
 
 
@@ -18,6 +19,8 @@ class AbstractNode:
         namespace: str,
         remaps: dict[str, str] = None,
         params: str | dict[str, Any] = None,
+        *,
+        output: LogSink | set[LogSink] = "screen",
     ):
         """Base class for all node-like objects.
 
@@ -34,7 +37,9 @@ class AbstractNode:
         remaps : dict[str, str], optional
             Topic remaps for this node.
         params : str | dict[str, Any], optional
-            Node parameters. If a string is passed it will be lazy loaded with :py:meth`BetterLaunch.find`.
+            Node parameters. If a string is passed it will be lazy loaded with :py:meth:`BetterLaunch.find`.
+        output : LogSink | set[LogSink], optional
+            Determines if and where this node's output should be directed. Common choices are `screen` to print to terminal, `log` to write to a common log file, `own_log` to write to a node-specific log file, and `none` to not write any output anywhere. See :py:meth:`configure_logger` for details.
 
         Raises
         ------
@@ -69,6 +74,7 @@ class AbstractNode:
         self._lifecycle_manager: LifecycleManager = None
 
         self.logger = roslog.get_logger(self.fullname)
+        configure_logger(self.logger, output)
 
     @property
     def node_id(self) -> int:

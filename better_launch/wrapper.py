@@ -14,7 +14,10 @@ from better_launch.launcher import (
     _bl_singleton_instance,
     _bl_include_args,
 )
-from better_launch.utils.better_logging import Colormode, default_log_colormap, PrettyLogFormatter
+from better_launch.utils.better_logging import (
+    Colormode,
+    PrettyLogFormatter,
+)
 from better_launch.utils.introspection import find_calling_frame
 from better_launch.ros import logging as roslog
 from better_launch.ros.logging import LaunchConfig as LogConfig
@@ -30,6 +33,7 @@ def launch_this(
     join: bool = True,
     log_config: LogConfig = None,
     colormode: Colormode = "all",
+    manage_foreign_nodes: bool = False,
 ):
     """Use this to decorate your launch function. The function will be run automatically. The function is allowed to block even when using the UI.
 
@@ -40,7 +44,7 @@ def launch_this(
     launch_func : Callable, optional
         Your launch function, typically using BetterLaunch to start ROS2 nodes.
     ui : bool, optional
-        Whether to start the better_launch terminal UI.
+        Whether to start the better_launch TUI.
     join : bool, optional
         If True, join the better_launch process. Has no effect when ui == True.
     log_config : LogConfig, optional
@@ -51,10 +55,19 @@ def launch_this(
         * severity: colorize only log severity
         * source: colorize only message source
         * none: don't colorize anything
+    manage_foreign_nodes : bool, optional
+        If True, the TUI will also include node processes not started by this process. Has no effect if the TUI is not started.
     """
 
     def decoration_helper(func):
-        return _launch_this_wrapper(func, ui=ui, join=join, log_config=log_config, colormode=colormode)
+        return _launch_this_wrapper(
+            func,
+            ui=ui,
+            join=join,
+            log_config=log_config,
+            colormode=colormode,
+            manage_foreign_nodes=manage_foreign_nodes,
+        )
 
     return decoration_helper if launch_func is None else decoration_helper(launch_func)
 
@@ -65,6 +78,7 @@ def _launch_this_wrapper(
     join: bool = True,
     log_config: LogConfig = None,
     colormode: Colormode = "all",
+    manage_foreign_nodes: bool = False,
 ):
     # Globals of the calling module
     glob = find_calling_frame(_launch_this_wrapper).frame.f_globals
@@ -110,6 +124,7 @@ def _launch_this_wrapper(
         raise RuntimeError("launch_this must be used on the main thread")
 
     sigint_count = 0
+
     def sigint_handler(sig, frame):
         nonlocal sigint_count
         sigint_count += 1
@@ -196,7 +211,9 @@ def _launch_this_wrapper(
             ui = value == "enable"
         return value
 
-    def click_colormode_override(ctx: click.Context, param: click.Parameter, value: str):
+    def click_colormode_override(
+        ctx: click.Context, param: click.Parameter, value: str
+    ):
         if value:
             nonlocal colormode
             colormode = value
@@ -226,7 +243,7 @@ def _launch_this_wrapper(
                 help="Override the logging color mode",
                 expose_value=False,
                 callback=click_colormode_override,
-            )
+            ),
         ]
     )
 
@@ -239,11 +256,15 @@ def _launch_this_wrapper(
         else:
             roslog.launch_config.level = logging.INFO
             if "OVERRIDE_LAUNCH_SCREEN_FORMAT" not in os.environ:
-                level_colormap = dict(default_log_colormap)
-                level_colormap[logging.INFO] = "\x1b[32;20m"
-                roslog.launch_config.screen_formatter = PrettyLogFormatter(
-                    level_colormap=level_colormap,
-                    colormode=colormode
+                # We'll handle formatting and color ourselves, just get the nodes to comply
+                os.environ["RCUTILS_CONSOLE_OUTPUT_FORMAT"] = (
+                    "%%{severity}%%{time}%%{message}"
+                )
+                os.environ["RCUTILS_COLORIZED_OUTPUT"] = "0"
+
+                roslog.launch_config.screen_formatter = PrettyLogFormatter()
+                roslog.launch_config.file_formatter = PrettyLogFormatter(
+                    format=PrettyLogFormatter.default_file_format
                 )
 
         # Wrap the launch function so we can do some preparation and cleanup tasks
@@ -251,7 +272,9 @@ def _launch_this_wrapper(
             if launch_func_kwarg is not None:
                 # If the launch func defines a **kwarg we can pass all extra arguments to it, with
                 # the caveat that these extra arguments need to be defined as `-[-]<key> val` tuples.
-                assert len(ctx.args) % 2 == 0, "extra arguments need to be '--<key> <value>' tuples"
+                assert (
+                    len(ctx.args) % 2 == 0
+                ), "extra arguments need to be '--<key> <value>' tuples"
                 extra_kwargs = {}
 
                 for (i,) in range(0, len(ctx.args), 2):
@@ -284,9 +307,11 @@ def _launch_this_wrapper(
         BetterLaunch._launch_func_args = dict(bound_args.arguments)
 
         if ui:
-            # TODO pass CLI args to TUI
             from better_launch.tui.better_tui import BetterTui
-            app = BetterTui(launch_func_wrapper)
+
+            app = BetterTui(
+                launch_func_wrapper, manage_foreign_nodes=manage_foreign_nodes
+            )
             app.run()
         else:
             launch_func_wrapper()

@@ -62,6 +62,7 @@ from better_launch.utils.introspection import (
     find_calling_frame,
     find_launchthis_function,
 )
+from better_launch.utils.better_logging import LogSink
 from better_launch.ros.ros_adapter import ROSAdapter
 from better_launch.ros import logging as roslog
 
@@ -1152,10 +1153,7 @@ Takeoff in 3... 2... 1...
         env: dict[str, str] = None,
         isolate_env: bool = False,
         log_level: int = logging.INFO,
-        output: (
-            Node.LogSink | dict[Node.LogSource, set[Node.LogSink]]
-        ) = "screen",
-        reparse_logs: bool = True,
+        output: LogSink | set[LogSink] = "screen",
         anonymous: bool = False,
         hidden: bool = False,
         on_exit: Callable = None,
@@ -1193,10 +1191,8 @@ Takeoff in 3... 2... 1...
             If True, the node process' env will not be inherited from the parent process and only those passed via `env` will be used. Be aware that this can result in many common things to not work anymore since e.g. keys like *PATH* will be missing.
         log_level : int, optional
             The minimum severity a logged message from this node must have in order to be published.
-        output : Node.LogSink  |  dict[Node.LogSource, set[Node.LogSink]], optional
-            How log output from the node should be handled. Sources are `stdout`, `stderr` and `both`. Sinks are `screen`, `log`, `both`, `own_log`, and `full`. See :py:class:`Node` for more details.
-        reparse_logs : bool, optional
-            If True, *better_launch* will capture the node's output and reformat it before publishing.
+        output : LogSink | set[LogSink], optional
+            Determines if and where this node's output should be directed. Common choices are `screen` to print to terminal, `log` to write to a common log file, `own_log` to write to a node-specific log file, and `none` to not write any output anywhere. See :py:meth:`configure_logger` for details.
         anonymous : bool, optional
             If True, the node name will be appended with a unique suffix to avoid name conflicts.
         hidden : bool, optional
@@ -1256,7 +1252,6 @@ Takeoff in 3... 2... 1...
             isolate_env=isolate_env,
             log_level=log_level,
             output=output,
-            reparse_logs=reparse_logs,
             on_exit=on_exit,
             max_respawns=max_respawns,
             respawn_delay=respawn_delay,
@@ -1286,6 +1281,7 @@ Takeoff in 3... 2... 1...
         hidden: bool = False,
         autostart_process: bool = True,
         ros_waittime: float = 3.0,
+        output: LogSink | set[LogSink] = "screen",
     ) -> Generator[Composer, None, None]:
         """Creates a composer node which can be used to load :py:class:`Component`s. Components can be instantiated directly, or preferably via :py:meth:`component`. Only components can reside within a composer.
 
@@ -1319,6 +1315,8 @@ Takeoff in 3... 2... 1...
             If True, start the composer process before returning from this function. Note that setting this to False for a composer will make it unusable as a context object, since you won't be able to load any components.
         ros_waittime : float, optional
             How long to wait for the composer to register with ROS. This should cover the time between the process starting and the composer initializing itself. Set negative to wait indefinitely. Will do nothing if `autostart_process` is False.
+        output : LogSink | set[LogSink], optional
+            Determines if and where this node's output should be directed. Common choices are `screen` to print to terminal, `log` to write to a common log file, `own_log` to write to a node-specific log file, and `none` to not write any output anywhere. See :py:meth:`configure_logger` for details.
 
         Yields
         ------
@@ -1402,13 +1400,13 @@ Takeoff in 3... 2... 1...
             else:
                 raise ValueError(f"Unknown container mode '{variant}")
 
-            node_ref = Node(package, executable, name, namespace)
+            node_ref = Node(package, executable, name, namespace, output=output)
 
         if isinstance(node_ref, Composer):
             comp = node_ref
         else:
             comp = Composer(
-                node_ref, component_remaps=component_remaps,
+                node_ref, component_remaps=component_remaps, output=output
             )
 
         try:
@@ -1436,6 +1434,7 @@ Takeoff in 3... 2... 1...
         ros_waittime: float = 3.0,
         lifecycle_waittime: float = 0.01,
         lifecycle_target: LifecycleStage = LifecycleStage.ACTIVE,
+        output: LogSink | set[LogSink] = "screen",
         **extra_composer_args: dict[str, Any],
     ) -> Component:
         """Create a component and load it into an existing :py:meth:`compose` context.
@@ -1466,6 +1465,8 @@ Takeoff in 3... 2... 1...
             How long to wait for the component's lifecycle management to come up. This should cover the time between the component initializing itself (see `ros_waittime`) and creating its additional topics and services. While neglible on modern computers, slower devices and embedded systems may experience a noticable delay here. Set negative to wait indefinitely. Will do nothing if `autostart_process` is False.
         lifecycle_target : LifecycleStage, optional
             The lifecycle stage to bring the component into after starting. Has no effect if `autostart_process` is False or if the component does not appear to be a lifecycle component after waiting `ros_waittime + lifecycle_waittime`.
+        output : LogSink | set[LogSink], optional
+            Determines if and where this node's output should be directed. Common choices are `screen` to print to terminal, `log` to write to a common log file, `own_log` to write to a node-specific log file, and `none` to not write any output anywhere. See :py:meth:`configure_logger` for details.
 
         Returns
         -------
@@ -1501,6 +1502,7 @@ Takeoff in 3... 2... 1...
             namespace,
             remaps=remaps,
             params=params,
+            output=output,
         )
 
         # Equivalent to self._composition_node.load_component(comp)
@@ -1597,6 +1599,7 @@ Takeoff in 3... 2... 1...
         self,
         name: str = "LaunchService",
         launchservice_args: list[str] = None,
+        output: LogSink | set[LogSink] = "screen",
         start_immediately: bool = True,
     ) -> Ros2LaunchWrapper:
         """Create or retrieve a manager object that can be used for queueing ROS2 launch actions.
@@ -1613,6 +1616,8 @@ Takeoff in 3... 2... 1...
             The name used to identify the process and its logger.
         launchservice_args : list[str], optional
             Additional launch arguments to pass to the ROS2 launch service. These will end up in :py:meth:`launch.LaunchContext.argv`.
+        output : LogSink  |  set[LogSink], optional
+            How log output from the launch service should be handled. This will also include the output from all nodes launched by this launch service. Common choices are `screen` to print to terminal, `log` to write to a common log file, `own_log` to write to a node-specific log file, and `none` to not write any output anywhere. See :py:meth:`configure_logger` for details.
         start_immediately : bool, optional
             If True, the ROS2 launch service process is started immediately.
 
@@ -1623,7 +1628,7 @@ Takeoff in 3... 2... 1...
         """
         if not self._ros2_launcher:
             self._ros2_launcher = Ros2LaunchWrapper(
-                name=name, launchservice_args=launchservice_args
+                name=name, launchservice_args=launchservice_args, output=output,
             )
 
         if start_immediately:

@@ -1,6 +1,5 @@
 from typing import Any
 import os
-import time
 import platform
 import signal
 import logging
@@ -12,7 +11,7 @@ import osrf_pycommon.process_utils
 from setproctitle import setproctitle, getproctitle
 
 import better_launch.ros.logging as roslog
-from better_launch.utils.better_logging import PrettyLogFormatter, RecordForwarder, StubbornHandler
+from better_launch.utils.better_logging import LogSink, PrettyLogFormatter, RecordForwarder, StubbornHandler
 from better_launch.utils.colors import get_contrast_color
 from .abstract_node import AbstractNode
 from .node import Node
@@ -73,7 +72,7 @@ def _launchservice_worker(
         PrettyLogFormatter(
             roslog_pattern=r"\[(.+)] *%%(\w+)%%([\d.]+)%%(.*)",
             pattern_info=["name", "levelname", "created", "msg"],
-            color_per_source=True,
+            source_colors=None,  # TODO should reflect the main process formatter configuration?
         )
     )
     std_handler.add_listener(handle_record)
@@ -135,9 +134,7 @@ class Ros2LaunchWrapper(AbstractNode):
         self,
         name: str = "LaunchService",
         launchservice_args: list[str] = None,
-        output_config: (
-            Node.LogSink | dict[Node.LogSource, set[Node.LogSink]]
-        ) = "screen",
+        output: LogSink | set[LogSink] = "screen",
     ):
         """Hosts a separate process running a ROS2 `LaunchService` instance (the main entrypoint of the ROS2 launch system). 
         
@@ -155,8 +152,8 @@ class Ros2LaunchWrapper(AbstractNode):
             The name that will be used for the logger and the child process.
         launchservice_args : list[str], optional
             Additional arguments to pass to the ROS2 launch service. These will show up in the ROS2 `LaunchContext`.
-        output_config : Node.LogSink  |  dict[Node.LogSource, set[Node.LogSink]], optional
-            How log output from the launch service should be handled. Sources are `stdout`, `stderr` and `both`. Sinks are `screen`, `log`, `both`, `own_log`, and `full`.
+        output : LogSink  |  set[LogSink], optional
+            How log output from the launch service should be handled. This will also include the output from all nodes launched by this launch service. Common choices are `screen` to print to terminal, `log` to write to a common log file, `own_log` to write to a node-specific log file, and `none` to not write any output anywhere. See :py:meth:`configure_logger` for details.
         """
         super().__init__(
             "ros2/launch",
@@ -165,9 +162,9 @@ class Ros2LaunchWrapper(AbstractNode):
             "/",
             remaps=None,
             params=None,
+            output=output,
         )
 
-        self.output_config = output_config
         self._launchservice_args = launchservice_args
 
         self._process: Process = None
@@ -223,7 +220,7 @@ class Ros2LaunchWrapper(AbstractNode):
             self.logger.warning(f"LaunchService {self.name} is alrady running")
             return
 
-        logout, logerr = roslog.get_output_loggers(self.name, self.output_config)
+        logout, logerr = roslog.get_output_loggers(self.name, self.output)
 
         # Note that passing loggers will not work for the TUI, as they would have to communicate
         # across the process boundaries. In general, only basic values and instances from the 

@@ -1,4 +1,3 @@
-from typing import Literal
 import os
 import platform
 import signal
@@ -11,22 +10,16 @@ import logging
 import threading
 import subprocess
 import selectors
-from concurrent.futures import Future
 from pprint import pformat
 from textwrap import indent
 import json
 
-from better_launch.ros import logging as roslog
-from better_launch.utils.better_logging import PrettyLogFormatter
+from better_launch.utils.better_logging import LogSink
 from .abstract_node import AbstractNode
 from .live_params_mixin import LiveParamsMixin
 
 
 class Node(AbstractNode, LiveParamsMixin):
-    # See ros/logging.py for details
-    LogSource = Literal["stdout", "stderr", "both"]
-    LogSink = Literal["screen", "log", "both", "own_log", "full"]
-
     def __init__(
         self,
         package: str,
@@ -40,8 +33,7 @@ class Node(AbstractNode, LiveParamsMixin):
         env: dict[str, str] = None,
         isolate_env: bool = False,
         log_level: int = logging.INFO,
-        output: LogSink | dict[LogSource, set[LogSink]] = "screen",
-        reparse_logs: bool = True,
+        output: LogSink | set[LogSink] = "screen",
         on_exit: Callable = None,
         max_respawns: int = 0,
         respawn_delay: float = 0.0,
@@ -71,10 +63,8 @@ class Node(AbstractNode, LiveParamsMixin):
             If True, the node process' env will not be inherited from the parent process and only those passed via `env` will be used. Be aware that this can result in many common things to not work anymore since e.g. keys like *PATH* will be missing.
         log_level : int, optional
             The minimum severity a logged message from this node must have in order to be published.
-        output : Node.LogSink  |  dict[Node.LogSource, set[Node.LogSink]], optional
-            How log output from the node should be handled. Sources are `stdout`, `stderr` and `both`. Sinks are `screen`, `log`, `both`, `own_log`, and `full`.
-        reparse_logs : bool, optional
-            If True, *better_launch* will capture the node's output and reformat it before publishing.
+        output : LogSink | set[LogSink], optional
+            Determines if and where this node's output should be directed. Common choices are `screen` to print to terminal, `log` to write to a common log file, `own_log` to write to a node-specific log file, and `none` to not write any output anywhere. See :py:meth:`configure_logger` for details.
         anonymous : bool, optional
             If True, the node name will be appended with a unique suffix to avoid name conflicts.
         hidden : bool, optional
@@ -93,7 +83,7 @@ class Node(AbstractNode, LiveParamsMixin):
         Node
             The node object wrapping the node process.
         """
-        super().__init__(package, executable, name, namespace, remaps, params)
+        super().__init__(package, executable, name, namespace, remaps, params, output=output)
 
         self.env = env or {}
         self.isolate_env = isolate_env
@@ -101,8 +91,6 @@ class Node(AbstractNode, LiveParamsMixin):
         if cmd_args:
             self.cmd_args.extend(cmd_args)
 
-        self.output = output or {}
-        self.reparse_logs = reparse_logs
         self.use_shell = use_shell
         self.max_respawns = max_respawns
         self.respawn_delay = respawn_delay
@@ -139,11 +127,6 @@ class Node(AbstractNode, LiveParamsMixin):
             return
 
         try:
-            # Note that self.process_log_level applies to the process, not our loggers
-            logout, logerr = roslog.get_output_loggers(
-                f"{self.name}-{self.node_id}", self.output
-            )
-
             cmd = launcher.find(self.package, self.executable)
             final_cmd = [cmd] + self.cmd_args + ["--ros-args"]
 
@@ -166,17 +149,6 @@ class Node(AbstractNode, LiveParamsMixin):
             else:
                 final_env = dict(os.environ) | self.env
 
-            if self.reparse_logs:
-                final_env["RCUTILS_CONSOLE_OUTPUT_FORMAT"] = (
-                    "%%{severity}%%{time}%%{message}"
-                )
-                final_env["RCUTILS_COLORIZED_OUTPUT"] = "0"
-
-                screen_handler = roslog.launch_config.get_screen_handler()
-                formatter = PrettyLogFormatter()
-                screen_handler.setFormatterFor(logout, formatter)
-                screen_handler.setFormatterFor(logerr, formatter)
-
             env_str = indent(pformat(self.env), "")
             self.logger.info(
                 f"Starting process '{' '.join(final_cmd)}'\n-> env ={env_str}"
@@ -196,7 +168,7 @@ class Node(AbstractNode, LiveParamsMixin):
             # Watch the process for output and react when it terminates
             threading.Thread(
                 target=self._watch_process,
-                args=[self._process, logout, logerr],
+                args=[self._process],
                 daemon=True,
             ).start()
 
@@ -208,8 +180,6 @@ class Node(AbstractNode, LiveParamsMixin):
     def _watch_process(
         self,
         process: subprocess.Popen,
-        logout: logging.Logger,
-        logerr: logging.Logger,
         gather: bool = True,
     ) -> None:
         outbuf = io.StringIO()
@@ -220,8 +190,8 @@ class Node(AbstractNode, LiveParamsMixin):
         fcntl.fcntl(process.stderr.fileno(), fcntl.F_SETFL, os.O_NONBLOCK)
 
         sel = selectors.DefaultSelector()
-        sel.register(process.stdout, selectors.EVENT_READ, (logout, outbuf))
-        sel.register(process.stderr, selectors.EVENT_READ, (logerr, errbuf))
+        sel.register(process.stdout, selectors.EVENT_READ, outbuf)
+        sel.register(process.stderr, selectors.EVENT_READ, errbuf)
 
         try:
             while True:
@@ -232,14 +202,14 @@ class Node(AbstractNode, LiveParamsMixin):
 
                 try:
                     for key, _ in events:
-                        logger, buffer = key.data
+                        buffer = key.data
                         if gather:
-                            self._collect_output_bundled(key.fileobj, buffer, logger)
+                            self._collect_output_bundled(key.fileobj, buffer)
                         else:
-                            self._collect_output_linewise(key.fileobj, buffer, logger)
+                            self._collect_output_linewise(key.fileobj, buffer)
                 except IOError:
                     # No data available despite the selector notifying us
-                    logger.error(
+                    self.logger.error(
                         f"Failed to read process pipe, this should not happen",
                     )
 
@@ -275,9 +245,7 @@ class Node(AbstractNode, LiveParamsMixin):
             else:
                 self._on_shutdown()
 
-    def _collect_output_bundled(
-        self, source: io.IOBase, buffer: io.StringIO, logger: logging.Logger
-    ) -> None:
+    def _collect_output_bundled(self, source: io.IOBase, buffer: io.StringIO) -> None:
         buffer.write(source.read())
         buffer.seek(0)
         last_line = None
@@ -298,7 +266,7 @@ class Node(AbstractNode, LiveParamsMixin):
 
         bundle = "\n".join(lines)
         if bundle:
-            logger.info(bundle)
+            self.logger.info(bundle)
 
     def _collect_output_linewise(
         self, source: io.IOBase, buffer: io.StringIO, logger: logging.Logger

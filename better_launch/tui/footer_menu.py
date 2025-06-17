@@ -6,25 +6,24 @@ from prompt_toolkit.application.current import get_app
 class FooterMenu(FormattedTextControl):
     def __init__(
         self,
-        items: list[str | tuple[str]] = None,
+        items: list[str | tuple] = None,
         *,
         empty_prompt: str = "---",
         ellipses: str = "…",
         highlight_style: str = "reverse",
     ):
-        """_summary_
+        """Creates a single line of selectable items. This allows to have menus without needing more space for drawing submenus. Items that don't fit into the line will be "scrolled" to as the selection shifts.
 
         Parameters
         ----------
         items : list[str  |  tuple[str]], optional
-            tuple[style, name] or 
-            tuple[style, name, actual_value]
+            The items to display. Items can be strings or tuples but don't have to be consistent. If an item is a tuple, the first element is the style of the item and the second element its label. Additional elements are ignored and can be used to store additional information with each item.
         empty_prompt : str, optional
-            _description_, by default "---"
+            What to show when there are no items.
         ellipses : str, optional
-            _description_, by default "…"
+            A character or string to signify that there are additional items.
         highlight_style : str, optional
-            _description_, by default "reverse"
+            The style to use for showing that an item is selected.
         """
         super().__init__(self.render, focusable=False)
 
@@ -57,7 +56,7 @@ class FooterMenu(FormattedTextControl):
             return segments
 
         ell = ("", self.ellipses)
-        budget = cols - 2
+        budget = cols - 2 * len(ell[1])
         shown = [segments[self.selected]]
         used = len(segments[self.selected][1])
         l, r = self.selected - 1, self.selected + 1
@@ -104,7 +103,7 @@ class FooterMenu(FormattedTextControl):
         self.selected = idx
         get_app().invalidate()
 
-    def get_selected_item(self) -> str | Any:
+    def get_selected_item(self) -> str | tuple:
         return self.items[self.selected]
 
     def set_items(self, items: list[str], default: int = 0) -> None:
