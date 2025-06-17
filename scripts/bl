@@ -129,7 +129,7 @@ class BetterLaunchFile(LaunchFile):
 
         if doc:
             parsed_doc = parse_docstring(doc)
-            launchfunc_doc = parsed_doc.short_description
+            launchfunc_doc = parsed_doc.short_description + "\n\n" + parsed_doc.long_description
             param_docstrings = {p.arg_name: p.description for p in parsed_doc.params}
         else:
             launchfunc_doc = ""

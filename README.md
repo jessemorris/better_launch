@@ -195,10 +195,22 @@ def my_start(
 See the [examples](examples/) for more details on what *better_launch* can do! 
 
 
+# Running stuff
+*better_launch* is committed to your comfort, which is why it comes with a replacement for `ros2 launch`. Not only is `ros2 launch` slow as hell, it also clutters the terminal with useless command line options, yet is unable to discover the arguments you have declared inside your launch file. On top of that it of course uses the ros2 launch system, which means you would run two launch systems on top of each other when using *better_launch*. For these reasons, *better_launch* installs the `bl` script, which fixes all of the above and then some. Once you have sourced your workspace you can use it as follows:
+
+```bash
+# Check the example launch file for details!
+bl better_launch 05_launch_arguments.py --help
+```
+
+
 # The TUI
 *better_launch* comes with a sneak, unobstrusive TUI (terminal user interface) based on [prompt_toolkit](https://github.com/prompt-toolkit/python-prompt-toolkit), which will hover below the log output. You can start it by either passing `ui=True` to the `launch_this` wrapper, or by adding `--bl_ui_override=True` on the command line. 
 
 ![TUI](media/tui.png)
+```bash
+bl better_launch 02_ui.py
+```
 
 See the single line of shortcuts at the bottom? That's the TUI, and it will never take up more than 3 lines to be as unobtrusive as possible. Despite its simplicity, the TUI allows you a comfortable degree of control over all nodes managed by the *better_launch* process it is running in:
 - listing a node's services and topics
@@ -214,10 +226,6 @@ The TUI is also able to manage nodes started from different shells and processes
 
 # What are the differences?
 Because *better_launch* does not use the ROS2 launch system, some aspects work differently from what you may be used to.
-
-
-## Launching launch files
-While you indeed *can* launch *better_launch* launch files via `ros2 launch`, this comes with the caveat that you now run one launch system from another. In the worst case, you have `ros2launch -> better_launch -> ros2launch`. However, *better_launch* comes with its own launch script called `bl`, which not only avoids the first launch system layer, but also provides help texts and shell completions for your launch files and their arguments (yes, even ROS2 launch files). It is automatically installed and should be on your path as soon as you source your workspace!
 
 
 ## Action immediacy
