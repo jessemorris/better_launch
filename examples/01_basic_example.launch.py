@@ -1,11 +1,17 @@
+#!/usr/bin/env python3
 from better_launch import BetterLaunch, launch_this
 
 
-# NOTE This is the new part!
-@launch_this(ui=True)
-def a_nice_ui():
+@launch_this
+def first_steps():
     """
-    This example starts the same nodes as the previous one, but uses a terminal UI for display and management. Use the keyboard or mouse to interact with it and see what you can do! 
+    This is how nice your launch files could be!
+
+    You can run this launch file either directly or with the included `bl` script, which should be on your PATH once you have built better_launch and sourced your workspace:
+
+    .. code:: bash
+
+        bl better_launch 01_basic_example.py
     """
     bl = BetterLaunch()
 

@@ -1,7 +1,7 @@
 ![Logo](media/logo_text.svg)
 
 
-[About](#about) | [Why?](#why-not-improve-the-existing-ros2-launch) | [Features](#okay-what-can-i-do-with-it) | [Usage](#how-do-i-use-it) | [TUI](#the-tui) | [Differences](#what-are-the-differences) | [Installation](#installation) | [Performance](#performance) | [ROS2](#whats-so-bad-about-ros2-launch) | [Contributors](#contributors)
+[About](#about) | [Why?](#why-not-improve-the-existing-ros2-launch) | [Features](#okay-what-can-i-do-with-it) | [Usage](#how-do-i-use-it) | [TUI](#the-tui) | [Differences](#what-are-the-differences) | [Performance](#performance) | [Installation](#installation) | [ROS2](#whats-so-bad-about-ros2-launch) | [ToDo](#what-doesnt-work-yet) | [Contributors](#contributors)
 
 
 # About
@@ -275,11 +275,12 @@ I also added a reformatting layer so that colors and nicer screen output are pos
 ROS2 launch has a bad reputation of leaving stale and abandoned processes behind after terminating. In my testing so far this has never been an issue with *better_launch* yet - except when you hard kill (-9) its process.
 
 
-# What doesn't work yet
-There are a couple of areas that still need some work:
-- [ ] test include from ros
-- [ ] test convenience module
-- [ ] document benchmarks
+# Performance
+I am not an expert on profiling code. That being said, in my tests *better_launch* showed comparable yet slightly worse performance compared to using the `ros2 launch`. This is expected as `asyncio` is highly optimized for performance while *better_launch* uses synchronous calls (or classic threads if necessary), and does some additional work to reformat output from nodes. In most cases the performance difference will be neglectable.
+
+The scripts, launch files and results from the benchmarks can be found under [media/benchmarks](media/benchmarks/). This section will only show the most relevant parts.
+
+**TODO**
 
 
 # Installation
@@ -295,14 +296,6 @@ colcon build --packages-select better_launch
 
 In addition, *better_launch* will make use of the following optional python libraries:
 - *wonderwords*: if installed, wonderwords will be used to generate unique suffixes for anonymous nodes. Otherwise UUIDs will be used.
-
-
-# Performance
-I am not an expert on profiling code. That being said, in my tests *better_launch* showed comparable yet slightly worse performance compared to using the `ros2 launch`. This is expected as `asyncio` is highly optimized for performance while *better_launch* uses synchronous calls (or classic threads if necessary), and does some additional work to reformat output from nodes. In most cases the performance difference will be neglectable.
-
-The scripts, launch files and results from the benchmarks can be found under [media/benchmarks](media/benchmarks/). This section will only show the most relevant parts.
-
-**TODO**
 
 
 # What's so bad about ROS2 launch?
@@ -365,6 +358,13 @@ def main(turtlesim_ns = "turtlesim2", use_provided_red = True, new_background_r 
 ```
 
 Overall, ROS2 launch seems like a system architect's wet fever dream, and I don't enjoy it.
+
+
+# What doesn't work yet
+There are a couple of areas that still need some work:
+- [x] test include from ros
+- [ ] test convenience module
+- [ ] document benchmarks
 
 
 # Contributors

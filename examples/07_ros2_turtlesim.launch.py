@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 from better_launch import BetterLaunch, launch_this
 import time
 

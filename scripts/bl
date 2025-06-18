@@ -43,7 +43,7 @@ except ImportError:
 
 from better_launch import __version__
 from better_launch.utils.introspection import get_launchfunc_signature_from_file
-from better_launch.wrapper import Colormode
+from better_launch.utils.better_logging import Colormode
 
 
 class LaunchFile:
@@ -121,7 +121,7 @@ class BetterLaunchFile(LaunchFile):
     def _get_launch_params_and_doc_bl(
         cls, filepath: str
     ) -> tuple[list[click.Option], str]:
-        if not filepath.lower().endswith(".py"):
+        if not filepath.lower().endswith(".launch.py"):
             raise ValueError("Not a python file")
 
         _, signature, doc = get_launchfunc_signature_from_file(filepath)
@@ -243,7 +243,7 @@ class Ros2LaunchFile(LaunchFile):
     def _get_launch_params_and_doc_ros2(
         cls, filepath: str
     ) -> tuple[list[click.Option], str]:
-        if not filepath.lower().endswith(".py"):
+        if not filepath.lower().endswith(".launch.py"):
             raise ValueError("Not a python file")
 
         try:
@@ -290,7 +290,7 @@ class Ros2LaunchFile(LaunchFile):
     def _get_launch_params_and_doc_xml(
         cls, filepath: str
     ) -> tuple[list[click.Option], str]:
-        if not filepath.lower().endswith(".xml"):
+        if not filepath.lower().endswith(".launch.xml"):
             raise ValueError("Not a python file")
 
         tree = ElementTree.parse(filepath)
@@ -314,7 +314,7 @@ class Ros2LaunchFile(LaunchFile):
     def _get_launch_params_and_doc_yaml(
         cls, filepath: str
     ) -> tuple[list[click.Option], str]:
-        if not filepath.lower().endswith((".yml", ".yaml")):
+        if not filepath.lower().endswith((".launch.yml", ".launch.yaml")):
             raise ValueError("Not a yaml file")
 
         with open(filepath) as f:
@@ -472,11 +472,8 @@ class LaunchfileSelectionCLI(click.MultiCommand):
                         executables.append(path)
                     elif include_launchfiles and (
                         filename.endswith((".py", ".xml", ".yaml", ".yml"))
-                        or ".launch." in filename
+                        and ".launch." in filename
                     ):
-                        if filename == "package.xml":
-                            continue
-
                         executables.append(path)
 
         return executables
