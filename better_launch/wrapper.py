@@ -1,4 +1,4 @@
-from typing import Any, Callable, Literal
+from typing import Callable, Literal, get_args
 import os
 import platform
 from ast import literal_eval
@@ -15,15 +15,16 @@ from better_launch.launcher import (
     _bl_include_args,
 )
 from better_launch.utils.better_logging import (
-    Colormode,
     PrettyLogFormatter,
 )
 from better_launch.utils.introspection import find_calling_frame
 from better_launch.ros import logging as roslog
-from better_launch.ros.logging import LaunchConfig as LogConfig
 
 
 _is_launcher_defined = "__better_launch_this_defined"
+
+
+Colormode = Literal["default", "severity", "source", "none", "rainbow"]
 
 
 def launch_this(
@@ -31,8 +32,9 @@ def launch_this(
     *,
     ui: bool = False,
     join: bool = True,
-    log_config: LogConfig = None,
-    colormode: Colormode = "all",
+    screen_log_format: str = None,
+    file_log_format: str = None,
+    colormode: Colormode = "default",
     manage_foreign_nodes: bool = False,
 ):
     """Use this to decorate your launch function. The function will be run automatically. The function is allowed to block even when using the UI.
@@ -47,14 +49,17 @@ def launch_this(
         Whether to start the better_launch TUI.
     join : bool, optional
         If True, join the better_launch process. Has no effect when ui == True.
-    log_config : LogConfig, optional
-        Allows to provide your own logging configuration. It's usually better to change settings per node.
+    screen_log_format : str, optional
+        Customize how log output will be formatted when printing it to the screen. Will be overridden by the `OVERRIDE_SCREEN_LOG_FORMAT` environment variable. See :py:class:`PrettyLogFormatter` for details.
+    file_log_format : str, optional
+        Customize how log output will be formatted when writing it to a file. Will be overridden by the `OVERRIDE_FILE_LOG_FORMAT` environment variable. See :py:class:`PrettyLogFormatter` for details.
     colormode : Colormode, optional
         Decides what colors will be used for:
-        * all: colorize log severity and message source
-        * severity: colorize only log severity
-        * source: colorize only message source
+        * default: one color per log severity level and a single color for all message sources
+        * severity: one color per log severity, don't colorize message sources
+        * source: one color per message source, don't colorize log severity
         * none: don't colorize anything
+        * rainbow: colorize log severity and give each message source its own color
     manage_foreign_nodes : bool, optional
         If True, the TUI will also include node processes not started by this process. Has no effect if the TUI is not started.
     """
@@ -64,7 +69,8 @@ def launch_this(
             func,
             ui=ui,
             join=join,
-            log_config=log_config,
+            screen_log_format=screen_log_format,
+            file_log_format=file_log_format,
             colormode=colormode,
             manage_foreign_nodes=manage_foreign_nodes,
         )
@@ -76,8 +82,9 @@ def _launch_this_wrapper(
     launch_func: Callable,
     ui: bool = False,
     join: bool = True,
-    log_config: LogConfig = None,
-    colormode: Colormode = "all",
+    screen_log_format: str = None,
+    file_log_format: str = None,
+    colormode: Colormode = "default",
     manage_foreign_nodes: bool = False,
 ):
     # Globals of the calling module
@@ -236,10 +243,10 @@ def _launch_this_wrapper(
             click.Option(
                 ["--bl_colormode_override"],
                 type=click.types.Choice(
-                    ["none", "severity", "source", "all"], case_sensitive=False
+                    get_args(Colormode), case_sensitive=False
                 ),
                 show_choices=True,
-                default="all",
+                default=get_args(Colormode)[0],
                 help="Override the logging color mode",
                 expose_value=False,
                 callback=click_colormode_override,
@@ -249,23 +256,47 @@ def _launch_this_wrapper(
 
     @click.pass_context
     def run(ctx: click.Context, *args, **kwargs):
-        # Logging setup
-        if log_config:
-            roslog.launch_config = log_config
-            # roslog.reset()
-        else:
-            roslog.launch_config.level = logging.INFO
-            if "OVERRIDE_LAUNCH_SCREEN_FORMAT" not in os.environ:
-                # We'll handle formatting and color ourselves, just get the nodes to comply
-                os.environ["RCUTILS_CONSOLE_OUTPUT_FORMAT"] = (
-                    "%%{severity}%%{time}%%{message}"
-                )
-                os.environ["RCUTILS_COLORIZED_OUTPUT"] = "0"
+        # Setup logging
+        nonlocal screen_log_format, file_log_format
 
-                roslog.launch_config.screen_formatter = PrettyLogFormatter()
-                roslog.launch_config.file_formatter = PrettyLogFormatter(
-                    format=PrettyLogFormatter.default_file_format
-                )
+        screen_log_format = os.environ.get(
+            "OVERRIDE_SCREEN_LOG_FORMAT", screen_log_format
+        )
+        file_log_format = os.environ.get("OVERRIDE_FILE_LOG_FORMAT", file_log_format)
+
+        if not screen_log_format:
+            screen_log_format = PrettyLogFormatter.default_screen_format
+
+        if not file_log_format:
+            file_log_format = PrettyLogFormatter.default_file_format
+
+        if colormode == "default":
+            src_color = 222
+            log_color = None
+        elif colormode == "severity":
+            src_color = 39
+            log_color = None
+        elif colormode == "source":
+            src_color = None
+            log_color = 39
+        elif colormode == "none":
+            src_color = 39
+            log_color = 39
+        elif colormode == "rainbow":
+            src_color = None
+            log_color = None
+        else:
+            raise ValueError("Invalid colormode " + colormode)
+
+        # We'll handle formatting and color ourselves, just get the nodes to comply
+        os.environ["RCUTILS_CONSOLE_OUTPUT_FORMAT"] = "%%{severity}%%{time}%%{message}"
+        os.environ["RCUTILS_COLORIZED_OUTPUT"] = "0"
+
+        roslog.launch_config.level = logging.INFO
+        roslog.launch_config.screen_formatter = PrettyLogFormatter(
+            format=screen_log_format, source_colors=src_color, log_colors=log_color
+        )
+        roslog.launch_config.file_formatter = PrettyLogFormatter(format=file_log_format)
 
         # Wrap the launch function so we can do some preparation and cleanup tasks
         def launch_func_wrapper():

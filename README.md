@@ -196,7 +196,7 @@ See the [examples](examples/) for more details on what *better_launch* can do!
 
 
 # Running stuff
-*better_launch* is committed to your comfort, which is why it comes with a replacement for `ros2 launch`. Not only is `ros2 launch` slow as hell, it also clutters the terminal with useless command line options, yet is unable to discover the arguments you have declared inside your launch file. On top of that it of course uses the ros2 launch system, which means you would run two launch systems on top of each other when using *better_launch*. For these reasons, *better_launch* installs the `bl` script, which fixes all of the above and then some. Once you have sourced your workspace you can use it as follows:
+*better_launch* is committed to your comfort, which is why it comes with a replacement for `ros2 launch`. Not only is autocomplete for `ros2 launch` slow as hell, it also clutters the terminal with useless command line options, yet is unable to discover the arguments you have declared inside your launch files. On top of that it of course uses the ros2 launch system, which means you would run two launch systems on top of each other when using *better_launch*. For these reasons, *better_launch* installs the `bl` script, which fixes all of the above and then some. Once you have sourced your workspace you can use it as follows:
 
 ```bash
 # Check the example launch file for details!
@@ -212,7 +212,7 @@ bl better_launch 05_launch_arguments.py --help
 bl better_launch 02_ui.py
 ```
 
-See the single line of shortcuts at the bottom? That's the TUI, and it will never take up more than 3 lines to be as unobtrusive as possible. Despite its simplicity, the TUI allows you a comfortable degree of control over all nodes managed by the *better_launch* process it is running in:
+See the single line of shortcuts at the bottom? That's the TUI, and it will never take up more than 3 lines! Despite its simplicity, the TUI allows you a comfortable degree of control over all nodes managed by the *better_launch* process it is running in:
 - listing a node's services and topics
 - starting and stopping nodes
 - triggering lifecycle transitions
@@ -221,7 +221,7 @@ See the single line of shortcuts at the bottom? That's the TUI, and it will neve
 
 The TUI is also able to manage nodes started from different shells and processes, even if they have been started by ROS2 or other means. To do so, pass the `manage_foreign_nodes` flag to the wrapper or command line. Be aware though that this will not capture their output - to get their output you will have to use the *takeover* action from the TUI, which will restart the node process with the original arguments.
 
-> Foreign node processes are identified by having one of the following parameters in their arguments: `__ns`, `__name`, `__node`, `--ros-args`. This is usually not true for nodes started via `ros2 run` or other means. 
+> Foreign node processes are identified by having one of the following parameters in their arguments: `__ns`, `__name`, `__node`, `--ros-args`. This is always true for nodes started from launch files, but fails when they were started via `ros2 run` or other means. As far as I'm aware, there is no better way right now.
 
 
 # What are the differences?
@@ -243,7 +243,7 @@ Lifecycle nodes differ from regular nodes in that they don't become fully active
 
 
 ## Type checking
-When passing arguments to a node in ROS2, in the end everything is passed as stringified command line arguments. So why bother with overly strict type checking? *better_launch* does not impose C-like strict type checking on you and will happily accept `int`, `string`, `float`, etc. for any given argument. In addition, sensible and *unsurprising* types have been chosen for all arguments you may provide (e.g. remaps are defined as a `dict[str, str]`, not a list of tuples).
+When passing arguments to a node in ROS2, in the end everything is passed as stringified command line arguments. So why bother with overly strict type checking? Why do I have to turn half the parameters into strings myself? *better_launch* does not impose a flawed type sytem on you and will happily accept `int`, `string`, `float`, etc. where appropriate. In addition, sensible and *unsurprising* types have been chosen for all arguments you may provide (e.g. remaps are defined as a `dict[str, str]`, floats are happy to accept ints, launch arguments are not required to be strings, etc.).
 
 
 ## Declaring launch arguments
@@ -253,11 +253,13 @@ Simply put: you don't. *better_launch* will check the signature of your launch f
 
 
 ## Parameter files
-You do **not** have to put `ros__parameters` in your configs anymore when using `BetterLaunch.load_params`. Hooray!
+You do **not** have to put `ros__parameters` in your configs anymore when using `BetterLaunch.load_params`. Hooray! You still can do so of course if you feel slightly masochistic. In fact, *better_launch* supports the full param syntax for mapping params to nodes, including namespace wildcards. See the `load_params` documentation for details.
 
 
 ## Logging
-Just like ROS2 launch, *better_launch* takes care of managing loggers and redirecting everything where it belongs (in fact that part is straight up copied from ROS2 launch). However, I also added a thin parsing and formatting layer so that colors and nicer screen output are possible. This can be turned off of course by toggling the `reparse_logs` option when creating nodes.
+Just like ROS2 launch, *better_launch* takes care of managing loggers and redirecting everything where it belongs (in fact that part is largely copied from ROS2 launch). However, I did away with the in my opinion not very useful separation between a node's `stdout` and `stderr`, since nodes apparently write their log output to `stderr` by default. 
+
+I also added a reformatting layer so that colors and nicer screen output are possible. The format can be customized by passing your own logging format strings to `launch_this`. Alternatively, you may set the `OVERRIDE_SCREEN_LOG_FORMAT` and `OVERRIDE_FILE_LOG_FORMAT` environment variables.
 
 
 ## Abandoned processes

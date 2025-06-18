@@ -69,10 +69,10 @@ def _launchservice_worker(
         log_queue.put(record)
 
     std_handler = RecordForwarder(
+        # TODO should reflect the main process formatter configuration regarding colors and such
         PrettyLogFormatter(
             roslog_pattern=r"\[(.+)] *%%(\w+)%%([\d.]+)%%(.*)",
             pattern_info=["name", "levelname", "created", "msg"],
-            source_colors=None,  # TODO should reflect the main process formatter configuration?
         )
     )
     std_handler.add_listener(handle_record)

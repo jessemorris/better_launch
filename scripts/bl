@@ -12,7 +12,7 @@ bl <package> <launchfile> <launch-args>
 See --help and readme for further details.
 """
 
-from typing import Any
+from typing import Any, get_args
 import sys
 import os
 import ast
@@ -43,6 +43,7 @@ except ImportError:
 
 from better_launch import __version__
 from better_launch.utils.introspection import get_launchfunc_signature_from_file
+from better_launch.wrapper import Colormode
 
 
 class LaunchFile:
@@ -174,10 +175,10 @@ class BetterLaunchFile(LaunchFile):
             click.Option(
                 ["--bl_colormode_override"],
                 type=click.types.Choice(
-                    ["none", "severity", "source", "all"], case_sensitive=False
+                    get_args(Colormode), case_sensitive=False
                 ),
                 show_choices=True,
-                default="all",
+                default=get_args(Colormode)[0],
                 help="Override the logging color mode",
             )
         ])

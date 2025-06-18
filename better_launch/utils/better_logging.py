@@ -7,9 +7,6 @@ import better_launch.ros.logging as roslog
 from .colors import get_contrast_color
 
 
-Colormode = Literal["none", "severity", "source", "all"]
-
-
 default_log_colormap = {
     #  0m: resets all colors and attributes.
     # 20m: resets only attributes (underline, etc.), leaving colors unchanged.
