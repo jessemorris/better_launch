@@ -1,6 +1,9 @@
 ![Logo](media/logo_text.svg)
 
 
+[About](#about) | [Why?](#why-not-improve-the-existing-ros2-launch) | [Features](#okay-what-can-i-do-with-it) | [Usage](#how-do-i-use-it) | [TUI](#the-tui) | [Differences](#what-are-the-differences) | [Installation](#installation) | [Performance](#performance) | [ROS2](#whats-so-bad-about-ros2-launch) | [Contributors](#contributors)
+
+
 # About
 Let's face it: ROS2 has been a severe downgrade in terms of usability compared to ROS1. While there are many considerable improvements, the current launch system is borderline unusable. I've listed my personal gripes below, but if you're here you likely feel the same. This is why I wrote ***better_launch***.
 
@@ -56,7 +59,7 @@ Everything you would expect and a little more! The `BetterLaunch` instance allow
 - include other *ROS2 launch files*
 - let regular ROS2 launch files *include your better_launch launch files*
 - configure *logging* just as you would in ROS2, yet have much more readable output
-- manage your node using a nice *terminal UI* reminiscent of [rosmon](https://github.com/xqms/rosmon)
+- manage your node using a nice [terminal UI](#the-tui) reminiscent of [rosmon](https://github.com/xqms/rosmon)
 
 For a quick comparison, bravely unfold the sections below:
 <details>
@@ -192,29 +195,26 @@ def my_start(
 ```
 </details>
 
-See the [examples](examples/) for more details on what *better_launch* can do! 
+
+# How do I use it?
+The best way to get to know *better_launch* is to explore the included [examples](examples/). Unlike ROS2, all examples and functions come with proper documentation. If anything is left unclear, feel free to contact me.
+
+While you could run *better_launch* launch files via `ros2 launch`, this would obviously mean running two launch systems on top of each other. Not only is that terrible for performance and introduces a dependency on ROS2's launch system, its autocomplete is also slow as hell, cluttering the terminal with useless command line options yet is unable to discover the arguments you have declared inside your launch files. For these reasons, *better_launch* comes with the `bl` script, which fixes all of the above and then some. Once you have sourced your workspace you can use it as follows:
+
+```bash
+# Try <tab> for autocomplete and check the example launch file for details!
+bl better_launch 05_launch_arguments.py --help
+```
 
 In addition, *better_launch* includes a couple of modules that make some common tasks easier:
 - [convenience.py](better_launch/convenience.py): convenience functions to start rviz, robot state publishers, read urdf/xacro files, and more.
 - [gazebo.py](better_launch/gazebo.py): functions and helpers for starting and populating gazebo simulations as well as bridging topics.
 
 
-# Running stuff
-*better_launch* is committed to your comfort, which is why it comes with a replacement for `ros2 launch`. Not only is autocomplete for `ros2 launch` slow as hell, it also clutters the terminal with useless command line options, yet is unable to discover the arguments you have declared inside your launch files. On top of that it of course uses the ros2 launch system, which means you would run two launch systems on top of each other when using *better_launch*. For these reasons, *better_launch* installs the `bl` script, which fixes all of the above and then some. Once you have sourced your workspace you can use it as follows:
-
-```bash
-# Check the example launch file for details!
-bl better_launch 05_launch_arguments.py --help
-```
-
-
 # The TUI
-*better_launch* comes with a sneak, unobstrusive TUI (terminal user interface) based on [prompt_toolkit](https://github.com/prompt-toolkit/python-prompt-toolkit), which will hover below the log output. You can start it by either passing `ui=True` to the `launch_this` wrapper, or by adding `--bl_ui_override=True` on the command line. 
+*better_launch* comes with a sneaky, unobstrusive TUI (terminal user interface) based on [prompt_toolkit](https://github.com/prompt-toolkit/python-prompt-toolkit), which will hover below the log output. You can start it by either passing `ui=True` to the `launch_this` wrapper, or by adding `--bl_ui_override=True` on the command line. 
 
 ![TUI](media/tui.png)
-```bash
-bl better_launch 02_ui.py
-```
 
 See the single line of shortcuts at the bottom? That's the TUI, and it will never take up more than 3 lines! Despite its simplicity, the TUI allows you a comfortable degree of control over all nodes managed by the *better_launch* process it is running in:
 - listing a node's services and topics
@@ -222,6 +222,11 @@ See the single line of shortcuts at the bottom? That's the TUI, and it will neve
 - triggering lifecycle transitions
 - changing the log level
 - etc.
+
+```bash
+# Run this line to see it in action!
+bl better_launch 02_ui.py
+```
 
 The TUI is also able to manage nodes started from different shells and processes, even if they have been started by ROS2 or other means. To do so, pass the `manage_foreign_nodes` flag to the wrapper or command line. Be aware though that this will not capture their output - to get their output you will have to use the *takeover* action from the TUI, which will restart the node process with the original arguments.
 
@@ -336,10 +341,10 @@ def generate_launch_description():
 ```
 
 I think we can agree that this is not exactly elegant - including another launch file should be doable within a single line, not 10 plus 5 imports. Other terrible decisions within ROS2 launch include, but are not limited to:
-- a weird fetish for import statements (see above)
+- a weird fetish for unintuitive import statements (see above)
 - unneccesarily strict type checking (why use python if I have to verify everything?)
 - nonsensical argument types (e.g. remaps are a *list of tuples* instead of simply a *dict*)
-- using asyncio may be slightly faster, but prevents normal variable interactions (ever wondered why you always see these weird Condition classes instead of `if my_arg:`?)
+- using asyncio may be slightly faster, but prevents normal variable interactions (ever wondered why you always see these weird `Condition` classes instead of a simple `if my_arg:`?)
 - horrendous API for starting lifecycle nodes (also, why the hell are there two completely separate base interfaces?)
 - the list goes on...
 
@@ -363,5 +368,5 @@ Overall, ROS2 launch seems like a system architect's wet fever dream, and I don'
 
 
 # Contributors
-- Tom Creutz
+- [Tom Creutz](https://github.com/tomcreutz)
 - Prithvi Sanghamreddy
