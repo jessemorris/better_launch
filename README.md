@@ -24,7 +24,7 @@ def my_main(enable_x: bool = True):
         )
 
     # Include other launch files, even regular ROS2 launch files!
-    bl.include("better_launch", "example_listener.py")
+    bl.include("better_launch", "ros2_turtlesim.launch.py")
 ```
 
 ```bash
