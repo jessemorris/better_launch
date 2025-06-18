@@ -87,7 +87,9 @@ class Node(AbstractNode, LiveParamsMixin):
 
         self.env = env or {}
         self.isolate_env = isolate_env
-        self.cmd_args = ["--log-level", logging.getLevelName(log_level)]
+        self.cmd_args = []
+        if log_level is not None:
+            cmd_args.extend(["--log-level", logging.getLevelName(log_level)])
         if cmd_args:
             self.cmd_args.extend(cmd_args)
 
@@ -127,7 +129,7 @@ class Node(AbstractNode, LiveParamsMixin):
             return
 
         try:
-            cmd = launcher.find(self.package, self.executable)
+            cmd = launcher.find(self.package, self.executable, f"lib/{self.package}")
             final_cmd = [cmd] + self.cmd_args + ["--ros-args"]
 
             # Attach node parameters

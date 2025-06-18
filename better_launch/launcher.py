@@ -33,13 +33,13 @@ try:
     # For anonymous nodes
     import wonderwords
 
-    __uuid_generator = lambda g=wonderwords.RandomWord(
+    _uuid_generator = lambda g=wonderwords.RandomWord(
         exclude_with_spaces=True
     ): g.word()
 except ImportError:
     import uuid
 
-    __uuid_generator = lambda: uuid.uuid4().hex
+    _uuid_generator = lambda: uuid.uuid4().hex
 
 from better_launch.elements import (
     Group,
@@ -236,7 +236,7 @@ Takeoff in 3... 2... 1...
         str
             The passed in string with a unique suffix.
         """
-        return name + "_" + __uuid_generator()
+        return name + "_" + _uuid_generator()
 
     def all_groups(self) -> list[Group]:
         """Returns a list of all in the order they were created.
@@ -603,9 +603,8 @@ Takeoff in 3... 2... 1...
 
         targetpath = os.path.normpath(subdir) if subdir else ""
         for dirpath, _, files in os.walk(base_path, topdown=False):
-            path = os.path.normpath(os.path.join(base_path, dirpath))
-            if path.endswith(targetpath) and (not filename or filename in files):
-                return os.path.join(path, filename)
+            if dirpath.endswith(targetpath) and (not filename or filename in files):
+                return os.path.join(dirpath, filename)
 
         raise ValueError(
             f"Could not find file or directory (filename={filename}, package={package}, subdir={subdir})"

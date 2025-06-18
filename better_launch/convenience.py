@@ -19,20 +19,20 @@ def rviz(
     configfile: str = None,
     subdir: str = None,
     *,
-    suppress_warnings: bool = False,
+    extra_args: list[str] = None,
 ) -> Node:
-    """Runs RViz with the given config file and optional warning level suppression.
+    """Runs RViz2 with the given config file and optional warning level suppression.
 
     Parameters
     ----------
     package : str, optional
         Path to locate the config file in (if one is specified).
     config_file : str, optional
-        Path to the RViz configuration file which will be resolved by :py:meth:`BetterLaunch.find`. Otherwise RViz will run with the default config.
+        Path to the RViz2 configuration file which will be resolved by :py:meth:`BetterLaunch.find`. Otherwise RViz2 will run with the default config.
     subdir : str, optional
         A path fragment the config file must be located in.
-    suppress_warnings : bool, optional
-        Whether to suppress warnings.
+    extra_args : list[str], optional
+        Additional args to pass to the RViz2 executable.
 
     Returns
     -------
@@ -46,10 +46,11 @@ def rviz(
         configfile = bl.find(package, configfile, subdir)
         args += ["-d", configfile]
 
-    if not suppress_warnings:
-        args += ["--ros-args", "--log-level", "FATAL"]
+    if extra_args:
+        args.extend(extra_args)
 
-    return bl.node("rviz2", "rviz2", "rviz2", anonymous=True, cmd_args=args)
+    # rviz2 doesn't support the --log-level argument nodes usually accept
+    return bl.node("rviz2", "rviz2", "rviz2", anonymous=True, cmd_args=args, log_level=None)
 
 
 def read_robot_description(
