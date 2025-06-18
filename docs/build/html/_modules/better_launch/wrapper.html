@@ -71,7 +71,7 @@
            <div itemprop="articleBody">
              
   <h1>Source code for better_launch.wrapper</h1><div class="highlight"><pre>
-<span></span><span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Literal</span>
+<span></span><span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Literal</span><span class="p">,</span> <span class="n">get_args</span>
 <span class="kn">import</span> <span class="nn">os</span>
 <span class="kn">import</span> <span class="nn">platform</span>
 <span class="kn">from</span> <span class="nn">ast</span> <span class="kn">import</span> <span class="n">literal_eval</span>
@@ -88,15 +88,16 @@
     <span class="n">_bl_include_args</span><span class="p">,</span>
 <span class="p">)</span>
 <span class="kn">from</span> <span class="nn">better_launch.utils.better_logging</span> <span class="kn">import</span> <span class="p">(</span>
-    <span class="n">Colormode</span><span class="p">,</span>
     <span class="n">PrettyLogFormatter</span><span class="p">,</span>
 <span class="p">)</span>
 <span class="kn">from</span> <span class="nn">better_launch.utils.introspection</span> <span class="kn">import</span> <span class="n">find_calling_frame</span>
 <span class="kn">from</span> <span class="nn">better_launch.ros</span> <span class="kn">import</span> <span class="n">logging</span> <span class="k">as</span> <span class="n">roslog</span>
-<span class="kn">from</span> <span class="nn">better_launch.ros.logging</span> <span class="kn">import</span> <span class="n">LaunchConfig</span> <span class="k">as</span> <span class="n">LogConfig</span>
 
 
 <span class="n">_is_launcher_defined</span> <span class="o">=</span> <span class="s2">&quot;__better_launch_this_defined&quot;</span>
+
+
+<span class="n">Colormode</span> <span class="o">=</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">&quot;default&quot;</span><span class="p">,</span> <span class="s2">&quot;severity&quot;</span><span class="p">,</span> <span class="s2">&quot;source&quot;</span><span class="p">,</span> <span class="s2">&quot;none&quot;</span><span class="p">,</span> <span class="s2">&quot;rainbow&quot;</span><span class="p">]</span>
 
 
 <div class="viewcode-block" id="launch_this">
@@ -106,8 +107,9 @@
     <span class="o">*</span><span class="p">,</span>
     <span class="n">ui</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="n">join</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
-    <span class="n">log_config</span><span class="p">:</span> <span class="n">LogConfig</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-    <span class="n">colormode</span><span class="p">:</span> <span class="n">Colormode</span> <span class="o">=</span> <span class="s2">&quot;all&quot;</span><span class="p">,</span>
+    <span class="n">screen_log_format</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">file_log_format</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">colormode</span><span class="p">:</span> <span class="n">Colormode</span> <span class="o">=</span> <span class="s2">&quot;default&quot;</span><span class="p">,</span>
     <span class="n">manage_foreign_nodes</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
 <span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Use this to decorate your launch function. The function will be run automatically. The function is allowed to block even when using the UI.</span>
@@ -122,14 +124,17 @@
 <span class="sd">        Whether to start the better_launch TUI.</span>
 <span class="sd">    join : bool, optional</span>
 <span class="sd">        If True, join the better_launch process. Has no effect when ui == True.</span>
-<span class="sd">    log_config : LogConfig, optional</span>
-<span class="sd">        Allows to provide your own logging configuration. It&#39;s usually better to change settings per node.</span>
+<span class="sd">    screen_log_format : str, optional</span>
+<span class="sd">        Customize how log output will be formatted when printing it to the screen. Will be overridden by the `OVERRIDE_SCREEN_LOG_FORMAT` environment variable. See :py:class:`PrettyLogFormatter` for details.</span>
+<span class="sd">    file_log_format : str, optional</span>
+<span class="sd">        Customize how log output will be formatted when writing it to a file. Will be overridden by the `OVERRIDE_FILE_LOG_FORMAT` environment variable. See :py:class:`PrettyLogFormatter` for details.</span>
 <span class="sd">    colormode : Colormode, optional</span>
 <span class="sd">        Decides what colors will be used for:</span>
-<span class="sd">        * all: colorize log severity and message source</span>
-<span class="sd">        * severity: colorize only log severity</span>
-<span class="sd">        * source: colorize only message source</span>
+<span class="sd">        * default: one color per log severity level and a single color for all message sources</span>
+<span class="sd">        * severity: one color per log severity, don&#39;t colorize message sources</span>
+<span class="sd">        * source: one color per message source, don&#39;t colorize log severity</span>
 <span class="sd">        * none: don&#39;t colorize anything</span>
+<span class="sd">        * rainbow: colorize log severity and give each message source its own color</span>
 <span class="sd">    manage_foreign_nodes : bool, optional</span>
 <span class="sd">        If True, the TUI will also include node processes not started by this process. Has no effect if the TUI is not started.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
@@ -139,7 +144,8 @@
             <span class="n">func</span><span class="p">,</span>
             <span class="n">ui</span><span class="o">=</span><span class="n">ui</span><span class="p">,</span>
             <span class="n">join</span><span class="o">=</span><span class="n">join</span><span class="p">,</span>
-            <span class="n">log_config</span><span class="o">=</span><span class="n">log_config</span><span class="p">,</span>
+            <span class="n">screen_log_format</span><span class="o">=</span><span class="n">screen_log_format</span><span class="p">,</span>
+            <span class="n">file_log_format</span><span class="o">=</span><span class="n">file_log_format</span><span class="p">,</span>
             <span class="n">colormode</span><span class="o">=</span><span class="n">colormode</span><span class="p">,</span>
             <span class="n">manage_foreign_nodes</span><span class="o">=</span><span class="n">manage_foreign_nodes</span><span class="p">,</span>
         <span class="p">)</span>
@@ -152,8 +158,9 @@
     <span class="n">launch_func</span><span class="p">:</span> <span class="n">Callable</span><span class="p">,</span>
     <span class="n">ui</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="n">join</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
-    <span class="n">log_config</span><span class="p">:</span> <span class="n">LogConfig</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-    <span class="n">colormode</span><span class="p">:</span> <span class="n">Colormode</span> <span class="o">=</span> <span class="s2">&quot;all&quot;</span><span class="p">,</span>
+    <span class="n">screen_log_format</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">file_log_format</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">colormode</span><span class="p">:</span> <span class="n">Colormode</span> <span class="o">=</span> <span class="s2">&quot;default&quot;</span><span class="p">,</span>
     <span class="n">manage_foreign_nodes</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
 <span class="p">):</span>
     <span class="c1"># Globals of the calling module</span>
@@ -312,10 +319,10 @@
             <span class="n">click</span><span class="o">.</span><span class="n">Option</span><span class="p">(</span>
                 <span class="p">[</span><span class="s2">&quot;--bl_colormode_override&quot;</span><span class="p">],</span>
                 <span class="nb">type</span><span class="o">=</span><span class="n">click</span><span class="o">.</span><span class="n">types</span><span class="o">.</span><span class="n">Choice</span><span class="p">(</span>
-                    <span class="p">[</span><span class="s2">&quot;none&quot;</span><span class="p">,</span> <span class="s2">&quot;severity&quot;</span><span class="p">,</span> <span class="s2">&quot;source&quot;</span><span class="p">,</span> <span class="s2">&quot;all&quot;</span><span class="p">],</span> <span class="n">case_sensitive</span><span class="o">=</span><span class="kc">False</span>
+                    <span class="n">get_args</span><span class="p">(</span><span class="n">Colormode</span><span class="p">),</span> <span class="n">case_sensitive</span><span class="o">=</span><span class="kc">False</span>
                 <span class="p">),</span>
                 <span class="n">show_choices</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-                <span class="n">default</span><span class="o">=</span><span class="s2">&quot;all&quot;</span><span class="p">,</span>
+                <span class="n">default</span><span class="o">=</span><span class="n">get_args</span><span class="p">(</span><span class="n">Colormode</span><span class="p">)[</span><span class="mi">0</span><span class="p">],</span>
                 <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Override the logging color mode&quot;</span><span class="p">,</span>
                 <span class="n">expose_value</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
                 <span class="n">callback</span><span class="o">=</span><span class="n">click_colormode_override</span><span class="p">,</span>
@@ -325,23 +332,47 @@
 
     <span class="nd">@click</span><span class="o">.</span><span class="n">pass_context</span>
     <span class="k">def</span> <span class="nf">run</span><span class="p">(</span><span class="n">ctx</span><span class="p">:</span> <span class="n">click</span><span class="o">.</span><span class="n">Context</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
-        <span class="c1"># Logging setup</span>
-        <span class="k">if</span> <span class="n">log_config</span><span class="p">:</span>
-            <span class="n">roslog</span><span class="o">.</span><span class="n">launch_config</span> <span class="o">=</span> <span class="n">log_config</span>
-            <span class="c1"># roslog.reset()</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="n">roslog</span><span class="o">.</span><span class="n">launch_config</span><span class="o">.</span><span class="n">level</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">INFO</span>
-            <span class="k">if</span> <span class="s2">&quot;OVERRIDE_LAUNCH_SCREEN_FORMAT&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">:</span>
-                <span class="c1"># We&#39;ll handle formatting and color ourselves, just get the nodes to comply</span>
-                <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s2">&quot;RCUTILS_CONSOLE_OUTPUT_FORMAT&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
-                    <span class="s2">&quot;</span><span class="si">%%{severity}%%{time}%%{message}</span><span class="s2">&quot;</span>
-                <span class="p">)</span>
-                <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s2">&quot;RCUTILS_COLORIZED_OUTPUT&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;0&quot;</span>
+        <span class="c1"># Setup logging</span>
+        <span class="k">nonlocal</span> <span class="n">screen_log_format</span><span class="p">,</span> <span class="n">file_log_format</span>
 
-                <span class="n">roslog</span><span class="o">.</span><span class="n">launch_config</span><span class="o">.</span><span class="n">screen_formatter</span> <span class="o">=</span> <span class="n">PrettyLogFormatter</span><span class="p">()</span>
-                <span class="n">roslog</span><span class="o">.</span><span class="n">launch_config</span><span class="o">.</span><span class="n">file_formatter</span> <span class="o">=</span> <span class="n">PrettyLogFormatter</span><span class="p">(</span>
-                    <span class="nb">format</span><span class="o">=</span><span class="n">PrettyLogFormatter</span><span class="o">.</span><span class="n">default_file_format</span>
-                <span class="p">)</span>
+        <span class="n">screen_log_format</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span>
+            <span class="s2">&quot;OVERRIDE_SCREEN_LOG_FORMAT&quot;</span><span class="p">,</span> <span class="n">screen_log_format</span>
+        <span class="p">)</span>
+        <span class="n">file_log_format</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;OVERRIDE_FILE_LOG_FORMAT&quot;</span><span class="p">,</span> <span class="n">file_log_format</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">screen_log_format</span><span class="p">:</span>
+            <span class="n">screen_log_format</span> <span class="o">=</span> <span class="n">PrettyLogFormatter</span><span class="o">.</span><span class="n">default_screen_format</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">file_log_format</span><span class="p">:</span>
+            <span class="n">file_log_format</span> <span class="o">=</span> <span class="n">PrettyLogFormatter</span><span class="o">.</span><span class="n">default_file_format</span>
+
+        <span class="k">if</span> <span class="n">colormode</span> <span class="o">==</span> <span class="s2">&quot;default&quot;</span><span class="p">:</span>
+            <span class="n">src_color</span> <span class="o">=</span> <span class="mi">222</span>
+            <span class="n">log_color</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">elif</span> <span class="n">colormode</span> <span class="o">==</span> <span class="s2">&quot;severity&quot;</span><span class="p">:</span>
+            <span class="n">src_color</span> <span class="o">=</span> <span class="mi">39</span>
+            <span class="n">log_color</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">elif</span> <span class="n">colormode</span> <span class="o">==</span> <span class="s2">&quot;source&quot;</span><span class="p">:</span>
+            <span class="n">src_color</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="n">log_color</span> <span class="o">=</span> <span class="mi">39</span>
+        <span class="k">elif</span> <span class="n">colormode</span> <span class="o">==</span> <span class="s2">&quot;none&quot;</span><span class="p">:</span>
+            <span class="n">src_color</span> <span class="o">=</span> <span class="mi">39</span>
+            <span class="n">log_color</span> <span class="o">=</span> <span class="mi">39</span>
+        <span class="k">elif</span> <span class="n">colormode</span> <span class="o">==</span> <span class="s2">&quot;rainbow&quot;</span><span class="p">:</span>
+            <span class="n">src_color</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="n">log_color</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Invalid colormode &quot;</span> <span class="o">+</span> <span class="n">colormode</span><span class="p">)</span>
+
+        <span class="c1"># We&#39;ll handle formatting and color ourselves, just get the nodes to comply</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s2">&quot;RCUTILS_CONSOLE_OUTPUT_FORMAT&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">%%{severity}%%{time}%%{message}</span><span class="s2">&quot;</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s2">&quot;RCUTILS_COLORIZED_OUTPUT&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;0&quot;</span>
+
+        <span class="n">roslog</span><span class="o">.</span><span class="n">launch_config</span><span class="o">.</span><span class="n">level</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">INFO</span>
+        <span class="n">roslog</span><span class="o">.</span><span class="n">launch_config</span><span class="o">.</span><span class="n">screen_formatter</span> <span class="o">=</span> <span class="n">PrettyLogFormatter</span><span class="p">(</span>
+            <span class="nb">format</span><span class="o">=</span><span class="n">screen_log_format</span><span class="p">,</span> <span class="n">source_colors</span><span class="o">=</span><span class="n">src_color</span><span class="p">,</span> <span class="n">log_colors</span><span class="o">=</span><span class="n">log_color</span>
+        <span class="p">)</span>
+        <span class="n">roslog</span><span class="o">.</span><span class="n">launch_config</span><span class="o">.</span><span class="n">file_formatter</span> <span class="o">=</span> <span class="n">PrettyLogFormatter</span><span class="p">(</span><span class="nb">format</span><span class="o">=</span><span class="n">file_log_format</span><span class="p">)</span>
 
         <span class="c1"># Wrap the launch function so we can do some preparation and cleanup tasks</span>
         <span class="k">def</span> <span class="nf">launch_func_wrapper</span><span class="p">():</span>

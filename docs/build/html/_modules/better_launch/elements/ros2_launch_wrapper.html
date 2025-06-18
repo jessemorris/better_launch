@@ -142,10 +142,10 @@
         <span class="n">log_queue</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="n">record</span><span class="p">)</span>
 
     <span class="n">std_handler</span> <span class="o">=</span> <span class="n">RecordForwarder</span><span class="p">(</span>
+        <span class="c1"># TODO should reflect the main process formatter configuration regarding colors and such</span>
         <span class="n">PrettyLogFormatter</span><span class="p">(</span>
             <span class="n">roslog_pattern</span><span class="o">=</span><span class="sa">r</span><span class="s2">&quot;\[(.+)] *</span><span class="si">%%</span><span class="s2">(\w+)</span><span class="si">%%</span><span class="s2">([\d.]+)</span><span class="si">%%</span><span class="s2">(.*)&quot;</span><span class="p">,</span>
             <span class="n">pattern_info</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;name&quot;</span><span class="p">,</span> <span class="s2">&quot;levelname&quot;</span><span class="p">,</span> <span class="s2">&quot;created&quot;</span><span class="p">,</span> <span class="s2">&quot;msg&quot;</span><span class="p">],</span>
-            <span class="n">source_colors</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>  <span class="c1"># TODO should reflect the main process formatter configuration?</span>
         <span class="p">)</span>
     <span class="p">)</span>
     <span class="n">std_handler</span><span class="o">.</span><span class="n">add_listener</span><span class="p">(</span><span class="n">handle_record</span><span class="p">)</span>
