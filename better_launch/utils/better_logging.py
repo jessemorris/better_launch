@@ -322,17 +322,17 @@ def init_logging(
         file_log_format = PrettyLogFormatter.default_file_format
 
     if colormode == "default":
-        src_color = 222
+        src_color = default_source_color
         log_color = None
     elif colormode == "severity":
-        src_color = 39
+        src_color = ""
         log_color = None
     elif colormode == "source":
         src_color = None
-        log_color = 39
+        log_color = ""
     elif colormode == "none":
-        src_color = 39
-        log_color = 39
+        src_color = ""
+        log_color = ""
     elif colormode == "rainbow":
         src_color = None
         log_color = None
