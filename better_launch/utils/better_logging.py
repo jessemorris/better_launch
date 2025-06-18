@@ -1,10 +1,14 @@
 from typing import Any, Callable, Literal, Iterable
+import os
 import re
 import logging
 from datetime import datetime
 
 import better_launch.ros.logging as roslog
 from .colors import get_contrast_color
+
+
+Colormode = Literal["default", "severity", "source", "none", "rainbow"]
 
 
 default_log_colormap = {
@@ -18,6 +22,10 @@ default_log_colormap = {
     "CRITICAL": "\x1b[95;20m",
     "DEBUG": "\x1b[36;20m",
 }
+
+
+# A nice amber for all logging sources
+default_source_color = 222
 
 
 # Taken from ROS2's logging.handlers. Since that module replaces itself this function is not
@@ -66,7 +74,7 @@ class PrettyLogFormatter(logging.Formatter):
         defaults: dict[str, Any] = None,
         roslog_pattern: str = r"%%(\w+)%%([\d.]+)%%(.*)",
         pattern_info: list[str] = ("levelname", "created", "msg"),
-        source_colors: str | int | Iterable[int] | dict[str, Any] = 222,
+        source_colors: str | int | Iterable[int] | dict[str, Any] = default_source_color,
         log_colors: str | int | Iterable[int] | dict[str, Any] = None,
         no_colors: bool = False,
     ):
@@ -294,3 +302,49 @@ def configure_logger(
 
                 own_log_handler.setFormatterFor(logger, log_formatter)
                 logger.addHandler(own_log_handler)
+
+
+def init_logging(
+    log_config: roslog.LaunchConfig,
+    screen_log_format: str = None,
+    file_log_format: str = None,
+    colormode: Colormode = "default",
+) -> None:
+    screen_log_format = os.environ.get(
+        "OVERRIDE_SCREEN_LOG_FORMAT", screen_log_format
+    )
+    file_log_format = os.environ.get("OVERRIDE_FILE_LOG_FORMAT", file_log_format)
+
+    if not screen_log_format:
+        screen_log_format = PrettyLogFormatter.default_screen_format
+
+    if not file_log_format:
+        file_log_format = PrettyLogFormatter.default_file_format
+
+    if colormode == "default":
+        src_color = 222
+        log_color = None
+    elif colormode == "severity":
+        src_color = 39
+        log_color = None
+    elif colormode == "source":
+        src_color = None
+        log_color = 39
+    elif colormode == "none":
+        src_color = 39
+        log_color = 39
+    elif colormode == "rainbow":
+        src_color = None
+        log_color = None
+    else:
+        raise ValueError("Invalid colormode " + colormode)
+
+    # We'll handle formatting and color ourselves, just get the nodes to comply
+    os.environ["RCUTILS_CONSOLE_OUTPUT_FORMAT"] = "%%{severity}%%{time}%%{message}"
+    os.environ["RCUTILS_COLORIZED_OUTPUT"] = "0"
+
+    log_config.level = logging.INFO
+    log_config.screen_formatter = PrettyLogFormatter(
+        format=screen_log_format, source_colors=src_color, log_colors=log_color
+    )
+    log_config.file_formatter = PrettyLogFormatter(format=file_log_format)

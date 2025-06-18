@@ -16,15 +16,14 @@ from better_launch.launcher import (
 )
 from better_launch.utils.better_logging import (
     PrettyLogFormatter,
+    Colormode,
+    init_logging,
 )
 from better_launch.utils.introspection import find_calling_frame
 from better_launch.ros import logging as roslog
 
 
 _is_launcher_defined = "__better_launch_this_defined"
-
-
-Colormode = Literal["default", "severity", "source", "none", "rainbow"]
 
 
 def launch_this(
@@ -170,12 +169,21 @@ def _launch_this_wrapper(
         frame_locals = frame_info.frame.f_locals
         if "self" not in frame_locals:
             continue
+
         owner = frame_locals["self"]
-        if (
-            isinstance(owner, object)
-            and getattr(owner, "__name__", None) == "IncludeLaunchDescription"
-        ):
+
+        if type(owner).__name__ == "IncludeLaunchDescription":
             # We were included, expose the expected method in our caller's globals and return
+            print(
+                f"[NOTE] Launch file {os.path.basename(BetterLaunch._launchfile)} got included from ROS2"
+            )
+
+            init_logging(
+                roslog.launch_config,
+                screen_log_format,
+                file_log_format,
+                colormode,
+            )
             _expose_ros2_launch_function(launch_func)
             return
 
@@ -242,9 +250,7 @@ def _launch_this_wrapper(
             ),
             click.Option(
                 ["--bl_colormode_override"],
-                type=click.types.Choice(
-                    get_args(Colormode), case_sensitive=False
-                ),
+                type=click.types.Choice(get_args(Colormode), case_sensitive=False),
                 show_choices=True,
                 default=get_args(Colormode)[0],
                 help="Override the logging color mode",
@@ -256,47 +262,9 @@ def _launch_this_wrapper(
 
     @click.pass_context
     def run(ctx: click.Context, *args, **kwargs):
-        # Setup logging
-        nonlocal screen_log_format, file_log_format
-
-        screen_log_format = os.environ.get(
-            "OVERRIDE_SCREEN_LOG_FORMAT", screen_log_format
+        init_logging(
+            roslog.launch_config, screen_log_format, file_log_format, colormode
         )
-        file_log_format = os.environ.get("OVERRIDE_FILE_LOG_FORMAT", file_log_format)
-
-        if not screen_log_format:
-            screen_log_format = PrettyLogFormatter.default_screen_format
-
-        if not file_log_format:
-            file_log_format = PrettyLogFormatter.default_file_format
-
-        if colormode == "default":
-            src_color = 222
-            log_color = None
-        elif colormode == "severity":
-            src_color = 39
-            log_color = None
-        elif colormode == "source":
-            src_color = None
-            log_color = 39
-        elif colormode == "none":
-            src_color = 39
-            log_color = 39
-        elif colormode == "rainbow":
-            src_color = None
-            log_color = None
-        else:
-            raise ValueError("Invalid colormode " + colormode)
-
-        # We'll handle formatting and color ourselves, just get the nodes to comply
-        os.environ["RCUTILS_CONSOLE_OUTPUT_FORMAT"] = "%%{severity}%%{time}%%{message}"
-        os.environ["RCUTILS_COLORIZED_OUTPUT"] = "0"
-
-        roslog.launch_config.level = logging.INFO
-        roslog.launch_config.screen_formatter = PrettyLogFormatter(
-            format=screen_log_format, source_colors=src_color, log_colors=log_color
-        )
-        roslog.launch_config.file_formatter = PrettyLogFormatter(format=file_log_format)
 
         # Wrap the launch function so we can do some preparation and cleanup tasks
         def launch_func_wrapper():
@@ -404,13 +372,10 @@ def _expose_ros2_launch_function(launch_func: Callable):
             # Call the launch function
             launch_func(**launch_args)
 
-            # Retrieve the BetterLaunch singleton
-            bl = BetterLaunch()
+            # Not needed right now, but opaque functions may return additional ROS2 actions
+            return
 
-            # Opaque functions are allowed to return additional actions
-            return bl._ros2_actions
-
-        ld.add_action(OpaqueFunction(ros2_wrapper))
+        ld.add_action(OpaqueFunction(function=ros2_wrapper))
         return ld
 
     # Add our generate_launch_description function to the module launch_this was called from
