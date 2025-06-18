@@ -194,6 +194,10 @@ def my_start(
 
 See the [examples](examples/) for more details on what *better_launch* can do! 
 
+In addition, *better_launch* includes a couple of modules that make some common tasks easier:
+- [convenience.py](better_launch/convenience.py): convenience functions to start rviz, robot state publishers, read urdf/xacro files, and more.
+- [gazebo.py](better_launch/gazebo.py): functions and helpers for starting and populating gazebo simulations as well as bridging topics.
+
 
 # Running stuff
 *better_launch* is committed to your comfort, which is why it comes with a replacement for `ros2 launch`. Not only is autocomplete for `ros2 launch` slow as hell, it also clutters the terminal with useless command line options, yet is unable to discover the arguments you have declared inside your launch files. On top of that it of course uses the ros2 launch system, which means you would run two launch systems on top of each other when using *better_launch*. For these reasons, *better_launch* installs the `bl` script, which fixes all of the above and then some. Once you have sourced your workspace you can use it as follows:

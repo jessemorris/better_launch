@@ -225,7 +225,7 @@ def gazebo_launch(
         gazebo_save_world(world_save_file, save_after)
 
 
-def gazebo_save_world(filepath: str, after: float = 5.0):
+def gazebo_save_world(filepath: str, after: float = 5.0) -> None:
     """Saves the current gazebo world to a file. Resolves any spawned URDF through their description parameter and converts to SDF.
 
     Parameters
@@ -321,7 +321,7 @@ def _get_gazebo_launch_args(
     Returns
     -------
     tuple[str, str, dict]
-        - The name of the world foudn in the `world_file`.
+        - The name of the world found in the `world_file`.
         - The path to the launch file for Gazebo.
         - A dictionary of arguments to be passed to the Gazebo launch file.
     """
