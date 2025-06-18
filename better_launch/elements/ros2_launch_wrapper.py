@@ -327,7 +327,7 @@ class Ros2LaunchWrapper(AbstractNode):
 """
 
     def describe_launch_actions(self) -> str:
-        """Returns a best-effort summary of all `LaunchDescription`s that have been loaded so far.
+        """Returns a best-effort summary of all `LaunchDescriptions` that have been loaded so far.
 
         Since ROS2 does not provide a way to serialize its slew of launch actions (beyond *maybe* pickle), it is not possible to create a full representation without special handlers. However, *most* launch actions expose their relevant data as properties. This function will look for these and recurse into them if they return launch actions.
 

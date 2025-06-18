@@ -666,7 +666,7 @@ Takeoff in 3... 2... 1...
 
         .. seealso::
 
-            `ROS2 design doc on wildcards<https://github.com/ros2/design/blob/gh-pages/articles/160_ros_command_line_arguments.md#multiple-parameter-assignments>`_
+            `ROS2 design doc on wildcards <https://github.com/ros2/design/blob/gh-pages/articles/160_ros_command_line_arguments.md#multiple-parameter-assignments>`_
 
         Parameters
         ----------

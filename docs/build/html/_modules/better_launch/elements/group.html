@@ -43,7 +43,7 @@
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
               <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="../../../modules.html">better_launch</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../better_launch_custom.html">better_launch package</a></li>
 </ul>
 
         </div>
@@ -72,6 +72,7 @@
              
   <h1>Source code for better_launch.elements.group</h1><div class="highlight"><pre>
 <span></span><span class="kn">from</span> <span class="nn">.node</span> <span class="kn">import</span> <span class="n">Node</span>
+<span class="kn">from</span> <span class="nn">.abstract_node</span> <span class="kn">import</span> <span class="n">AbstractNode</span>
 
 
 <div class="viewcode-block" id="Group">
@@ -79,7 +80,7 @@
 <span class="k">class</span> <span class="nc">Group</span><span class="p">:</span>
 <div class="viewcode-block" id="Group.__init__">
 <a class="viewcode-back" href="../../../better_launch.elements.html#better_launch.elements.group.Group.__init__">[docs]</a>
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">parent</span><span class="p">:</span> <span class="s2">&quot;Group&quot;</span><span class="p">,</span> <span class="n">namespace</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">remaps</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">parent</span><span class="p">:</span> <span class="s2">&quot;Group&quot;</span><span class="p">,</span> <span class="n">namespace</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Groups are used in better_launch to manage node namespaces and common remaps. Beyond that they don&#39;t have any meaning for ROS, and there is usually no reason to interact with them directly.</span>
 <span class="sd">        </span>
 <span class="sd">        Parameters</span>
@@ -88,14 +89,11 @@
 <span class="sd">            This group&#39;s parent group.</span>
 <span class="sd">        namespace : str</span>
 <span class="sd">            The namespace fragment this group represents.</span>
-<span class="sd">        remaps : dict[str, str], optional</span>
-<span class="sd">            Any remaps this group provides to its descendent groups and nodes.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">parent</span> <span class="o">=</span> <span class="n">parent</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">children</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">namespace</span> <span class="o">=</span> <span class="n">namespace</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">remaps</span> <span class="o">=</span> <span class="n">remaps</span> <span class="ow">or</span> <span class="p">{}</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">nodes</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">children</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Group</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">nodes</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">AbstractNode</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">_root_chain</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_chain_from_root</span><span class="p">()</span></div>
 
@@ -112,22 +110,6 @@
             <span class="n">chain</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">g</span><span class="p">)</span>
 
         <span class="k">return</span> <span class="nb">list</span><span class="p">(</span><span class="nb">reversed</span><span class="p">(</span><span class="n">chain</span><span class="p">))</span>
-
-<div class="viewcode-block" id="Group.assemble_remaps">
-<a class="viewcode-back" href="../../../better_launch.elements.html#better_launch.elements.group.Group.assemble_remaps">[docs]</a>
-    <span class="k">def</span> <span class="nf">assemble_remaps</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Collect the remaps from the root group up to this group.</span>
-
-<span class="sd">        Returns</span>
-<span class="sd">        -------</span>
-<span class="sd">        dict[str, str]</span>
-<span class="sd">            A collection of topic remaps.</span>
-<span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">remaps</span> <span class="o">=</span> <span class="p">{}</span>
-        <span class="k">for</span> <span class="n">g</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_root_chain</span><span class="p">:</span>
-            <span class="n">remaps</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">g</span><span class="o">.</span><span class="n">remaps</span><span class="p">)</span>
-        <span class="k">return</span> <span class="n">remaps</span></div>
-
 
 <div class="viewcode-block" id="Group.assemble_namespace">
 <a class="viewcode-back" href="../../../better_launch.elements.html#better_launch.elements.group.Group.assemble_namespace">[docs]</a>
@@ -154,29 +136,38 @@
         <span class="k">return</span> <span class="n">ns</span></div>
 
 
-<div class="viewcode-block" id="Group.add_group">
-<a class="viewcode-back" href="../../../better_launch.elements.html#better_launch.elements.group.Group.add_group">[docs]</a>
-    <span class="k">def</span> <span class="nf">add_group</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">group</span><span class="p">:</span> <span class="s2">&quot;Group&quot;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<div class="viewcode-block" id="Group.add_child">
+<a class="viewcode-back" href="../../../better_launch.elements.html#better_launch.elements.group.Group.add_child">[docs]</a>
+    <span class="k">def</span> <span class="nf">add_child</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">child</span><span class="p">:</span> <span class="s2">&quot;Group&quot;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Add a child group to this group.</span>
 
 <span class="sd">        Parameters</span>
 <span class="sd">        ----------</span>
-<span class="sd">        group : Group</span>
+<span class="sd">        child : Group</span>
 <span class="sd">            The group to add.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">children</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">group</span><span class="p">)</span></div>
+        <span class="n">ns</span> <span class="o">=</span> <span class="n">child</span><span class="o">.</span><span class="n">namespace</span>
+        <span class="k">if</span> <span class="n">ns</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">children</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Group </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">namespace</span><span class="si">}</span><span class="s2"> already contains a child group named &#39;</span><span class="si">{</span><span class="n">ns</span><span class="si">}</span><span class="s2">&#39;&quot;</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">children</span><span class="p">[</span><span class="n">ns</span><span class="p">]</span> <span class="o">=</span> <span class="n">child</span></div>
 
 
 <div class="viewcode-block" id="Group.add_node">
 <a class="viewcode-back" href="../../../better_launch.elements.html#better_launch.elements.group.Group.add_node">[docs]</a>
     <span class="k">def</span> <span class="nf">add_node</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">node</span><span class="p">:</span> <span class="n">Node</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Add a node to this group. This group will not do any magic to enforce its namespace or remaps onto the node.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Add a node to this group. </span>
+<span class="sd">        </span>
+<span class="sd">        This group will not do any magic to enforce its namespace or remaps onto the node. Calling this with a node that has been added before will do nothing.</span>
 
 <span class="sd">        Parameters</span>
 <span class="sd">        ----------</span>
 <span class="sd">        node : Node</span>
 <span class="sd">            The node to add.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">node</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">nodes</span><span class="p">:</span>
+            <span class="k">return</span>
+        
         <span class="bp">self</span><span class="o">.</span><span class="n">nodes</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">node</span><span class="p">)</span></div>
 
 

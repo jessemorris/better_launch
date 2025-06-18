@@ -43,7 +43,7 @@
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
               <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="../../../modules.html">better_launch</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../better_launch_custom.html">better_launch package</a></li>
 </ul>
 
         </div>
@@ -72,7 +72,6 @@
              
   <h1>Source code for better_launch.elements.ros2_launch_wrapper</h1><div class="highlight"><pre>
 <span></span><span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Any</span>
-<span class="kn">import</span> <span class="nn">sys</span>
 <span class="kn">import</span> <span class="nn">os</span>
 <span class="kn">import</span> <span class="nn">platform</span>
 <span class="kn">import</span> <span class="nn">signal</span>
@@ -85,7 +84,7 @@
 <span class="kn">from</span> <span class="nn">setproctitle</span> <span class="kn">import</span> <span class="n">setproctitle</span><span class="p">,</span> <span class="n">getproctitle</span>
 
 <span class="kn">import</span> <span class="nn">better_launch.ros.logging</span> <span class="k">as</span> <span class="nn">roslog</span>
-<span class="kn">from</span> <span class="nn">better_launch.utils.better_logging</span> <span class="kn">import</span> <span class="n">PrettyLogFormatter</span><span class="p">,</span> <span class="n">RecordForwarder</span><span class="p">,</span> <span class="n">StubbornHandler</span>
+<span class="kn">from</span> <span class="nn">better_launch.utils.better_logging</span> <span class="kn">import</span> <span class="n">LogSink</span><span class="p">,</span> <span class="n">PrettyLogFormatter</span><span class="p">,</span> <span class="n">RecordForwarder</span><span class="p">,</span> <span class="n">StubbornHandler</span>
 <span class="kn">from</span> <span class="nn">better_launch.utils.colors</span> <span class="kn">import</span> <span class="n">get_contrast_color</span>
 <span class="kn">from</span> <span class="nn">.abstract_node</span> <span class="kn">import</span> <span class="n">AbstractNode</span>
 <span class="kn">from</span> <span class="nn">.node</span> <span class="kn">import</span> <span class="n">Node</span>
@@ -142,15 +141,14 @@
     <span class="k">def</span> <span class="nf">handle_record</span><span class="p">(</span><span class="n">record</span><span class="p">:</span> <span class="n">logging</span><span class="o">.</span><span class="n">LogRecord</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">log_queue</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="n">record</span><span class="p">)</span>
 
-    <span class="n">std_handler</span> <span class="o">=</span> <span class="n">RecordForwarder</span><span class="p">()</span>
-    <span class="n">std_handler</span><span class="o">.</span><span class="n">add_listener</span><span class="p">(</span><span class="n">handle_record</span><span class="p">)</span>
-    <span class="n">std_handler</span><span class="o">.</span><span class="n">setFormatter</span><span class="p">(</span>
+    <span class="n">std_handler</span> <span class="o">=</span> <span class="n">RecordForwarder</span><span class="p">(</span>
         <span class="n">PrettyLogFormatter</span><span class="p">(</span>
             <span class="n">roslog_pattern</span><span class="o">=</span><span class="sa">r</span><span class="s2">&quot;\[(.+)] *</span><span class="si">%%</span><span class="s2">(\w+)</span><span class="si">%%</span><span class="s2">([\d.]+)</span><span class="si">%%</span><span class="s2">(.*)&quot;</span><span class="p">,</span>
             <span class="n">pattern_info</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;name&quot;</span><span class="p">,</span> <span class="s2">&quot;levelname&quot;</span><span class="p">,</span> <span class="s2">&quot;created&quot;</span><span class="p">,</span> <span class="s2">&quot;msg&quot;</span><span class="p">],</span>
-            <span class="n">color_per_source</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+            <span class="n">source_colors</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>  <span class="c1"># TODO should reflect the main process formatter configuration?</span>
         <span class="p">)</span>
     <span class="p">)</span>
+    <span class="n">std_handler</span><span class="o">.</span><span class="n">add_listener</span><span class="p">(</span><span class="n">handle_record</span><span class="p">)</span>
 
     <span class="c1"># The ROS2 launch system will set new formatters for each node and source, so our formatter</span>
     <span class="c1"># wouldn&#39;t be used. We either have to make our formatter more stubborn, or we run ROS2</span>
@@ -213,9 +211,7 @@
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;LaunchService&quot;</span><span class="p">,</span>
         <span class="n">launchservice_args</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-        <span class="n">output_config</span><span class="p">:</span> <span class="p">(</span>
-            <span class="n">Node</span><span class="o">.</span><span class="n">LogSink</span> <span class="o">|</span> <span class="nb">dict</span><span class="p">[</span><span class="n">Node</span><span class="o">.</span><span class="n">LogSource</span><span class="p">,</span> <span class="nb">set</span><span class="p">[</span><span class="n">Node</span><span class="o">.</span><span class="n">LogSink</span><span class="p">]]</span>
-        <span class="p">)</span> <span class="o">=</span> <span class="s2">&quot;screen&quot;</span><span class="p">,</span>
+        <span class="n">output</span><span class="p">:</span> <span class="n">LogSink</span> <span class="o">|</span> <span class="nb">set</span><span class="p">[</span><span class="n">LogSink</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;screen&quot;</span><span class="p">,</span>
     <span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Hosts a separate process running a ROS2 `LaunchService` instance (the main entrypoint of the ROS2 launch system). </span>
 <span class="sd">        </span>
@@ -233,8 +229,8 @@
 <span class="sd">            The name that will be used for the logger and the child process.</span>
 <span class="sd">        launchservice_args : list[str], optional</span>
 <span class="sd">            Additional arguments to pass to the ROS2 launch service. These will show up in the ROS2 `LaunchContext`.</span>
-<span class="sd">        output_config : Node.LogSink  |  dict[Node.LogSource, set[Node.LogSink]], optional</span>
-<span class="sd">            How log output from the launch service should be handled. Sources are `stdout`, `stderr` and `both`. Sinks are `screen`, `log`, `both`, `own_log`, and `full`.</span>
+<span class="sd">        output : LogSink  |  set[LogSink], optional</span>
+<span class="sd">            How log output from the launch service should be handled. This will also include the output from all nodes launched by this launch service. Common choices are `screen` to print to terminal, `log` to write to a common log file, `own_log` to write to a node-specific log file, and `none` to not write any output anywhere. See :py:meth:`configure_logger` for details.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
             <span class="s2">&quot;ros2/launch&quot;</span><span class="p">,</span>
@@ -243,9 +239,9 @@
             <span class="s2">&quot;/&quot;</span><span class="p">,</span>
             <span class="n">remaps</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
             <span class="n">params</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+            <span class="n">output</span><span class="o">=</span><span class="n">output</span><span class="p">,</span>
         <span class="p">)</span>
 
-        <span class="bp">self</span><span class="o">.</span><span class="n">output_config</span> <span class="o">=</span> <span class="n">output_config</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_launchservice_args</span> <span class="o">=</span> <span class="n">launchservice_args</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">_process</span><span class="p">:</span> <span class="n">Process</span> <span class="o">=</span> <span class="kc">None</span>
@@ -313,7 +309,7 @@
             <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;LaunchService </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2"> is alrady running&quot;</span><span class="p">)</span>
             <span class="k">return</span>
 
-        <span class="n">logout</span><span class="p">,</span> <span class="n">logerr</span> <span class="o">=</span> <span class="n">roslog</span><span class="o">.</span><span class="n">get_output_loggers</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">output_config</span><span class="p">)</span>
+        <span class="n">logout</span><span class="p">,</span> <span class="n">logerr</span> <span class="o">=</span> <span class="n">roslog</span><span class="o">.</span><span class="n">get_output_loggers</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">output</span><span class="p">)</span>
 
         <span class="c1"># Note that passing loggers will not work for the TUI, as they would have to communicate</span>
         <span class="c1"># across the process boundaries. In general, only basic values and instances from the </span>
@@ -351,7 +347,7 @@
 
 <div class="viewcode-block" id="Ros2LaunchWrapper.shutdown">
 <a class="viewcode-back" href="../../../better_launch.elements.html#better_launch.elements.ros2_launch_wrapper.Ros2LaunchWrapper.shutdown">[docs]</a>
-    <span class="k">def</span> <span class="nf">shutdown</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">reason</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">signum</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">signal</span><span class="o">.</span><span class="n">SIGTERM</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">def</span> <span class="nf">shutdown</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">reason</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">signum</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">signal</span><span class="o">.</span><span class="n">SIGTERM</span><span class="p">,</span> <span class="n">timeout</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_terminate_requested</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_running</span><span class="p">:</span>
             <span class="c1"># Give the process a little bit of time to terminate</span>
             <span class="k">try</span><span class="p">:</span>
@@ -385,7 +381,15 @@
                 <span class="c1"># Gently suggest to the child process and all its children that they could exit now</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">send_signal</span><span class="p">(</span><span class="n">signal</span><span class="o">.</span><span class="n">SIGINT</span><span class="p">)</span>
         <span class="k">except</span><span class="p">:</span>
-            <span class="k">pass</span></div>
+            <span class="k">pass</span>
+
+        <span class="k">if</span> <span class="n">timeout</span> <span class="o">==</span> <span class="mf">0.0</span><span class="p">:</span>
+            <span class="k">return</span>
+
+        <span class="k">try</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_process</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">timeout</span><span class="p">)</span>
+        <span class="k">except</span> <span class="n">subprocess</span><span class="o">.</span><span class="n">TimeoutExpired</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">TimeoutError</span><span class="p">(</span><span class="s2">&quot;ROS2 launch service did not shutdown within the specified timeout&quot;</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="Ros2LaunchWrapper.send_signal">
@@ -407,21 +411,21 @@
         <span class="k">return</span> <span class="p">(</span>
             <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_get_info_section_general</span><span class="p">()</span>
             <span class="o">+</span> <span class="sa">f</span><span class="s2">&quot;&quot;&quot;</span><span class="se">\</span>
-<span class="s2">[bold]Launch Service[/bold]</span>
+<span class="s2">&lt;bold&gt;Launch Service&lt;/bold&gt;</span>
 <span class="s2">  PID:       </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">pid</span><span class="si">}</span>
 <span class="s2">&quot;&quot;&quot;</span>
         <span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">_get_info_section_ros</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
         <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;&quot;&quot;</span><span class="se">\</span>
-<span class="s2">[bold]Loaded Actions[/bold]</span>
+<span class="s2">&lt;bold&gt;Loaded Actions&lt;/bold&gt;</span>
 <span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">describe_launch_actions</span><span class="p">()</span><span class="si">}</span>
 <span class="s2">&quot;&quot;&quot;</span>
 
 <div class="viewcode-block" id="Ros2LaunchWrapper.describe_launch_actions">
 <a class="viewcode-back" href="../../../better_launch.elements.html#better_launch.elements.ros2_launch_wrapper.Ros2LaunchWrapper.describe_launch_actions">[docs]</a>
     <span class="k">def</span> <span class="nf">describe_launch_actions</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Returns a best-effort summary of all `LaunchDescription`s that have been loaded so far.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Returns a best-effort summary of all `LaunchDescriptions` that have been loaded so far.</span>
 
 <span class="sd">        Since ROS2 does not provide a way to serialize its slew of launch actions (beyond *maybe* pickle), it is not possible to create a full representation without special handlers. However, *most* launch actions expose their relevant data as properties. This function will look for these and recurse into them if they return launch actions.</span>
 

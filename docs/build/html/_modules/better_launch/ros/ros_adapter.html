@@ -43,7 +43,7 @@
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
               <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="../../../modules.html">better_launch</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../better_launch_custom.html">better_launch package</a></li>
 </ul>
 
         </div>
@@ -123,7 +123,7 @@
         <span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">ros_executor</span> <span class="o">=</span> <span class="n">SingleThreadedExecutor</span><span class="p">(</span><span class="n">context</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">ros_context</span><span class="p">)</span>
 
-        <span class="c1"># TODO Cannot run in a daemon thread for some reason</span>
+        <span class="c1"># NOTE Cannot run in a daemon thread for some reason</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_thread</span> <span class="o">=</span> <span class="n">threading</span><span class="o">.</span><span class="n">Thread</span><span class="p">(</span><span class="n">target</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_run</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_thread</span><span class="o">.</span><span class="n">start</span><span class="p">()</span></div>
 

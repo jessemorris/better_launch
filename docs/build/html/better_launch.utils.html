@@ -20,7 +20,6 @@
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="setup module" href="setup.html" />
     <link rel="prev" title="better_launch.tui package" href="better_launch.tui.html" /> 
 </head>
 
@@ -46,22 +45,24 @@
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
               <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
 <ul class="current">
-<li class="toctree-l1 current"><a class="reference internal" href="modules.html">better_launch</a><ul class="current">
-<li class="toctree-l2 current"><a class="reference internal" href="better_launch.html">better_launch package</a><ul class="current">
-<li class="toctree-l3 current"><a class="reference internal" href="better_launch.html#subpackages">Subpackages</a><ul class="current">
-<li class="toctree-l4"><a class="reference internal" href="better_launch.elements.html">better_launch.elements package</a></li>
-<li class="toctree-l4"><a class="reference internal" href="better_launch.ros.html">better_launch.ros package</a></li>
-<li class="toctree-l4"><a class="reference internal" href="better_launch.tui.html">better_launch.tui package</a></li>
-<li class="toctree-l4 current"><a class="current reference internal" href="#">better_launch.utils package</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="better_launch_custom.html">better_launch package</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="better_launch_custom.html#module-better_launch.launcher">better_launch.launcher module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="better_launch_custom.html#module-better_launch.wrapper">better_launch.wrapper module</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="better_launch_custom.html#additional-modules">Additional Modules</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="better_launch.elements.html">better_launch.elements package</a></li>
+<li class="toctree-l3"><a class="reference internal" href="better_launch.ros.html">better_launch.ros package</a></li>
+<li class="toctree-l3"><a class="reference internal" href="better_launch.tui.html">better_launch.tui package</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">better_launch.utils package</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#submodules">Submodules</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#module-better_launch.utils.better_logging">better_launch.utils.better_logging module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#module-better_launch.utils.colors">better_launch.utils.colors module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#module-better_launch.utils.introspection">better_launch.utils.introspection module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#module-better_launch.utils.substitutions">better_launch.utils.substitutions module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#module-better_launch.utils">Module contents</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="better_launch.html#submodules">Submodules</a></li>
-<li class="toctree-l3"><a class="reference internal" href="better_launch.html#module-better_launch.launcher">better_launch.launcher module</a></li>
-<li class="toctree-l3"><a class="reference internal" href="better_launch.html#module-better_launch.wrapper">better_launch.wrapper module</a></li>
-<li class="toctree-l3"><a class="reference internal" href="better_launch.html#module-better_launch">Module contents</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="setup.html">setup module</a></li>
 </ul>
 </li>
 </ul>
@@ -80,8 +81,7 @@
           <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
       <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
-          <li class="breadcrumb-item"><a href="modules.html">better_launch</a></li>
-          <li class="breadcrumb-item"><a href="better_launch.html">better_launch package</a></li>
+          <li class="breadcrumb-item"><a href="better_launch_custom.html">better_launch package</a></li>
       <li class="breadcrumb-item active">better_launch.utils package</li>
       <li class="wy-breadcrumbs-aside">
             <a href="_sources/better_launch.utils.rst.txt" rel="nofollow"> View page source</a>
@@ -101,11 +101,11 @@
 <span id="better-launch-utils-better-logging-module"></span><h2>better_launch.utils.better_logging module<a class="headerlink" href="#module-better_launch.utils.better_logging" title="Link to this heading"></a></h2>
 <dl class="py class">
 <dt class="sig sig-object py" id="better_launch.utils.better_logging.PrettyLogFormatter">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">better_launch.utils.better_logging.</span></span><span class="sig-name descname"><span class="pre">PrettyLogFormatter</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">format</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'[{levelcolor}{levelname}{colorreset}]</span> <span class="pre">[{sourcecolor}{name}{colorreset}]</span> <span class="pre">[{asctime}]\\n{message}'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">timestamp_format</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'%Y-%m-%d</span> <span class="pre">%H:%M:%S.%f'</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">defaults</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">roslog_pattern</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'%%(\\\\w+)%%([\\\\d.]+)%%(.*)'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pattern_info</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">('levelname',</span> <span class="pre">'created',</span> <span class="pre">'msg')</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">level_colormap</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">color_per_source</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">disable_colors</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/better_launch/utils/better_logging.html#PrettyLogFormatter"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#better_launch.utils.better_logging.PrettyLogFormatter" title="Link to this definition"></a></dt>
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">better_launch.utils.better_logging.</span></span><span class="sig-name descname"><span class="pre">PrettyLogFormatter</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">format</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'[{levelcolor_start}{levelname}{levelcolor_end}]</span> <span class="pre">[{sourcecolor_start}{name}{sourcecolor_end}]</span> <span class="pre">[{asctime}]\\n{message}'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">timestamp_format</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'%Y-%m-%d</span> <span class="pre">%H:%M:%S.%f'</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">defaults</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">roslog_pattern</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'%%(\\\\w+)%%([\\\\d.]+)%%(.*)'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pattern_info</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">('levelname',</span> <span class="pre">'created',</span> <span class="pre">'msg')</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">source_colors</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">222</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">log_colors</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">no_colors</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/better_launch/utils/better_logging.html#PrettyLogFormatter"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#better_launch.utils.better_logging.PrettyLogFormatter" title="Link to this definition"></a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Formatter</span></code></p>
 <dl class="py attribute">
 <dt class="sig sig-object py" id="better_launch.utils.better_logging.PrettyLogFormatter.default_screen_format">
-<span class="sig-name descname"><span class="pre">default_screen_format</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'[{levelcolor}{levelname}{colorreset}]</span> <span class="pre">[{sourcecolor}{name}{colorreset}]</span> <span class="pre">[{asctime}]\n{message}'</span></em><a class="headerlink" href="#better_launch.utils.better_logging.PrettyLogFormatter.default_screen_format" title="Link to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">default_screen_format</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'[{levelcolor_start}{levelname}{levelcolor_end}]</span> <span class="pre">[{sourcecolor_start}{name}{sourcecolor_end}]</span> <span class="pre">[{asctime}]\n{message}'</span></em><a class="headerlink" href="#better_launch.utils.better_logging.PrettyLogFormatter.default_screen_format" title="Link to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
@@ -115,12 +115,15 @@
 
 <dl class="py method">
 <dt class="sig sig-object py" id="better_launch.utils.better_logging.PrettyLogFormatter.__init__">
-<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">format</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'[{levelcolor}{levelname}{colorreset}]</span> <span class="pre">[{sourcecolor}{name}{colorreset}]</span> <span class="pre">[{asctime}]\\n{message}'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">timestamp_format</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'%Y-%m-%d</span> <span class="pre">%H:%M:%S.%f'</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">defaults</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">roslog_pattern</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'%%(\\\\w+)%%([\\\\d.]+)%%(.*)'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pattern_info</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">('levelname',</span> <span class="pre">'created',</span> <span class="pre">'msg')</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">level_colormap</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">color_per_source</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">disable_colors</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/better_launch/utils/better_logging.html#PrettyLogFormatter.__init__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#better_launch.utils.better_logging.PrettyLogFormatter.__init__" title="Link to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">format</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'[{levelcolor_start}{levelname}{levelcolor_end}]</span> <span class="pre">[{sourcecolor_start}{name}{sourcecolor_end}]</span> <span class="pre">[{asctime}]\\n{message}'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">timestamp_format</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'%Y-%m-%d</span> <span class="pre">%H:%M:%S.%f'</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">defaults</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">roslog_pattern</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'%%(\\\\w+)%%([\\\\d.]+)%%(.*)'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pattern_info</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">('levelname',</span> <span class="pre">'created',</span> <span class="pre">'msg')</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">source_colors</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">222</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">log_colors</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">no_colors</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/better_launch/utils/better_logging.html#PrettyLogFormatter.__init__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#better_launch.utils.better_logging.PrettyLogFormatter.__init__" title="Link to this definition"></a></dt>
 <dd><p>A specialized formatter that will try to extract various details from messages logged by ROS2 nodes and reformat them.</p>
 <p>The following additional keys can be used for formatting messages:
-* {levelcolor}: colors subsequent characters based on the message’s severity.
-* {sourcecolor}: colors subsequent characters based on the message’s source.
-* {colorreset}: subsequent characters will use the default color again.</p>
+* {sourcecolor_start}: colors subsequent characters based on the message’s source until a {sourcecolor_end} is encountered.
+* {levelcolor_start}: colors subsequent characters based on the message’s severity until a {levelcolor_end} is encountered.</p>
+<p>Colors can be specified in 3 ways:
+* an ANSI/VT100 escape sequence, typically starting with <cite>e</cite> or <cite>x1b</cite>.
+* an integer, referring to a color from the <em>vte</em> 256 colors table.
+* a tuple of 3 integers representing an RGB value.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
@@ -129,44 +132,43 @@
 <li><p><strong>defaults</strong> (<em>dict</em><em>[</em><em>str</em><em>, </em><em>Any</em><em>]</em><em>, </em><em>optional</em>) – Defaults the formatter may use when formatting strings.</p></li>
 <li><p><strong>roslog_pattern</strong> (<em>str</em><em>, </em><em>optional</em>) – The pattern used for matching incoming log messages. The pattern’s regex groups will be associated with <cite>pattern_info</cite>.</p></li>
 <li><p><strong>pattern_info</strong> (<em>list</em><em>[</em><em>str</em><em>]</em><em>, </em><em>optional</em>) – Formatting keys that can be extracted from incoming log messages using <cite>roslog_pattern</cite>, one for each regex group.</p></li>
-<li><p><strong>level_colormap</strong> (<em>dict</em><em>[</em><em>int</em><em>, </em><em>str</em><em>]</em><em>, </em><em>optional</em>) – Color overrides for severity levels.</p></li>
-<li><p><strong>color_per_source</strong> (<em>bool</em><em>, </em><em>optional</em>) – If True, every distinct log source (according to <cite>LogRecord.name</cite>) will be associated with a different color ({sourcecolor}). Otherwise the color will be chosen per formatter instance; that is, this formatter instance will always use the same color.</p></li>
-<li><p><strong>disable_colors</strong> (<em>bool</em><em>, </em><em>optional</em>) – If True, no color codes will be inserted when formatting messages.</p></li>
+<li><p><strong>source_colors</strong> (<em>str</em><em> | </em><em>int</em><em> | </em><em>Iterable</em><em>[</em><em>int</em><em>] </em><em>| </em><em>dict</em><em>[</em><em>str</em><em>, </em><em>Any</em><em>]</em><em>, </em><em>optional</em>) – Colors to use when formatting <cite>sourcecolor_start</cite> tags based on the source of the log report. If a string, integer or iterable, use this as the color for all sources. If None, use a different color for every source. Pass a dict to specify custom colors for a set of sources.</p></li>
+<li><p><strong>log_colors</strong> (<em>str</em><em> | </em><em>int</em><em> | </em><em>Iterable</em><em>[</em><em>int</em><em>] </em><em>| </em><em>dict</em><em>[</em><em>str</em><em>, </em><em>Any</em><em>]</em><em>, </em><em>optional</em>) – Colors to use when formatting <cite>levelcolor_start</cite> tags based on the log report’s severity. If a string, integer or iterable, use this as the color for all sources. If None, use the default log colors from <cite>default_log_colormap</cite>. Pass a dict to override the colors for select log levels identified by name.</p></li>
+<li><p><strong>no_colors</strong> (<em>bool</em><em>, </em><em>optional</em>) – If True, all colors will be disabled.</p></li>
 </ul>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="py method">
-<dt class="sig sig-object py" id="better_launch.utils.better_logging.PrettyLogFormatter.get_color">
-<span class="sig-name descname"><span class="pre">get_color</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">source</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/better_launch/utils/better_logging.html#PrettyLogFormatter.get_color"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#better_launch.utils.better_logging.PrettyLogFormatter.get_color" title="Link to this definition"></a></dt>
+<dt class="sig sig-object py" id="better_launch.utils.better_logging.PrettyLogFormatter.get_source_color">
+<span class="sig-name descname"><span class="pre">get_source_color</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">source</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/better_launch/utils/better_logging.html#PrettyLogFormatter.get_source_color"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#better_launch.utils.better_logging.PrettyLogFormatter.get_source_color" title="Link to this definition"></a></dt>
 <dd><p>Return the color associated with the provided source.</p>
-<p>If <cite>color_per_source</cite> is True this will return an individual color for each source. Otherwise it will always return the same color.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>source</strong> (<em>str</em>) – The name of the source.</p>
-</dd>
-<dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>An RGB color triplet.</p>
-</dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>tuple[int, int, int]</p>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span></p>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="py method">
-<dt class="sig sig-object py" id="better_launch.utils.better_logging.PrettyLogFormatter.format">
-<span class="sig-name descname"><span class="pre">format</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">record</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/better_launch/utils/better_logging.html#PrettyLogFormatter.format"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#better_launch.utils.better_logging.PrettyLogFormatter.format" title="Link to this definition"></a></dt>
-<dd><p>Format the specified record as text.</p>
-<p>The record’s attribute dictionary is used as the operand to a
-string formatting operation which yields the returned string.
-Before formatting the dictionary, a couple of preparatory steps
-are carried out. The message attribute of the record is computed
-using LogRecord.getMessage(). If the formatting string uses the
-time (as determined by a call to usesTime(), formatTime() is
-called to format the event time. If there is exception information,
-it is formatted using formatException() and appended to the message.</p>
+<dt class="sig sig-object py" id="better_launch.utils.better_logging.PrettyLogFormatter.get_loglevel_color">
+<span class="sig-name descname"><span class="pre">get_loglevel_color</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">level</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/better_launch/utils/better_logging.html#PrettyLogFormatter.get_loglevel_color"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#better_launch.utils.better_logging.PrettyLogFormatter.get_loglevel_color" title="Link to this definition"></a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">tuple</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>]</span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="better_launch.utils.better_logging.PrettyLogFormatter.format_color">
+<span class="sig-name descname"><span class="pre">format_color</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">color</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/better_launch/utils/better_logging.html#PrettyLogFormatter.format_color"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#better_launch.utils.better_logging.PrettyLogFormatter.format_color" title="Link to this definition"></a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span></p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py method">
@@ -186,6 +188,20 @@ instance, set the ‘converter’ attribute to a function with the same
 signature as time.localtime() or time.gmtime(). To change it for all
 formatters, for example if you want all logging times to be shown in GMT,
 set the ‘converter’ attribute in the Formatter class.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="better_launch.utils.better_logging.PrettyLogFormatter.format">
+<span class="sig-name descname"><span class="pre">format</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">record</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/better_launch/utils/better_logging.html#PrettyLogFormatter.format"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#better_launch.utils.better_logging.PrettyLogFormatter.format" title="Link to this definition"></a></dt>
+<dd><p>Format the specified record as text.</p>
+<p>The record’s attribute dictionary is used as the operand to a
+string formatting operation which yields the returned string.
+Before formatting the dictionary, a couple of preparatory steps
+are carried out. The message attribute of the record is computed
+using LogRecord.getMessage(). If the formatting string uses the
+time (as determined by a call to usesTime(), formatTime() is
+called to format the event time. If there is exception information,
+it is formatted using formatException() and appended to the message.</p>
 </dd></dl>
 
 </dd></dl>
@@ -253,6 +269,16 @@ raises a NotImplementedError.</p>
 for the module.</p>
 </dd></dl>
 
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="better_launch.utils.better_logging.configure_logger">
+<span class="sig-prename descclassname"><span class="pre">better_launch.utils.better_logging.</span></span><span class="sig-name descname"><span class="pre">configure_logger</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">logger</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">config</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">screen_formatter</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">log_formatter</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/better_launch/utils/better_logging.html#configure_logger"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#better_launch.utils.better_logging.configure_logger" title="Link to this definition"></a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span></p>
+</dd>
+</dl>
 </dd></dl>
 
 </section>
@@ -436,10 +462,9 @@ function. This is useful to e.g. identify the python file a function is imported
 
 <dl class="py function">
 <dt class="sig sig-object py" id="better_launch.utils.substitutions.substitute_tokens">
-<span class="sig-prename descclassname"><span class="pre">better_launch.utils.substitutions.</span></span><span class="sig-name descname"><span class="pre">substitute_tokens</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">text</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">substitution_handlers</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/better_launch/utils/substitutions.html#substitute_tokens"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#better_launch.utils.substitutions.substitute_tokens" title="Link to this definition"></a></dt>
+<span class="sig-prename descclassname"><span class="pre">better_launch.utils.substitutions.</span></span><span class="sig-name descname"><span class="pre">substitute_tokens</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">text</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">substitutions</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/better_launch/utils/substitutions.html#substitute_tokens"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#better_launch.utils.substitutions.substitute_tokens" title="Link to this definition"></a></dt>
 <dd><p>Parses a string and replaces all substitution strings according to the provided handler functions.</p>
 <p>Substitution strings are expected to follow the “ROS1 pattern”: <cite>$(key *args)</cite>, where <cite>key</cite> is a substitution type and <cite>*args</cite> are additional arguments passed to the substitution handler.</p>
-<p>Note that this always finds the innermost set of brackets with no brackets in between to work on. This effectively prevents the use of brackets in our expressions. This behavior may be changed in the future to be more flexible.</p>
 <div class="admonition seealso">
 <p class="admonition-title">See also</p>
 <p><a class="reference internal" href="#better_launch.utils.substitutions.default_substitution_handlers" title="better_launch.utils.substitutions.default_substitution_handlers"><code class="xref py py-meth docutils literal notranslate"><span class="pre">default_substitution_handlers()</span></code></a></p>
@@ -447,18 +472,18 @@ function. This is useful to e.g. identify the python file a function is imported
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>text</strong> (<em>str</em>) – _description_</p></li>
-<li><p><strong>substitution_handlers</strong> (<em>dict</em>) – _description_</p></li>
+<li><p><strong>text</strong> (<em>str</em>) – A string that may contain substitution tokens.</p></li>
+<li><p><strong>substitutions</strong> (<em>dict</em><em>[</em><em>str</em><em>, </em><em>Callable</em><em>[</em><em>...</em><em>, </em><em>str</em><em>]</em><em>]</em>) – A dict mapping substitution tokens to handler functions.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>_description_</p>
+<dd class="field-even"><p>The input string with all substitution tokens handled.</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>list[str]</p>
+<dd class="field-odd"><p>str</p>
 </dd>
 <dt class="field-even">Raises<span class="colon">:</span></dt>
-<dd class="field-even"><p><strong>ValueError</strong> – _description_</p>
+<dd class="field-even"><p><strong>ValueError</strong> – If the input string contains unbalanced parentheses or quotes.</p>
 </dd>
 </dl>
 </dd></dl>
@@ -474,7 +499,6 @@ function. This is useful to e.g. identify the python file a function is imported
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
         <a href="better_launch.tui.html" class="btn btn-neutral float-left" title="better_launch.tui package" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="setup.html" class="btn btn-neutral float-right" title="setup module" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>

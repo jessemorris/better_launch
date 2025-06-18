@@ -27,7 +27,7 @@ class Component(AbstractNode, LiveParamsMixin):
 
         Note that in ROS2 launch files you can reference existing composers by name when creating components. This is a clutch because you ROS2 you can never obtain a reference to a meaningful object to refer to. Since we have actual instances in better_launch, referring to composers by name is not supported. Use :py:meth:`BetterLaunch.component` or construct your own component and pass a :py:class:`Composer` instance.
 
-        Also note that since components are loaded via a service call there are some additional restrictions on the types of `params`. In particular, they must be compatible with the `ROS2 Parameter message type<https://github.com/ros2/rcl_interfaces/blob/rolling/rcl_interfaces/msg/ParameterValue.msg>`_. This is *not* verified on construction.
+        Also note that since components are loaded via a service call there are some additional restrictions on the types of `params`. In particular, they must be compatible with the `ROS2 Parameter message type <https://github.com/ros2/rcl_interfaces/blob/rolling/rcl_interfaces/msg/ParameterValue.msg>`_. This is *not* verified on construction.
 
         .. seealso::
 
@@ -179,13 +179,13 @@ class Composer(AbstractNode):
         component_remaps: dict[str, str] = None,
         output: LogSink | set[LogSink] = "screen",
     ):
-        """A composer is a special ROS2 node that can host other nodes (:py:class:`Component`s) within the same process, reducing overhead and enabling efficient intra process communication for message exchange.
+        """A composer is a special ROS2 node that can host other nodes (:py:class:`Component`) within the same process, reducing overhead and enabling efficient intra process communication for message exchange.
 
-        As it is possible to reuse already running composers (even without a reference to the actual process), this is merely a wrapper around another :py:class:`AbstractNode` providing additional functionality. The wrapped node instance is typically a :py:class:`Node` or :py:class:`ForeignNode`. See `py:meth:`BetterLaunch.compose` for the most common use cases. 
+        As it is possible to reuse already running composers (even without a reference to the actual process), this is merely a wrapper around another :py:class:`AbstractNode` providing additional functionality. The wrapped node instance is typically a :py:class:`Node` or :py:class:`ForeignNode`. See :py:meth:`BetterLaunch.compose` for the most common use cases. 
 
         .. seealso::
 
-            `ROS2 About Composition <https://docs.ros.org/en/foxy/Concepts/About-Composition.html>`_
+            `ROS2 About Composition <https://docs.ros.org/en/jazzy/Concepts/Intermediate/About-Composition.html>`_
 
         Parameters
         ----------
@@ -330,7 +330,7 @@ class Composer(AbstractNode):
 
         Additional keyword arguments will be passed as ROS parameters to the component. If the component is not associated with this composer yet, a warning will be logged and its association will be updated.
 
-        Note that since components are loaded via a service call that there are some additional restrictions on the types of :py:meth:`Component.params` and `composer_extra_params`. In particular, they must be compatible with the `ROS2 Parameter message type<https://github.com/ros2/rcl_interfaces/blob/rolling/rcl_interfaces/msg/ParameterValue.msg>`_.
+        Note that since components are loaded via a service call that there are some additional restrictions on the types of :py:meth:`Component.params` and `composer_extra_params`. In particular, they must be compatible with the `ROS2 Parameter message type <https://github.com/ros2/rcl_interfaces/blob/rolling/rcl_interfaces/msg/ParameterValue.msg>`_.
 
         Parameters
         ----------

@@ -20,6 +20,14 @@ better\_launch.elements.composer module
    :undoc-members:
    :show-inheritance:
 
+better\_launch.elements.foreign\_node module
+--------------------------------------------
+
+.. automodule:: better_launch.elements.foreign_node
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 better\_launch.elements.group module
 ------------------------------------
 
