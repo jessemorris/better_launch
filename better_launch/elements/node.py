@@ -89,7 +89,7 @@ class Node(AbstractNode, LiveParamsMixin):
         self.isolate_env = isolate_env
         self.cmd_args = []
         if log_level is not None:
-            cmd_args.extend(["--log-level", logging.getLevelName(log_level)])
+            self.cmd_args.extend(["--log-level", logging.getLevelName(log_level)])
         if cmd_args:
             self.cmd_args.extend(cmd_args)
 
