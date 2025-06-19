@@ -199,6 +199,10 @@ def my_start(
 # How do I use it?
 The best way to get to know *better_launch* is to explore the included [examples](examples/). Unlike ROS2, all examples and functions come with proper documentation. If anything is left unclear, feel free to contact me.
 
+In addition, *better_launch* includes a couple of modules that make some common tasks easier:
+- [convenience.py](better_launch/convenience.py): convenience functions to start rviz, robot state publishers, read urdf/xacro files, and more.
+- [gazebo.py](better_launch/gazebo.py): functions and helpers for starting and populating gazebo simulations as well as bridging topics.
+
 While you could run *better_launch* launch files via `ros2 launch`, this would obviously mean running two launch systems on top of each other. Not only is that terrible for performance and introduces a dependency on ROS2's launch system, its autocomplete is also slow as hell, cluttering the terminal with useless command line options yet is unable to discover the arguments you have declared inside your launch files. For these reasons, *better_launch* comes with the `bl` script, which fixes all of the above and then some. Once you have sourced your workspace you can use it as follows:
 
 ```bash
@@ -206,13 +210,15 @@ While you could run *better_launch* launch files via `ros2 launch`, this would o
 bl better_launch 05_launch_arguments.py --help
 ```
 
-In addition, *better_launch* includes a couple of modules that make some common tasks easier:
-- [convenience.py](better_launch/convenience.py): convenience functions to start rviz, robot state publishers, read urdf/xacro files, and more.
-- [gazebo.py](better_launch/gazebo.py): functions and helpers for starting and populating gazebo simulations as well as bridging topics.
+*better_launch* also reacts to the following environment variables:
+- `BL_UI_OVERRIDE` (*enable|disable*): enables or disables the UI for all launch files. Superseded by the `--bl_ui_override` argument.
+- `BL_COLORMODE_OVERRIDE` (*default|severity|source|none|rainbow*): overrides the colormode for all launch files. Superseded by the `--bl_colormode_override` argument.
+- `BL_SCREEN_LOG_FORMAT_OVERRIDE`: overrides the format for messages logged to the terminal. Check the [PrettyLogFormatter](better_launch/utils/better_logging.py) for valid syntax.
+- `BL_FILE_LOG_FORMAT_OVERRIDE`: overrides the format for messages logged to log files. Check the [PrettyLogFormatter](better_launch/utils/better_logging.py) for valid syntax.
 
 
 # The TUI
-*better_launch* comes with a sneaky, unobstrusive TUI (terminal user interface) based on [prompt_toolkit](https://github.com/prompt-toolkit/python-prompt-toolkit), which will hover below the log output. You can start it by either passing `ui=True` to the `launch_this` wrapper, or by adding `--bl_ui_override=True` on the command line. 
+*better_launch* comes with a sneaky, unobstrusive TUI (terminal user interface) based on [prompt_toolkit](https://github.com/prompt-toolkit/python-prompt-toolkit), which will hover below the log output. You can start it by either passing `ui=True` to the `launch_this` wrapper, or by adding `--bl_ui_override=enable` on the command line. 
 
 ![TUI](media/tui.png)
 
@@ -364,6 +370,7 @@ Overall, ROS2 launch seems like a system architect's wet fever dream, and I don'
 There are a couple of areas that still need some work:
 - [x] test include from ros
 - [ ] test convenience module
+- [ ] test gazebo module
 - [ ] document benchmarks
 
 

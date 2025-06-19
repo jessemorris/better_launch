@@ -45,13 +45,13 @@ def launch_this(
     launch_func : Callable, optional
         Your launch function, typically using BetterLaunch to start ROS2 nodes.
     ui : bool, optional
-        Whether to start the better_launch TUI.
+        Whether to start the better_launch TUI. Superseded by the `BL_UI_OVERRIDE` environment variable and the `--bl_ui_override` argument.
     join : bool, optional
         If True, join the better_launch process. Has no effect when ui == True.
     screen_log_format : str, optional
-        Customize how log output will be formatted when printing it to the screen. Will be overridden by the `OVERRIDE_SCREEN_LOG_FORMAT` environment variable. See :py:class:`PrettyLogFormatter` for details.
+        Customize how log output will be formatted when printing it to the screen. Will be overridden by the `BL_SCREEN_LOG_FORMAT_OVERRIDE` environment variable. See :py:class:`PrettyLogFormatter` for details.
     file_log_format : str, optional
-        Customize how log output will be formatted when writing it to a file. Will be overridden by the `OVERRIDE_FILE_LOG_FORMAT` environment variable. See :py:class:`PrettyLogFormatter` for details.
+        Customize how log output will be formatted when writing it to a file. Will be overridden by the `BL_FILE_LOG_FORMAT_OVERRIDE` environment variable. See :py:class:`PrettyLogFormatter` for details.
     colormode : Colormode, optional
         Decides what colors will be used for:
         * default: one color per log severity level and a single color for all message sources
@@ -59,6 +59,7 @@ def launch_this(
         * source: one color per message source, don't colorize log severity
         * none: don't colorize anything
         * rainbow: colorize log severity and give each message source its own color
+        Superseded by the `BL_COLORMODE_OVERRIDE` environment variable and the `--bl_colormode_override` argument.
     manage_foreign_nodes : bool, optional
         If True, the TUI will also include node processes not started by this process. Has no effect if the TUI is not started.
     """
@@ -150,6 +151,17 @@ def _launch_this_wrapper(
     if platform.system() != "Windows":
         signal.signal(signal.SIGQUIT, sigterm_handler)
 
+    # Env overrides, will be superseded by command line args if implemented
+    screen_log_format = os.environ.get("BL_SCREEN_LOG_FORMAT_OVERRIDE", screen_log_format)
+    file_log_format = os.environ.get("BL_FILE_LOG_FORMAT_OVERRIDE", file_log_format)
+    colormode = os.environ.get("BL_COLORMODE_OVERRIDE", colormode)
+    
+    env_ui = os.environ.get("BL_UI_OVERRIDE", "").lower()
+    if env_ui in ("enable", "true", "1"):
+        ui = True
+    elif env_ui in ("disable", "false", "0"):
+        ui = False
+
     # If we were started by ros launch (e.g. through 'ros2 launch <some-bl-launch-file>') we need
     # to expose a "generate_launch_description" method instead of running by ourselves.
     #
@@ -178,6 +190,7 @@ def _launch_this_wrapper(
                 f"[NOTE] Launch file {os.path.basename(BetterLaunch._launchfile)} got included from ROS2"
             )
 
+            # TODO Maybe we shouldn't?
             init_logging(
                 roslog.launch_config,
                 screen_log_format,

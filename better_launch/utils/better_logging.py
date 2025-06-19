@@ -310,11 +310,6 @@ def init_logging(
     file_log_format: str = None,
     colormode: Colormode = "default",
 ) -> None:
-    screen_log_format = os.environ.get(
-        "OVERRIDE_SCREEN_LOG_FORMAT", screen_log_format
-    )
-    file_log_format = os.environ.get("OVERRIDE_FILE_LOG_FORMAT", file_log_format)
-
     if not screen_log_format:
         screen_log_format = PrettyLogFormatter.default_screen_format
 

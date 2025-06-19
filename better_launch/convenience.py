@@ -106,7 +106,7 @@ def read_robot_description(
 
 
 def joint_state_publisher(use_gui: bool, node_name: str = None, **kwargs) -> Node:
-    """Starts a `joint_state_publisher` or `joint_state_publisher_gui`.
+    """Starts a `joint_state_publisher` or `joint_state_publisher_gui` node.
 
     Parameters
     ----------

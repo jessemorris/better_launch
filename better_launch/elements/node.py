@@ -62,7 +62,7 @@ class Node(AbstractNode, LiveParamsMixin):
         isolate_env : bool, optional
             If True, the node process' env will not be inherited from the parent process and only those passed via `env` will be used. Be aware that this can result in many common things to not work anymore since e.g. keys like *PATH* will be missing.
         log_level : int, optional
-            The minimum severity a logged message from this node must have in order to be published.
+            The minimum severity a logged message from this node must have in order to be published. This will be added to the cmd_args unless it is None.
         output : LogSink | set[LogSink], optional
             Determines if and where this node's output should be directed. Common choices are `screen` to print to terminal, `log` to write to a common log file, `own_log` to write to a node-specific log file, and `none` to not write any output anywhere. See :py:meth:`configure_logger` for details.
         anonymous : bool, optional
