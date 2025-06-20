@@ -220,9 +220,29 @@ Takeoff in 3... 2... 1...
         print(msg)
         self.logger.critical(f"Log files at {roslog.launch_config.log_dir}")
 
-    def spin(self) -> None:
-        """Join the BetterLaunch thread until it terminates."""
-        self.ros_adapter._thread.join()
+    def spin(self, exit_with_last_node: bool = True) -> None:
+        """Join the BetterLaunch thread until it terminates.
+
+        Parameters
+        ----------
+        exit_with_last_node : bool, optional
+            If True this function will return when all nodes have been stopped.
+        """
+        if exit_with_last_node:
+            while self.ros_adapter._thread.is_alive():
+                self.ros_adapter._thread.join(0.1)
+                nodes = self.all_nodes(
+                    include_components=True,
+                    include_launch_service=True,
+                    include_foreign=False,
+                )
+
+                if all(not n.is_running for n in nodes):
+                    self.logger.info("All nodes have stopped, exiting")
+                    break
+
+        else:
+            self.ros_adapter._thread.join()
 
     def get_unique_name(self, name: str = "") -> str:
         """Adds a unique suffix to the provided string.

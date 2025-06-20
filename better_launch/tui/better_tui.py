@@ -76,10 +76,12 @@ class BetterTui:
         launch_func: Callable,
         *,
         manage_foreign_nodes: bool = False,
+        keep_alive: bool = False,
         color_depth: Literal[1, 4, 8, 24] = 8,
     ):
         self.launch_func = launch_func
         self.manage_foreign_nodes = manage_foreign_nodes
+        self.keep_alive = keep_alive
         self.color_depth = {
             1: ColorDepth.DEPTH_1_BIT,
             4: ColorDepth.DEPTH_4_BIT,
@@ -123,7 +125,7 @@ class BetterTui:
 
             bl = BetterLaunch.wait_for_instance()
             set_title(os.path.basename(bl.launchfile))
-            bl.spin()
+            bl.spin(exit_with_last_node=not self.keep_alive)
             self.quit("launch function exited")
 
         launch_thread = threading.Thread(target=_run_launch_func)
@@ -134,11 +136,11 @@ class BetterTui:
 
     def quit(self, reason: str) -> None:
         bl = BetterLaunch.instance()
-        try:
-            if bl:
+        if bl:
+            try:
                 bl.shutdown(reason)
-        except Exception as e:
-            print(e)
+            except Exception as e:
+                print(e)
 
         try:
             get_app().exit()

@@ -43,8 +43,7 @@ class ROSAdapter:
         )
         self.ros_executor = SingleThreadedExecutor(context=self.ros_context)
 
-        # NOTE Cannot run in a daemon thread for some reason
-        self._thread = threading.Thread(target=self._run)
+        self._thread = threading.Thread(target=self._run, daemon=True)
         self._thread.start()
 
     def _run(self):

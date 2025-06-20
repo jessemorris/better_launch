@@ -35,6 +35,7 @@ def launch_this(
     file_log_format: str = None,
     colormode: Colormode = "default",
     manage_foreign_nodes: bool = False,
+    keep_alive: bool = False,
 ):
     """Use this to decorate your launch function. The function will be run automatically. The function is allowed to block even when using the UI.
 
@@ -62,6 +63,8 @@ def launch_this(
         Superseded by the `BL_COLORMODE_OVERRIDE` environment variable and the `--bl_colormode_override` argument.
     manage_foreign_nodes : bool, optional
         If True, the TUI will also include node processes not started by this process. Has no effect if the TUI is not started.
+    keep_alive : bool, optional
+        If True, keep the process alive even when all nodes have stopped.
     """
 
     def decoration_helper(func):
@@ -73,6 +76,7 @@ def launch_this(
             file_log_format=file_log_format,
             colormode=colormode,
             manage_foreign_nodes=manage_foreign_nodes,
+            keep_alive=keep_alive,
         )
 
     return decoration_helper if launch_func is None else decoration_helper(launch_func)
@@ -86,6 +90,7 @@ def _launch_this_wrapper(
     file_log_format: str = None,
     colormode: Colormode = "default",
     manage_foreign_nodes: bool = False,
+    keep_alive: bool = False,
 ):
     # Globals of the calling module
     glob = find_calling_frame(_launch_this_wrapper).frame.f_globals
@@ -284,7 +289,7 @@ def _launch_this_wrapper(
         def launch_func_wrapper():
             if launch_func_kwarg is not None:
                 # If the launch func defines a **kwarg we can pass all extra arguments to it, with
-                # the caveat that these extra arguments need to be defined as `-[-]<key> val` tuples.
+                # the caveat that these extra args need to be defined as `-[-]<key> val` tuples.
                 assert (
                     len(ctx.args) % 2 == 0
                 ), "extra arguments need to be '--<key> <value>' tuples"
@@ -311,8 +316,10 @@ def _launch_this_wrapper(
 
             # Retrieve the BetterLaunch singleton
             bl = BetterLaunch()
+
+            # The UI will manage spinning itself
             if join and not ui:
-                bl.spin()
+                bl.spin(exit_with_last_node=not keep_alive)
 
         # By default BetterLaunch has access to all arguments from its launch function
         bound_args = launch_func_sig.bind(*args, **kwargs)
@@ -323,7 +330,9 @@ def _launch_this_wrapper(
             from better_launch.tui.better_tui import BetterTui
 
             app = BetterTui(
-                launch_func_wrapper, manage_foreign_nodes=manage_foreign_nodes
+                launch_func_wrapper, 
+                manage_foreign_nodes=manage_foreign_nodes,
+                keep_alive=keep_alive,
             )
             app.run()
         else:
