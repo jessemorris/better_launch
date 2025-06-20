@@ -2,13 +2,12 @@
 
 __all__ = [
     "get_gazebo_version",
-    "get_gazebo_version",
-    "get_gazebo_axes_args",
-    "spawn_topic_bridges",
-    "spawn_world_transform",
     "gazebo_launch",
     "save_world",
     "spawn_model",
+    "spawn_topic_bridges",
+    "spawn_world_transform",
+    "get_gazebo_axes_args",
     "GazeboBridge",
 ]
 
@@ -46,136 +45,6 @@ def get_gazebo_version() -> str:
         return "gz"
     except PackageNotFoundError:
         return "ign"
-
-
-def get_gazebo_axes_args(
-    x: float = 0.0,
-    y: float = 0.0,
-    z: float = 0.0,
-    yaw: float = 0.0,
-    pitch: float = 0.0,
-    roll: float = 0.0,
-) -> dict[str, float]:
-    """Constructs a list of command-line arguments that can be used e.g. when spawning a new model.
-
-    Parameters
-    ----------
-    x : float, optional
-        translation x component
-    y : float, optional
-        translation y component
-    z : float, optional
-        translation z component
-    yaw : float, optional
-        rotation yaw component
-    pitch : float, optional
-        rotation pitch component
-    roll : float, optional
-        rotation roll component
-
-    Returns
-    -------
-    dict[str, float]
-        A dictionary containing the axes names and values. The axes names correspond to what Gazebo expects on the command line and so can be passed to e.g. :py:meth:`gazebo_spawn_model`.
-    """
-    return {
-        "x": x,
-        "y": y,
-        "z": z,
-        "Y": yaw,
-        "P": pitch,
-        "R": roll,
-    }
-
-
-def spawn_topic_bridges(
-    *bridges: "GazeboBridge", node_name: str = "gz_bridge"
-) -> tuple[Node, Node]:
-    """Creates a `ros_gz_bridge::parameter_bridge` node with the specified `GazeboBridge` instances.
-
-    This function sets up ROS-Gazebo bridges for different topic types. Standard topic bridges (non-image) are configured via a YAML parameter file, while image topics are handled separately through remappings.
-
-    Parameters
-    ----------
-    *bridges : GazeboBridge
-        One or more `GazeboBridge` instances defining the Gazebo-ROS topic bridges.
-    node_name : str, optional
-        Name of the bridge node, by default `"gz_bridge"`.
-
-    Returns
-    -------
-    tuple[Node, Node]
-        The up to two nodes that will be started by this function. The first node will be the node handling all regular topic bridges, the second the one for the image topics. Either of these may be `None`.
-    """
-    if len(bridges) == 0:
-        return (None, None)
-
-    bl = BetterLaunch.instance()
-
-    ros_gz = "ros_" + get_gazebo_version()
-    image_bridges = [bridge for bridge in bridges if bridge.is_image]
-    std_config = "\n".join(bridge.yaml() for bridge in bridges if not bridge.is_image)
-
-    node_reg = None
-    node_img = None
-
-    if std_config:
-        dst = NamedTemporaryFile().name
-        with open(dst, "w") as file:
-            file.write(std_config)
-
-        node_reg = bl.node(
-            f"{ros_gz}_bridge",
-            "parameter_bridge",
-            node_name,
-            params={"config_file": dst},
-        )
-
-    if image_bridges:
-        img_remaps = {}
-        for bridge in image_bridges:
-            for ext in ("", "/compressed", "/compressedDepth", "/theora"):
-                remapped_gz_topic = f"{bridge.gz_topic}{ext}"
-                remapped_ros_topic = f"{bridge.ros_topic}{ext}"
-                img_remaps[remapped_gz_topic] = remapped_ros_topic
-
-        node_img = bl.node(
-            f"{ros_gz}_image",
-            "image_bridge",
-            f"{node_name}_image",
-            remaps=img_remaps,
-        )
-
-    return (node_reg, node_img)
-
-
-def spawn_world_transform(gazebo_world_frame: str = None) -> Node:
-    """
-    Runs a static_transform_publisher to connect the ROS `world` frame and a Gazebo world frame, if the Gazebo world frame is specified and different from 'world'.
-
-    Parameters
-    ----------
-    gazebo_world_frame : str, optional
-        The name of the Gazebo world frame. If None, retrieves the default from :py:meth:`GazeboBridge.world`.
-
-    Returns
-    -------
-    Node
-        The spawned node instance.
-    """
-    if gazebo_world_frame is None:
-        gazebo_world_frame = GazeboBridge.world()
-
-    if gazebo_world_frame != "world":
-        bl = BetterLaunch.instance()
-        return bl.node(
-            "tf2_ros",
-            "static_transform_publisher",
-            "gazebo_world_tf",
-            params={"frame_id": "world", "child_frame_id": gazebo_world_frame},
-        )
-
-    return None
 
 
 def gazebo_launch(
@@ -287,10 +156,7 @@ def spawn_model(
     elif os.path.isfile(topic_or_file):
         cmd_args.extend(["-file", topic_or_file])
     else:
-        bl.logger.warning(
-            f"{topic_or_file} is not a topic nor a file, assuming it will be a topic in the future"
-        )
-        cmd_args.extend(["-topic", topic_or_file])
+        raise ValueError(f"{topic_or_file} is not an existing topic nor a file")
 
     for key, val in spawn_args.items():
         cmd_args.extend([f"-{key}", val])
@@ -299,6 +165,137 @@ def spawn_model(
     return bl.node(
         pkg, "create", f"spawn_{model_name}", anonymous=True, cmd_args=cmd_args
     )
+
+
+def spawn_topic_bridges(
+    *bridges: "GazeboBridge", node_name: str = "gz_bridge"
+) -> tuple[Node, Node]:
+    """Creates a `ros_gz_bridge::parameter_bridge` node with the specified `GazeboBridge` instances.
+
+    This function sets up ROS-Gazebo bridges for different topic types. Standard topic bridges (non-image) are configured via a YAML parameter file, while image topics are handled separately through remappings.
+
+    Parameters
+    ----------
+    *bridges : GazeboBridge
+        One or more `GazeboBridge` instances defining the Gazebo-ROS topic bridges.
+    node_name : str, optional
+        Name of the bridge node, by default `"gz_bridge"`.
+
+    Returns
+    -------
+    tuple[Node, Node]
+        The up to two nodes that will be started by this function. The first node will be the node handling all regular topic bridges, the second the one for the image topics. Either of these may be `None`.
+    """
+    if len(bridges) == 0:
+        return (None, None)
+
+    bl = BetterLaunch.instance()
+
+    ros_gz = "ros_" + get_gazebo_version()
+    image_bridges = [bridge for bridge in bridges if bridge.is_image]
+    std_config = "\n".join(bridge.yaml() for bridge in bridges if not bridge.is_image)
+
+    node_reg = None
+    node_img = None
+
+    if std_config:
+        dst = NamedTemporaryFile().name
+        with open(dst, "w") as file:
+            file.write(std_config)
+
+        node_reg = bl.node(
+            f"{ros_gz}_bridge",
+            "parameter_bridge",
+            node_name,
+            params={"config_file": dst},
+        )
+
+    if image_bridges:
+        img_remaps = {}
+        for bridge in image_bridges:
+            for ext in ("", "/compressed", "/compressedDepth", "/theora"):
+                remapped_gz_topic = f"{bridge.gz_topic}{ext}"
+                remapped_ros_topic = f"{bridge.ros_topic}{ext}"
+                img_remaps[remapped_gz_topic] = remapped_ros_topic
+
+        node_img = bl.node(
+            f"{ros_gz}_image",
+            "image_bridge",
+            f"{node_name}_image",
+            remaps=img_remaps,
+        )
+
+    return (node_reg, node_img)
+
+
+def spawn_world_transform(gazebo_world_frame: str = None) -> Node:
+    """
+    Runs a static_transform_publisher to connect the ROS `world` frame and a Gazebo world frame, if the Gazebo world frame is specified and different from 'world'.
+
+    Parameters
+    ----------
+    gazebo_world_frame : str, optional
+        The name of the Gazebo world frame. If None, retrieves the default from :py:meth:`GazeboBridge.world`.
+
+    Returns
+    -------
+    Node
+        The spawned node instance.
+    """
+    if gazebo_world_frame is None:
+        gazebo_world_frame = GazeboBridge.world()
+
+    if gazebo_world_frame != "world":
+        bl = BetterLaunch.instance()
+        return bl.node(
+            "tf2_ros",
+            "static_transform_publisher",
+            "gazebo_world_tf",
+            cmd_args=["--frame-id", "world", "--child-frame-id", gazebo_world_frame],
+            raw=True,
+        )
+
+    return None
+
+
+def get_gazebo_axes_args(
+    x: float = 0.0,
+    y: float = 0.0,
+    z: float = 0.0,
+    yaw: float = 0.0,
+    pitch: float = 0.0,
+    roll: float = 0.0,
+) -> dict[str, float]:
+    """Constructs a list of command-line arguments that can be used e.g. when spawning a new model.
+
+    Parameters
+    ----------
+    x : float, optional
+        translation x component
+    y : float, optional
+        translation y component
+    z : float, optional
+        translation z component
+    yaw : float, optional
+        rotation yaw component
+    pitch : float, optional
+        rotation pitch component
+    roll : float, optional
+        rotation roll component
+
+    Returns
+    -------
+    dict[str, float]
+        A dictionary containing the axes names and values. The axes names correspond to what Gazebo expects on the command line and so can be passed to e.g. :py:meth:`gazebo_spawn_model`.
+    """
+    return {
+        "x": x,
+        "y": y,
+        "z": z,
+        "Y": yaw,
+        "P": pitch,
+        "R": roll,
+    }
 
 
 class GazeboBridge:

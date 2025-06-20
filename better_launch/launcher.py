@@ -1198,6 +1198,7 @@ Takeoff in 3... 2... 1...
         ros_waittime: float = 3.0,
         lifecycle_waittime: float = 0.01,
         lifecycle_target: LifecycleStage = LifecycleStage.ACTIVE,
+        raw: bool = False,
     ) -> Node:
         """Create a new ROS2 node process. The bread and butter of every ROS setup!
 
@@ -1247,6 +1248,8 @@ Takeoff in 3... 2... 1...
             How long to wait for the node's lifecycle management to come up. This should cover the time between the node initializing itself (see `ros_waittime`) and creating its additional topics and services. While neglible on modern computers, slower devices and embedded systems may experience a noticable delay here. Set negative to wait indefinitely. Will do nothing if `autostart_process` is False.
         lifecycle_target : LifecycleStage, optional
             The lifecycle stage to bring the node into after starting. Has no effect if `autostart_process` is False or if the node does not appear to be a lifecycle node after waiting `ros_waittime + lifecycle_waittime`.
+        raw : bool, optional
+            If True, don't treat the executable as a ROS2 node and avoid passing it any command line arguments except those specified.
 
         Returns
         -------
@@ -1290,6 +1293,7 @@ Takeoff in 3... 2... 1...
             max_respawns=max_respawns,
             respawn_delay=respawn_delay,
             use_shell=use_shell,
+            raw=raw,
         )
 
         group.add_node(node)

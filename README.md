@@ -370,7 +370,7 @@ Overall, ROS2 launch seems like a system architect's wet fever dream, and I don'
 There are a couple of areas that still need some work:
 - [x] test include from ros
 - [ ] test convenience module
-- [ ] test gazebo module
+- [x] test gazebo module
 - [ ] document benchmarks
 
 

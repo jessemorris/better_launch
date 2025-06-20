@@ -38,6 +38,7 @@ class Node(AbstractNode, LiveParamsMixin):
         max_respawns: int = 0,
         respawn_delay: float = 0.0,
         use_shell: bool = False,
+        raw: bool = False,
     ):
         """An object used for starting a ROS node and capturing its output.
 
@@ -77,28 +78,31 @@ class Node(AbstractNode, LiveParamsMixin):
             How long to wait before restarting the node process after it terminates.
         use_shell : bool, optional
             If True, invoke the node executable via the system shell. While this gives access to the shell's builtins, this has the downside of running the node inside a "mystery program" which is platform and user dependent. Generally not advised.
+        raw : bool, optional
+            If True, don't treat the executable as a ROS2 node and avoid passing it any command line arguments except those specified.
 
         Returns
         -------
         Node
             The node object wrapping the node process.
         """
-        super().__init__(package, executable, name, namespace, remaps, params, output=output)
+        super().__init__(
+            package, executable, name, namespace, remaps, params, output=output
+        )
 
         self.env = env or {}
         self.isolate_env = isolate_env
-        self.cmd_args = []
-        if log_level is not None:
-            self.cmd_args.extend(["--log-level", logging.getLevelName(log_level)])
-        if cmd_args:
-            self.cmd_args.extend(cmd_args)
-
+        self.cmd_args = cmd_args or []
+        self.node_log_level = (
+            logging.getLevelName(log_level) if isinstance(log_level, int) else log_level
+        )
         self.use_shell = use_shell
         self.max_respawns = max_respawns
         self.respawn_delay = respawn_delay
         self._respawn_retries = 0
         self._process: subprocess.Popen = None
         self._on_exit_callback = on_exit
+        self.raw = raw
 
     @property
     def pid(self) -> int:
@@ -109,10 +113,7 @@ class Node(AbstractNode, LiveParamsMixin):
 
     @property
     def is_running(self) -> bool:
-        return (
-            self._process is not None
-            and self._process.poll() is None
-        )
+        return self._process is not None and self._process.poll() is None
 
     def start(self) -> None:
         from better_launch import BetterLaunch
@@ -129,19 +130,27 @@ class Node(AbstractNode, LiveParamsMixin):
             return
 
         try:
-            cmd = launcher.find(self.package, self.executable, f"lib/**/{self.package}/")
-            final_cmd = [cmd] + self.cmd_args + ["--ros-args"]
+            cmd = launcher.find(
+                self.package, self.executable, f"lib/**/{self.package}/"
+            )
+            final_cmd = [cmd] + self.cmd_args
 
-            # Attach node parameters
-            for key, value in self._flat_params().items():
-                # Make sure the values are parseable for ROS
-                final_cmd.extend(["-p", f"{key}:={json.dumps(value)}"])
+            if not self.raw:
+                if self.node_log_level is not None:
+                    final_cmd += ["--log-level", self.node_log_level]
 
-            # Special args and remaps
-            # launch_ros/actions/node.py:206
-            for src, dst in self._ros_args().items():
-                # launch_ros/actions/node.py:481
-                final_cmd.extend(["-r", f"{src}:={dst}"])
+                final_cmd += ["--ros-args"]
+
+                # Attach node parameters
+                for key, value in self._flat_params().items():
+                    # Make sure the values are parseable for ROS
+                    final_cmd.extend(["-p", f"{key}:={json.dumps(value)}"])
+
+                # Special args and remaps
+                # launch_ros/actions/node.py:206
+                for src, dst in self._ros_args().items():
+                    # launch_ros/actions/node.py:481
+                    final_cmd.extend(["-r", f"{src}:={dst}"])
 
             # If an env is specified ROS2 lets it completely replace the host env. We cover this
             # through an additional flag, as often you just want to make certain overrides.
@@ -230,9 +239,8 @@ class Node(AbstractNode, LiveParamsMixin):
             # Respawn the process if necessary
             from better_launch import BetterLaunch
 
-            if (
-                not BetterLaunch.instance().is_shutdown
-                and (self.max_respawns < 0 or self._respawn_retries < self.max_respawns)
+            if not BetterLaunch.instance().is_shutdown and (
+                self.max_respawns < 0 or self._respawn_retries < self.max_respawns
             ):
                 self.logger.info(f"Restarting {self.name} after unexpected shutdown")
 
@@ -240,8 +248,8 @@ class Node(AbstractNode, LiveParamsMixin):
                 if self.respawn_delay > 0.0:
                     time.sleep(self.respawn_delay)
 
-                # Not nice: this will run start from the watcher thread, which will then create 
-                # another watcher thread before this one here exits. Should be fine, just not 
+                # Not nice: this will run start from the watcher thread, which will then create
+                # another watcher thread before this one here exits. Should be fine, just not
                 # elegant.
                 self.start()
             else:
@@ -290,10 +298,12 @@ class Node(AbstractNode, LiveParamsMixin):
         if last_line is not None:
             buffer.write(last_line)
 
-    def shutdown(self, reason: str, signum: int = signal.SIGTERM, timeout: float = 0.0) -> None:
+    def shutdown(
+        self, reason: str, signum: int = signal.SIGTERM, timeout: float = 0.0
+    ) -> None:
         if not self.is_running:
             return
-            
+
         signame = signal.Signals(signum).name
         self.logger.warning(f"Received shutdown request: {reason} ({signame})")
         self._on_signal(signum)
