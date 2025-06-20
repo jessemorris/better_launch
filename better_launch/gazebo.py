@@ -1,15 +1,14 @@
-"""Additional functions for working with Gazebo, taking inspiration from simple_launch.
-"""
+"""Additional functions for working with Gazebo, taking inspiration from simple_launch."""
 
 __all__ = [
     "get_gazebo_version",
-    "get_gazebo_prefix",
+    "get_gazebo_version",
     "get_gazebo_axes_args",
-    "spawn_gazebo_topic_bridge",
-    "spawn_gazebo_world_transform",
+    "spawn_topic_bridges",
+    "spawn_world_transform",
     "gazebo_launch",
-    "gazebo_save_world",
-    "gazebo_spawn_model",
+    "save_world",
+    "spawn_model",
     "GazeboBridge",
 ]
 
@@ -29,22 +28,6 @@ from better_launch.elements import Node
 
 
 def get_gazebo_version() -> str:
-    """Get the Gazebo version from the environment variables.
-
-    Returns
-    -------
-    str
-        A Gazebo version name, e.g. 'garden'.
-    """
-    for var in ["IGN_VERSION", "IGNITION_VERSION", "GZ_VERSION"]:
-        version = os.environ.get(var, None)
-        if version:
-            return "ign" if version == "fortress" else "gz"
-
-    return None
-
-
-def get_gazebo_prefix() -> str:
     """For a short time, Gazebo rebranded to "Ignition" before returning to Gazebo again. This function returns the associated prefix.
 
     Returns
@@ -53,9 +36,10 @@ def get_gazebo_prefix() -> str:
         The prefix indicating the type of Gazebo: "ign" for Ignition Gazebo or "gz" for Gazebo Classic.
     """
 
-    version = get_gazebo_version()
-    if version:
-        return "ign" if version == "fortress" else "gz"
+    for var in ["IGN_VERSION", "IGNITION_VERSION", "GZ_VERSION"]:
+        version = os.environ.get(var, None)
+        if version:
+            return "ign" if version == "fortress" else "gz"
 
     try:
         get_package_share_directory("ros_gz")
@@ -104,7 +88,7 @@ def get_gazebo_axes_args(
     }
 
 
-def spawn_gazebo_topic_bridge(
+def spawn_topic_bridges(
     *bridges: "GazeboBridge", node_name: str = "gz_bridge"
 ) -> tuple[Node, Node]:
     """Creates a `ros_gz_bridge::parameter_bridge` node with the specified `GazeboBridge` instances.
@@ -128,7 +112,7 @@ def spawn_gazebo_topic_bridge(
 
     bl = BetterLaunch.instance()
 
-    ros_gz = "ros_" + get_gazebo_prefix()
+    ros_gz = "ros_" + get_gazebo_version()
     image_bridges = [bridge for bridge in bridges if bridge.is_image]
     std_config = "\n".join(bridge.yaml() for bridge in bridges if not bridge.is_image)
 
@@ -165,7 +149,7 @@ def spawn_gazebo_topic_bridge(
     return (node_reg, node_img)
 
 
-def spawn_gazebo_world_transform(gazebo_world_frame: str = None) -> Node:
+def spawn_world_transform(gazebo_world_frame: str = None) -> Node:
     """
     Runs a static_transform_publisher to connect the ROS `world` frame and a Gazebo world frame, if the Gazebo world frame is specified and different from 'world'.
 
@@ -205,7 +189,7 @@ def gazebo_launch(
 
     Parameters
     ----------
-    package : str, 
+    package : str,
         A package to locate the world_file in. May be `None` (see :py:meth:`BetterLaunch.find`).
     world_file : str
         Path to the primary world file for the simulation.
@@ -218,14 +202,30 @@ def gazebo_launch(
     """
     bl = BetterLaunch.instance()
 
-    _, launch_file, launch_arguments = _get_gazebo_launch_args(package, world_file, gz_args)
+    world_file = bl.find(package, world_file)
+    if not os.path.exists(world_file):
+        raise ValueError("Could not find world file")
+
+    full_args = [world_file]
+    if gz_args:
+        full_args += gz_args
+
+    full_args = " ".join(full_args)
+
+    if get_gazebo_version() == "gz":
+        launch_file = bl.find("ros_gz_sim", "gz_sim.launch.py")
+        launch_arguments = {"gz_args": full_args}
+    else:
+        launch_file = bl.find("ros_ign_gazebo", "ign_gazebo.launch.py")
+        launch_arguments = {"ign_args": full_args}
+
     bl.include(None, launch_file, **launch_arguments)
 
     if world_save_file:
-        gazebo_save_world(world_save_file, save_after)
+        save_world(world_save_file, save_after)
 
 
-def gazebo_save_world(filepath: str, after: float = 5.0) -> None:
+def save_world(filepath: str, after: float = 5.0) -> None:
     """Saves the current gazebo world to a file. Resolves any spawned URDF through their description parameter and converts to SDF.
 
     Parameters
@@ -250,10 +250,9 @@ def gazebo_save_world(filepath: str, after: float = 5.0) -> None:
         save()
 
 
-def gazebo_spawn_model(
+def spawn_model(
     model_name: str,
-    topic: str = "robot_description",
-    model_file: str = None,
+    topic_or_file: str,
     spawn_args: dict[str, Any] = None,
 ) -> Node:
     """
@@ -265,10 +264,8 @@ def gazebo_spawn_model(
     ----------
     name : str
         The name of the model to spawn in the Gazebo environment.
-    topic : str, optional
-        The topic to retrieve the model description from.
-    model_file : str, optional
-        The path to the model file to spawn. If not provided, the model will be retrieved from the specified topic.
+    topic_or_file : str
+        The topic or file to retrieve the model description from. Topic is tested first.
     spawn_args : dict[str, Any], optional
         Additional arguments for spawning the model, such as pose and other options. See :py:meth:`get_gazebo_axes_args` for defining the model's orientation.
 
@@ -283,83 +280,25 @@ def gazebo_spawn_model(
         spawn_args = {}
 
     cmd_args = ["-name", model_name]
-    if model_file is not None:
-        cmd_args.extend(["-file", model_file])
+
+    topics = {t[0] for t in bl.shared_node.get_topic_names_and_types()}
+    if topic_or_file in topics:
+        cmd_args.extend(["-topic", topic_or_file])
+    elif os.path.isfile(topic_or_file):
+        cmd_args.extend(["-file", topic_or_file])
     else:
-        cmd_args.extend(["-topic", topic])
+        bl.logger.warning(
+            f"{topic_or_file} is not a topic nor a file, assuming it will be a topic in the future"
+        )
+        cmd_args.extend(["-topic", topic_or_file])
 
     for key, val in spawn_args.items():
         cmd_args.extend([f"-{key}", val])
 
-    pkg = "ros_ign_gazebo" if get_gazebo_prefix() == "ign" else "ros_gz_sim"
+    pkg = "ros_ign_gazebo" if get_gazebo_version() == "ign" else "ros_gz_sim"
     return bl.node(
         pkg, "create", f"spawn_{model_name}", anonymous=True, cmd_args=cmd_args
     )
-
-
-def _get_gazebo_launch_args(
-    package: str,
-    world_file: str,
-    gz_args: list[str] = None,
-) -> tuple[str, str, dict]:
-    """Prepares the launch file and arguments for starting a Gazebo simulation based on the provided world file.
-
-    Parameters
-    ----------
-    package : str
-        The package to locate the world file in. May be `None` (see :py:meth:`find`).
-    world_file : str
-        The path to the world file to be loaded in the Gazebo simulator.
-    gz_args : list[str], optional
-        Optional additional arguments to pass to Gazebo, such as simulation parameters.
-
-    Raises
-    ------
-    ValueError
-        If the world_file cannot be found.
-
-    Returns
-    -------
-    tuple[str, str, dict]
-        - The name of the world found in the `world_file`.
-        - The path to the launch file for Gazebo.
-        - A dictionary of arguments to be passed to the Gazebo launch file.
-    """
-    bl = BetterLaunch.instance()
-
-    world_file = bl.find(package, world_file)
-    if not os.path.exists(world_file):
-        raise ValueError("Could not find world file")
-
-    full_args = [world_file]
-    if gz_args:
-        full_args += gz_args
-
-    if get_gazebo_prefix() == "gz":
-        launch_file = bl.find("ros_gz_sim", "gz_sim.launch.py")
-        launch_arguments = {"gz_args": full_args}
-    else:
-        launch_file = bl.find("ros_ign_gazebo", "ign_gazebo.launch.py")
-        launch_arguments = {"ign_args": full_args}
-
-    world_name = None
-    with open(world_file) as f:
-        while True:
-            line = f.readline()
-
-            if not line:
-                bl.logger.warning(
-                    f"Could not get the name of the Gazebo world {world_file}"
-                )
-                break
-
-            if "world name" in line:
-                world_name = line.split('"')[1]
-                GazeboBridge.set_world_name(world_name)
-                bl.logger.info(f"Found Gazebo world '{world_name}' in {world_file}")
-                break
-
-    return world_name, launch_file, launch_arguments
 
 
 class GazeboBridge:
@@ -482,8 +421,10 @@ class GazeboBridge:
             self.gz_msg = gz_msg
         else:
             if ros_msg not in self.msg_map:
-                raise ValueError(f"Unknown message type '{ros_msg}', try giving an explicit gz_msg")
-        
+                raise ValueError(
+                    f"Unknown message type '{ros_msg}', try giving an explicit gz_msg"
+                )
+
             self.gz_msg = self.msg_map[ros_msg]
 
         if direction not in get_args(self.Direction):
@@ -492,19 +433,18 @@ class GazeboBridge:
         self.gz_topic = gz_topic
         self.ros_topic = ros_topic
 
-        self.is_image = (ros_msg == "sensor_msgs/msg/Image")
+        self.is_image = ros_msg == "sensor_msgs/msg/Image"
         self.direction = direction
         self.ros_msg = ros_msg
 
     @classmethod
     def gz_exec(cls) -> str:
         if not cls._gz_exec:
-            cls._gz_exec = get_gazebo_prefix()
+            cls._gz_exec = get_gazebo_version()
         return cls._gz_exec
 
     def yaml(self) -> str:
-        """Returns a YAML snippet that can be used to configure other bridges.
-        """
+        """Returns a YAML snippet that can be used to configure other bridges."""
         gz_exec = self.gz_exec()
 
         dir_string = "BIDIRECTIONAL"
@@ -553,7 +493,7 @@ class GazeboBridge:
             cmd = [cls.gz_exec(), "model", "--list"]
             output = check_output(cmd, stderr=STDOUT).decode()
         except Exception as e:
-            raise ValueError("Failed to list loaded Gazebo models: " + e)
+            raise ValueError(f"Failed to list loaded Gazebo models: {e}")
 
         if not output or "timed out" in output:
             raise ValueError("No loaded Gazebo models or request timed out")
@@ -561,7 +501,9 @@ class GazeboBridge:
         world_name = output.replace("]", "[").split("[")[1]
 
         if not world_name:
-            raise ValueError(f"The command {' '.join(cmd)} did not return a parseable world name (output was '{output}')")
+            raise ValueError(
+                f"The command {' '.join(cmd)} did not return a parseable world name (output was '{output}')"
+            )
 
         GazeboBridge._active_world_name = world_name
         return world_name
@@ -613,9 +555,7 @@ class GazeboBridge:
         GazeboBridge
             An instance of the GazeboBridge for the clock topic.
         """
-        return GazeboBridge(
-            "/clock", "/clock", "rosgraph_msgs/msg/Clock", "gz2ros"
-        )
+        return GazeboBridge("/clock", "/clock", "rosgraph_msgs/msg/Clock", "gz2ros")
 
     @classmethod
     def make_joint_state_bridge(cls, model: str) -> "GazeboBridge":

@@ -185,7 +185,8 @@ def _launch_this_wrapper(
         owner = frame_locals["self"]
 
         if type(owner).__name__ == "IncludeLaunchDescription":
-            # We were included, expose the expected method in our caller's globals and return
+            # We were included or started by ROS2, expose the expected launch method in our 
+            # caller's globals and return
             print(
                 f"[NOTE] Launch file {os.path.basename(BetterLaunch._launchfile)} got included from ROS2"
             )

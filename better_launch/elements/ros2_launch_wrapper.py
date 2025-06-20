@@ -220,8 +220,6 @@ class Ros2LaunchWrapper(AbstractNode):
             self.logger.warning(f"LaunchService {self.name} is alrady running")
             return
 
-        logout, logerr = roslog.get_output_loggers(self.name, self.output)
-
         # Note that passing loggers will not work for the TUI, as they would have to communicate
         # across the process boundaries. In general, only basic values and instances from the 
         # multiprocessing module should be passed to the process
@@ -239,19 +237,19 @@ class Ros2LaunchWrapper(AbstractNode):
         self._process.start()
 
         threading.Thread(
-            target=self._process_watcher, args=(logout, logerr), daemon=True
+            target=self._process_watcher, daemon=True
         ).start()
 
-    def _process_watcher(self, logout: logging.Logger, logerr: logging.Logger):
+    def _process_watcher(self):
         q = self._process_log_queue
 
         while self.is_running:
             try:
                 while not q.empty():
                     record: logging.LogRecord = q.get()
-                    logout.handle(record)
+                    self.logger.handle(record)
             except Exception as e:
-                logerr.info(f"Receiving log record failed: {e}")
+                self.logger.error(f"Receiving log record failed: {e}")
 
         self._process.close()
 

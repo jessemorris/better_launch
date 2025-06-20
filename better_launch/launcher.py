@@ -555,7 +555,7 @@ Takeoff in 3... 2... 1...
 
         If neither `glob` nor `filename` is provided the base path will be returned.
 
-        If `filename` is provided but `glob` is not, the base path will be searched recursively for the given filename. Otherwise, `glob` will be used to locate valid candidate files and directories within the base path, allowing patterns like `**/lib` (any lib folder) and `*.py` (any python file). See the `pathlib pattern language <https://docs.python.org/3/library/pathlib.html#pathlib-pattern-language>`_ for details.
+        If `filename` is provided but `glob` is not, the base path will be searched recursively for the given filename. Otherwise, `glob` will be used to locate valid candidate files and directories within the base path, allowing patterns like `**/lib/` (any lib folder) and `*.py` (any python file). See the `pathlib pattern language <https://docs.python.org/3/library/pathlib.html#pathlib-pattern-language>`_ for details.
 
         If only `glob` is provided but not `filename`, the first candidate is returned. Otherwise the discovered candidates will be searched for the given filename.
 
@@ -612,7 +612,7 @@ Takeoff in 3... 2... 1...
                 # Return the first candidate
                 return str(candidate.resolve().absolute())
 
-            if candidate.is_file() and candidate.name == filename:
+            if candidate.is_file() and candidate.match(f"**/{filename}"):
                 # We found a match
                 return str(candidate.resolve().absolute())
 
