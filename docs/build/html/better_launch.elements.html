@@ -7,7 +7,7 @@
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>better_launch.elements package &mdash; better_launch 0.9.1 documentation</title>
-      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
 
   
@@ -1137,7 +1137,7 @@ recreate and restart the node with the same arguments as the original node.</p>
 <li><p><strong>cmd_args</strong> (<em>list</em><em>[</em><em>str</em><em>]</em><em>, </em><em>optional</em>) – Additional command line arguments to pass to the node.</p></li>
 <li><p><strong>env</strong> (<em>dict</em><em>[</em><em>str</em><em>, </em><em>str</em><em>]</em><em>, </em><em>optional</em>) – Additional environment variables to set for the node’s process. The node process will merge these with the environment variables of the better_launch host process unless <code class="xref py py-meth docutils literal notranslate"><span class="pre">isolate_env()</span></code> is True.</p></li>
 <li><p><strong>isolate_env</strong> (<em>bool</em><em>, </em><em>optional</em>) – If True, the node process’ env will not be inherited from the parent process and only those passed via <cite>env</cite> will be used. Be aware that this can result in many common things to not work anymore since e.g. keys like <em>PATH</em> will be missing.</p></li>
-<li><p><strong>log_level</strong> (<em>int</em><em>, </em><em>optional</em>) – The minimum severity a logged message from this node must have in order to be published.</p></li>
+<li><p><strong>log_level</strong> (<em>int</em><em>, </em><em>optional</em>) – The minimum severity a logged message from this node must have in order to be published. This will be added to the cmd_args unless it is None.</p></li>
 <li><p><strong>output</strong> (<em>LogSink</em><em> | </em><em>set</em><em>[</em><em>LogSink</em><em>]</em><em>, </em><em>optional</em>) – Determines if and where this node’s output should be directed. Common choices are <cite>screen</cite> to print to terminal, <cite>log</cite> to write to a common log file, <cite>own_log</cite> to write to a node-specific log file, and <cite>none</cite> to not write any output anywhere. See <code class="xref py py-meth docutils literal notranslate"><span class="pre">configure_logger()</span></code> for details.</p></li>
 <li><p><strong>anonymous</strong> (<em>bool</em><em>, </em><em>optional</em>) – If True, the node name will be appended with a unique suffix to avoid name conflicts.</p></li>
 <li><p><strong>hidden</strong> (<em>bool</em><em>, </em><em>optional</em>) – If True, the node name will be prepended with a “_”, hiding it from common listings.</p></li>
@@ -1426,7 +1426,7 @@ recreate and restart the node with the same arguments as the original node.</p>
 <li><p><strong>cmd_args</strong> (<em>list</em><em>[</em><em>str</em><em>]</em><em>, </em><em>optional</em>) – Additional command line arguments to pass to the node.</p></li>
 <li><p><strong>env</strong> (<em>dict</em><em>[</em><em>str</em><em>, </em><em>str</em><em>]</em><em>, </em><em>optional</em>) – Additional environment variables to set for the node’s process. The node process will merge these with the environment variables of the better_launch host process unless <code class="xref py py-meth docutils literal notranslate"><span class="pre">isolate_env()</span></code> is True.</p></li>
 <li><p><strong>isolate_env</strong> (<em>bool</em><em>, </em><em>optional</em>) – If True, the node process’ env will not be inherited from the parent process and only those passed via <cite>env</cite> will be used. Be aware that this can result in many common things to not work anymore since e.g. keys like <em>PATH</em> will be missing.</p></li>
-<li><p><strong>log_level</strong> (<em>int</em><em>, </em><em>optional</em>) – The minimum severity a logged message from this node must have in order to be published.</p></li>
+<li><p><strong>log_level</strong> (<em>int</em><em>, </em><em>optional</em>) – The minimum severity a logged message from this node must have in order to be published. This will be added to the cmd_args unless it is None.</p></li>
 <li><p><strong>output</strong> (<em>LogSink</em><em> | </em><em>set</em><em>[</em><em>LogSink</em><em>]</em><em>, </em><em>optional</em>) – Determines if and where this node’s output should be directed. Common choices are <cite>screen</cite> to print to terminal, <cite>log</cite> to write to a common log file, <cite>own_log</cite> to write to a node-specific log file, and <cite>none</cite> to not write any output anywhere. See <code class="xref py py-meth docutils literal notranslate"><span class="pre">configure_logger()</span></code> for details.</p></li>
 <li><p><strong>anonymous</strong> (<em>bool</em><em>, </em><em>optional</em>) – If True, the node name will be appended with a unique suffix to avoid name conflicts.</p></li>
 <li><p><strong>hidden</strong> (<em>bool</em><em>, </em><em>optional</em>) – If True, the node name will be prepended with a “_”, hiding it from common listings.</p></li>

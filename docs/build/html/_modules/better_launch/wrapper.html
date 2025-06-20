@@ -6,7 +6,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>better_launch.wrapper &mdash; better_launch 0.9.1 documentation</title>
-      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=e59714d7" />
 
   
@@ -71,38 +71,37 @@
            <div itemprop="articleBody">
              
   <h1>Source code for better_launch.wrapper</h1><div class="highlight"><pre>
-<span></span><span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Literal</span><span class="p">,</span> <span class="n">get_args</span>
-<span class="kn">import</span> <span class="nn">os</span>
-<span class="kn">import</span> <span class="nn">platform</span>
-<span class="kn">from</span> <span class="nn">ast</span> <span class="kn">import</span> <span class="n">literal_eval</span>
-<span class="kn">import</span> <span class="nn">signal</span>
-<span class="kn">import</span> <span class="nn">inspect</span>
-<span class="kn">import</span> <span class="nn">logging</span>
-<span class="kn">import</span> <span class="nn">click</span>
-<span class="kn">import</span> <span class="nn">threading</span>
-<span class="kn">from</span> <span class="nn">docstring_parser</span> <span class="kn">import</span> <span class="n">parse</span> <span class="k">as</span> <span class="n">parse_docstring</span>
+<span></span><span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Literal</span><span class="p">,</span> <span class="n">get_args</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">platform</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">ast</span><span class="w"> </span><span class="kn">import</span> <span class="n">literal_eval</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">signal</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">inspect</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">click</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">threading</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">docstring_parser</span><span class="w"> </span><span class="kn">import</span> <span class="n">parse</span> <span class="k">as</span> <span class="n">parse_docstring</span>
 
-<span class="kn">from</span> <span class="nn">better_launch.launcher</span> <span class="kn">import</span> <span class="p">(</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">better_launch.launcher</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">BetterLaunch</span><span class="p">,</span>
     <span class="n">_bl_singleton_instance</span><span class="p">,</span>
     <span class="n">_bl_include_args</span><span class="p">,</span>
 <span class="p">)</span>
-<span class="kn">from</span> <span class="nn">better_launch.utils.better_logging</span> <span class="kn">import</span> <span class="p">(</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">better_launch.utils.better_logging</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">PrettyLogFormatter</span><span class="p">,</span>
+    <span class="n">Colormode</span><span class="p">,</span>
+    <span class="n">init_logging</span><span class="p">,</span>
 <span class="p">)</span>
-<span class="kn">from</span> <span class="nn">better_launch.utils.introspection</span> <span class="kn">import</span> <span class="n">find_calling_frame</span>
-<span class="kn">from</span> <span class="nn">better_launch.ros</span> <span class="kn">import</span> <span class="n">logging</span> <span class="k">as</span> <span class="n">roslog</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">better_launch.utils.introspection</span><span class="w"> </span><span class="kn">import</span> <span class="n">find_calling_frame</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">better_launch.ros</span><span class="w"> </span><span class="kn">import</span> <span class="n">logging</span> <span class="k">as</span> <span class="n">roslog</span>
 
 
 <span class="n">_is_launcher_defined</span> <span class="o">=</span> <span class="s2">&quot;__better_launch_this_defined&quot;</span>
 
 
-<span class="n">Colormode</span> <span class="o">=</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">&quot;default&quot;</span><span class="p">,</span> <span class="s2">&quot;severity&quot;</span><span class="p">,</span> <span class="s2">&quot;source&quot;</span><span class="p">,</span> <span class="s2">&quot;none&quot;</span><span class="p">,</span> <span class="s2">&quot;rainbow&quot;</span><span class="p">]</span>
-
-
 <div class="viewcode-block" id="launch_this">
 <a class="viewcode-back" href="../../better_launch_custom.html#better_launch.wrapper.launch_this">[docs]</a>
-<span class="k">def</span> <span class="nf">launch_this</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">launch_this</span><span class="p">(</span>
     <span class="n">launch_func</span><span class="p">:</span> <span class="n">Callable</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="o">*</span><span class="p">,</span>
     <span class="n">ui</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
@@ -121,13 +120,13 @@
 <span class="sd">    launch_func : Callable, optional</span>
 <span class="sd">        Your launch function, typically using BetterLaunch to start ROS2 nodes.</span>
 <span class="sd">    ui : bool, optional</span>
-<span class="sd">        Whether to start the better_launch TUI.</span>
+<span class="sd">        Whether to start the better_launch TUI. Superseded by the `BL_UI_OVERRIDE` environment variable and the `--bl_ui_override` argument.</span>
 <span class="sd">    join : bool, optional</span>
 <span class="sd">        If True, join the better_launch process. Has no effect when ui == True.</span>
 <span class="sd">    screen_log_format : str, optional</span>
-<span class="sd">        Customize how log output will be formatted when printing it to the screen. Will be overridden by the `OVERRIDE_SCREEN_LOG_FORMAT` environment variable. See :py:class:`PrettyLogFormatter` for details.</span>
+<span class="sd">        Customize how log output will be formatted when printing it to the screen. Will be overridden by the `BL_SCREEN_LOG_FORMAT_OVERRIDE` environment variable. See :py:class:`PrettyLogFormatter` for details.</span>
 <span class="sd">    file_log_format : str, optional</span>
-<span class="sd">        Customize how log output will be formatted when writing it to a file. Will be overridden by the `OVERRIDE_FILE_LOG_FORMAT` environment variable. See :py:class:`PrettyLogFormatter` for details.</span>
+<span class="sd">        Customize how log output will be formatted when writing it to a file. Will be overridden by the `BL_FILE_LOG_FORMAT_OVERRIDE` environment variable. See :py:class:`PrettyLogFormatter` for details.</span>
 <span class="sd">    colormode : Colormode, optional</span>
 <span class="sd">        Decides what colors will be used for:</span>
 <span class="sd">        * default: one color per log severity level and a single color for all message sources</span>
@@ -135,11 +134,12 @@
 <span class="sd">        * source: one color per message source, don&#39;t colorize log severity</span>
 <span class="sd">        * none: don&#39;t colorize anything</span>
 <span class="sd">        * rainbow: colorize log severity and give each message source its own color</span>
+<span class="sd">        Superseded by the `BL_COLORMODE_OVERRIDE` environment variable and the `--bl_colormode_override` argument.</span>
 <span class="sd">    manage_foreign_nodes : bool, optional</span>
 <span class="sd">        If True, the TUI will also include node processes not started by this process. Has no effect if the TUI is not started.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="k">def</span> <span class="nf">decoration_helper</span><span class="p">(</span><span class="n">func</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">decoration_helper</span><span class="p">(</span><span class="n">func</span><span class="p">):</span>
         <span class="k">return</span> <span class="n">_launch_this_wrapper</span><span class="p">(</span>
             <span class="n">func</span><span class="p">,</span>
             <span class="n">ui</span><span class="o">=</span><span class="n">ui</span><span class="p">,</span>
@@ -154,7 +154,7 @@
 
 
 
-<span class="k">def</span> <span class="nf">_launch_this_wrapper</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_launch_this_wrapper</span><span class="p">(</span>
     <span class="n">launch_func</span><span class="p">:</span> <span class="n">Callable</span><span class="p">,</span>
     <span class="n">ui</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="n">join</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
@@ -208,7 +208,7 @@
 
     <span class="n">sigint_count</span> <span class="o">=</span> <span class="mi">0</span>
 
-    <span class="k">def</span> <span class="nf">sigint_handler</span><span class="p">(</span><span class="n">sig</span><span class="p">,</span> <span class="n">frame</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">sigint_handler</span><span class="p">(</span><span class="n">sig</span><span class="p">,</span> <span class="n">frame</span><span class="p">):</span>
         <span class="k">nonlocal</span> <span class="n">sigint_count</span>
         <span class="n">sigint_count</span> <span class="o">+=</span> <span class="mi">1</span>
 
@@ -218,7 +218,7 @@
 
         <span class="n">BetterLaunch</span><span class="p">()</span><span class="o">.</span><span class="n">_on_sigint</span><span class="p">(</span><span class="n">sig</span><span class="p">,</span> <span class="n">frame</span><span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">sigterm_handler</span><span class="p">(</span><span class="n">sig</span><span class="p">,</span> <span class="n">frame</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">sigterm_handler</span><span class="p">(</span><span class="n">sig</span><span class="p">,</span> <span class="n">frame</span><span class="p">):</span>
         <span class="n">BetterLaunch</span><span class="p">()</span><span class="o">.</span><span class="n">_on_sigterm</span><span class="p">(</span><span class="n">sig</span><span class="p">,</span> <span class="n">frame</span><span class="p">)</span>
 
     <span class="n">signal</span><span class="o">.</span><span class="n">signal</span><span class="p">(</span><span class="n">signal</span><span class="o">.</span><span class="n">SIGINT</span><span class="p">,</span> <span class="n">sigint_handler</span><span class="p">)</span>
@@ -226,6 +226,17 @@
 
     <span class="k">if</span> <span class="n">platform</span><span class="o">.</span><span class="n">system</span><span class="p">()</span> <span class="o">!=</span> <span class="s2">&quot;Windows&quot;</span><span class="p">:</span>
         <span class="n">signal</span><span class="o">.</span><span class="n">signal</span><span class="p">(</span><span class="n">signal</span><span class="o">.</span><span class="n">SIGQUIT</span><span class="p">,</span> <span class="n">sigterm_handler</span><span class="p">)</span>
+
+    <span class="c1"># Env overrides, will be superseded by command line args if implemented</span>
+    <span class="n">screen_log_format</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;BL_SCREEN_LOG_FORMAT_OVERRIDE&quot;</span><span class="p">,</span> <span class="n">screen_log_format</span><span class="p">)</span>
+    <span class="n">file_log_format</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;BL_FILE_LOG_FORMAT_OVERRIDE&quot;</span><span class="p">,</span> <span class="n">file_log_format</span><span class="p">)</span>
+    <span class="n">colormode</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;BL_COLORMODE_OVERRIDE&quot;</span><span class="p">,</span> <span class="n">colormode</span><span class="p">)</span>
+    
+    <span class="n">env_ui</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;BL_UI_OVERRIDE&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">env_ui</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;enable&quot;</span><span class="p">,</span> <span class="s2">&quot;true&quot;</span><span class="p">,</span> <span class="s2">&quot;1&quot;</span><span class="p">):</span>
+        <span class="n">ui</span> <span class="o">=</span> <span class="kc">True</span>
+    <span class="k">elif</span> <span class="n">env_ui</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;disable&quot;</span><span class="p">,</span> <span class="s2">&quot;false&quot;</span><span class="p">,</span> <span class="s2">&quot;0&quot;</span><span class="p">):</span>
+        <span class="n">ui</span> <span class="o">=</span> <span class="kc">False</span>
 
     <span class="c1"># If we were started by ros launch (e.g. through &#39;ros2 launch &lt;some-bl-launch-file&gt;&#39;) we need</span>
     <span class="c1"># to expose a &quot;generate_launch_description&quot; method instead of running by ourselves.</span>
@@ -246,12 +257,22 @@
         <span class="n">frame_locals</span> <span class="o">=</span> <span class="n">frame_info</span><span class="o">.</span><span class="n">frame</span><span class="o">.</span><span class="n">f_locals</span>
         <span class="k">if</span> <span class="s2">&quot;self&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">frame_locals</span><span class="p">:</span>
             <span class="k">continue</span>
+
         <span class="n">owner</span> <span class="o">=</span> <span class="n">frame_locals</span><span class="p">[</span><span class="s2">&quot;self&quot;</span><span class="p">]</span>
-        <span class="k">if</span> <span class="p">(</span>
-            <span class="nb">isinstance</span><span class="p">(</span><span class="n">owner</span><span class="p">,</span> <span class="nb">object</span><span class="p">)</span>
-            <span class="ow">and</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">owner</span><span class="p">,</span> <span class="s2">&quot;__name__&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span> <span class="o">==</span> <span class="s2">&quot;IncludeLaunchDescription&quot;</span>
-        <span class="p">):</span>
+
+        <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">owner</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">==</span> <span class="s2">&quot;IncludeLaunchDescription&quot;</span><span class="p">:</span>
             <span class="c1"># We were included, expose the expected method in our caller&#39;s globals and return</span>
+            <span class="nb">print</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;[NOTE] Launch file </span><span class="si">{</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">BetterLaunch</span><span class="o">.</span><span class="n">_launchfile</span><span class="p">)</span><span class="si">}</span><span class="s2"> got included from ROS2&quot;</span>
+            <span class="p">)</span>
+
+            <span class="c1"># TODO Maybe we shouldn&#39;t?</span>
+            <span class="n">init_logging</span><span class="p">(</span>
+                <span class="n">roslog</span><span class="o">.</span><span class="n">launch_config</span><span class="p">,</span>
+                <span class="n">screen_log_format</span><span class="p">,</span>
+                <span class="n">file_log_format</span><span class="p">,</span>
+                <span class="n">colormode</span><span class="p">,</span>
+            <span class="p">)</span>
             <span class="n">_expose_ros2_launch_function</span><span class="p">(</span><span class="n">launch_func</span><span class="p">)</span>
             <span class="k">return</span>
 
@@ -288,13 +309,13 @@
         <span class="p">)</span>
 
     <span class="c1"># Additional overrides for launch arguments</span>
-    <span class="k">def</span> <span class="nf">click_ui_override</span><span class="p">(</span><span class="n">ctx</span><span class="p">:</span> <span class="n">click</span><span class="o">.</span><span class="n">Context</span><span class="p">,</span> <span class="n">param</span><span class="p">:</span> <span class="n">click</span><span class="o">.</span><span class="n">Parameter</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">click_ui_override</span><span class="p">(</span><span class="n">ctx</span><span class="p">:</span> <span class="n">click</span><span class="o">.</span><span class="n">Context</span><span class="p">,</span> <span class="n">param</span><span class="p">:</span> <span class="n">click</span><span class="o">.</span><span class="n">Parameter</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
         <span class="k">if</span> <span class="n">value</span> <span class="o">!=</span> <span class="s2">&quot;unset&quot;</span><span class="p">:</span>
             <span class="k">nonlocal</span> <span class="n">ui</span>
             <span class="n">ui</span> <span class="o">=</span> <span class="n">value</span> <span class="o">==</span> <span class="s2">&quot;enable&quot;</span>
         <span class="k">return</span> <span class="n">value</span>
 
-    <span class="k">def</span> <span class="nf">click_colormode_override</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">click_colormode_override</span><span class="p">(</span>
         <span class="n">ctx</span><span class="p">:</span> <span class="n">click</span><span class="o">.</span><span class="n">Context</span><span class="p">,</span> <span class="n">param</span><span class="p">:</span> <span class="n">click</span><span class="o">.</span><span class="n">Parameter</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="nb">str</span>
     <span class="p">):</span>
         <span class="k">if</span> <span class="n">value</span><span class="p">:</span>
@@ -318,9 +339,7 @@
             <span class="p">),</span>
             <span class="n">click</span><span class="o">.</span><span class="n">Option</span><span class="p">(</span>
                 <span class="p">[</span><span class="s2">&quot;--bl_colormode_override&quot;</span><span class="p">],</span>
-                <span class="nb">type</span><span class="o">=</span><span class="n">click</span><span class="o">.</span><span class="n">types</span><span class="o">.</span><span class="n">Choice</span><span class="p">(</span>
-                    <span class="n">get_args</span><span class="p">(</span><span class="n">Colormode</span><span class="p">),</span> <span class="n">case_sensitive</span><span class="o">=</span><span class="kc">False</span>
-                <span class="p">),</span>
+                <span class="nb">type</span><span class="o">=</span><span class="n">click</span><span class="o">.</span><span class="n">types</span><span class="o">.</span><span class="n">Choice</span><span class="p">(</span><span class="n">get_args</span><span class="p">(</span><span class="n">Colormode</span><span class="p">),</span> <span class="n">case_sensitive</span><span class="o">=</span><span class="kc">False</span><span class="p">),</span>
                 <span class="n">show_choices</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
                 <span class="n">default</span><span class="o">=</span><span class="n">get_args</span><span class="p">(</span><span class="n">Colormode</span><span class="p">)[</span><span class="mi">0</span><span class="p">],</span>
                 <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Override the logging color mode&quot;</span><span class="p">,</span>
@@ -331,51 +350,13 @@
     <span class="p">)</span>
 
     <span class="nd">@click</span><span class="o">.</span><span class="n">pass_context</span>
-    <span class="k">def</span> <span class="nf">run</span><span class="p">(</span><span class="n">ctx</span><span class="p">:</span> <span class="n">click</span><span class="o">.</span><span class="n">Context</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
-        <span class="c1"># Setup logging</span>
-        <span class="k">nonlocal</span> <span class="n">screen_log_format</span><span class="p">,</span> <span class="n">file_log_format</span>
-
-        <span class="n">screen_log_format</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span>
-            <span class="s2">&quot;OVERRIDE_SCREEN_LOG_FORMAT&quot;</span><span class="p">,</span> <span class="n">screen_log_format</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">run</span><span class="p">(</span><span class="n">ctx</span><span class="p">:</span> <span class="n">click</span><span class="o">.</span><span class="n">Context</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="n">init_logging</span><span class="p">(</span>
+            <span class="n">roslog</span><span class="o">.</span><span class="n">launch_config</span><span class="p">,</span> <span class="n">screen_log_format</span><span class="p">,</span> <span class="n">file_log_format</span><span class="p">,</span> <span class="n">colormode</span>
         <span class="p">)</span>
-        <span class="n">file_log_format</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;OVERRIDE_FILE_LOG_FORMAT&quot;</span><span class="p">,</span> <span class="n">file_log_format</span><span class="p">)</span>
-
-        <span class="k">if</span> <span class="ow">not</span> <span class="n">screen_log_format</span><span class="p">:</span>
-            <span class="n">screen_log_format</span> <span class="o">=</span> <span class="n">PrettyLogFormatter</span><span class="o">.</span><span class="n">default_screen_format</span>
-
-        <span class="k">if</span> <span class="ow">not</span> <span class="n">file_log_format</span><span class="p">:</span>
-            <span class="n">file_log_format</span> <span class="o">=</span> <span class="n">PrettyLogFormatter</span><span class="o">.</span><span class="n">default_file_format</span>
-
-        <span class="k">if</span> <span class="n">colormode</span> <span class="o">==</span> <span class="s2">&quot;default&quot;</span><span class="p">:</span>
-            <span class="n">src_color</span> <span class="o">=</span> <span class="mi">222</span>
-            <span class="n">log_color</span> <span class="o">=</span> <span class="kc">None</span>
-        <span class="k">elif</span> <span class="n">colormode</span> <span class="o">==</span> <span class="s2">&quot;severity&quot;</span><span class="p">:</span>
-            <span class="n">src_color</span> <span class="o">=</span> <span class="mi">39</span>
-            <span class="n">log_color</span> <span class="o">=</span> <span class="kc">None</span>
-        <span class="k">elif</span> <span class="n">colormode</span> <span class="o">==</span> <span class="s2">&quot;source&quot;</span><span class="p">:</span>
-            <span class="n">src_color</span> <span class="o">=</span> <span class="kc">None</span>
-            <span class="n">log_color</span> <span class="o">=</span> <span class="mi">39</span>
-        <span class="k">elif</span> <span class="n">colormode</span> <span class="o">==</span> <span class="s2">&quot;none&quot;</span><span class="p">:</span>
-            <span class="n">src_color</span> <span class="o">=</span> <span class="mi">39</span>
-            <span class="n">log_color</span> <span class="o">=</span> <span class="mi">39</span>
-        <span class="k">elif</span> <span class="n">colormode</span> <span class="o">==</span> <span class="s2">&quot;rainbow&quot;</span><span class="p">:</span>
-            <span class="n">src_color</span> <span class="o">=</span> <span class="kc">None</span>
-            <span class="n">log_color</span> <span class="o">=</span> <span class="kc">None</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Invalid colormode &quot;</span> <span class="o">+</span> <span class="n">colormode</span><span class="p">)</span>
-
-        <span class="c1"># We&#39;ll handle formatting and color ourselves, just get the nodes to comply</span>
-        <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s2">&quot;RCUTILS_CONSOLE_OUTPUT_FORMAT&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">%%{severity}%%{time}%%{message}</span><span class="s2">&quot;</span>
-        <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s2">&quot;RCUTILS_COLORIZED_OUTPUT&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;0&quot;</span>
-
-        <span class="n">roslog</span><span class="o">.</span><span class="n">launch_config</span><span class="o">.</span><span class="n">level</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">INFO</span>
-        <span class="n">roslog</span><span class="o">.</span><span class="n">launch_config</span><span class="o">.</span><span class="n">screen_formatter</span> <span class="o">=</span> <span class="n">PrettyLogFormatter</span><span class="p">(</span>
-            <span class="nb">format</span><span class="o">=</span><span class="n">screen_log_format</span><span class="p">,</span> <span class="n">source_colors</span><span class="o">=</span><span class="n">src_color</span><span class="p">,</span> <span class="n">log_colors</span><span class="o">=</span><span class="n">log_color</span>
-        <span class="p">)</span>
-        <span class="n">roslog</span><span class="o">.</span><span class="n">launch_config</span><span class="o">.</span><span class="n">file_formatter</span> <span class="o">=</span> <span class="n">PrettyLogFormatter</span><span class="p">(</span><span class="nb">format</span><span class="o">=</span><span class="n">file_log_format</span><span class="p">)</span>
 
         <span class="c1"># Wrap the launch function so we can do some preparation and cleanup tasks</span>
-        <span class="k">def</span> <span class="nf">launch_func_wrapper</span><span class="p">():</span>
+        <span class="k">def</span><span class="w"> </span><span class="nf">launch_func_wrapper</span><span class="p">():</span>
             <span class="k">if</span> <span class="n">launch_func_kwarg</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
                 <span class="c1"># If the launch func defines a **kwarg we can pass all extra arguments to it, with</span>
                 <span class="c1"># the caveat that these extra arguments need to be defined as `-[-]&lt;key&gt; val` tuples.</span>
@@ -414,7 +395,7 @@
         <span class="n">BetterLaunch</span><span class="o">.</span><span class="n">_launch_func_args</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">bound_args</span><span class="o">.</span><span class="n">arguments</span><span class="p">)</span>
 
         <span class="k">if</span> <span class="n">ui</span><span class="p">:</span>
-            <span class="kn">from</span> <span class="nn">better_launch.tui.better_tui</span> <span class="kn">import</span> <span class="n">BetterTui</span>
+            <span class="kn">from</span><span class="w"> </span><span class="nn">better_launch.tui.better_tui</span><span class="w"> </span><span class="kn">import</span> <span class="n">BetterTui</span>
 
             <span class="n">app</span> <span class="o">=</span> <span class="n">BetterTui</span><span class="p">(</span>
                 <span class="n">launch_func_wrapper</span><span class="p">,</span> <span class="n">manage_foreign_nodes</span><span class="o">=</span><span class="n">manage_foreign_nodes</span>
@@ -442,7 +423,7 @@
             <span class="k">raise</span>
 
 
-<span class="k">def</span> <span class="nf">_expose_ros2_launch_function</span><span class="p">(</span><span class="n">launch_func</span><span class="p">:</span> <span class="n">Callable</span><span class="p">):</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_expose_ros2_launch_function</span><span class="p">(</span><span class="n">launch_func</span><span class="p">:</span> <span class="n">Callable</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Helper function that exposes a function decorated by launch_this so that it can be included by a regular ROS2 launch file. We achieve this by generating a `generate_launch_description` function and adding it to the module globals where the launch function is defined.</span>
 
 <span class="sd">    Parameters</span>
@@ -451,9 +432,9 @@
 <span class="sd">        The launch function.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="k">def</span> <span class="nf">generate_launch_description</span><span class="p">():</span>
-        <span class="kn">from</span> <span class="nn">launch</span> <span class="kn">import</span> <span class="n">LaunchDescription</span><span class="p">,</span> <span class="n">LaunchContext</span>
-        <span class="kn">from</span> <span class="nn">launch.actions</span> <span class="kn">import</span> <span class="n">DeclareLaunchArgument</span><span class="p">,</span> <span class="n">OpaqueFunction</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">generate_launch_description</span><span class="p">():</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">launch</span><span class="w"> </span><span class="kn">import</span> <span class="n">LaunchDescription</span><span class="p">,</span> <span class="n">LaunchContext</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">launch.actions</span><span class="w"> </span><span class="kn">import</span> <span class="n">DeclareLaunchArgument</span><span class="p">,</span> <span class="n">OpaqueFunction</span>
 
         <span class="n">ld</span> <span class="o">=</span> <span class="n">LaunchDescription</span><span class="p">()</span>
 
@@ -466,7 +447,7 @@
 
             <span class="n">ld</span><span class="o">.</span><span class="n">add_action</span><span class="p">(</span><span class="n">DeclareLaunchArgument</span><span class="p">(</span><span class="n">param</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">default_value</span><span class="o">=</span><span class="n">default</span><span class="p">))</span>
 
-        <span class="k">def</span> <span class="nf">ros2_wrapper</span><span class="p">(</span><span class="n">context</span><span class="p">:</span> <span class="n">LaunchContext</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="k">def</span><span class="w"> </span><span class="nf">ros2_wrapper</span><span class="p">(</span><span class="n">context</span><span class="p">:</span> <span class="n">LaunchContext</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
             <span class="c1"># args and kwargs are only used by OpaqueFunction when using it like partial</span>
             <span class="n">launch_args</span> <span class="o">=</span> <span class="p">{}</span>
             <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">context</span><span class="o">.</span><span class="n">launch_configurations</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
@@ -480,13 +461,10 @@
             <span class="c1"># Call the launch function</span>
             <span class="n">launch_func</span><span class="p">(</span><span class="o">**</span><span class="n">launch_args</span><span class="p">)</span>
 
-            <span class="c1"># Retrieve the BetterLaunch singleton</span>
-            <span class="n">bl</span> <span class="o">=</span> <span class="n">BetterLaunch</span><span class="p">()</span>
+            <span class="c1"># Not needed right now, but opaque functions may return additional ROS2 actions</span>
+            <span class="k">return</span>
 
-            <span class="c1"># Opaque functions are allowed to return additional actions</span>
-            <span class="k">return</span> <span class="n">bl</span><span class="o">.</span><span class="n">_ros2_actions</span>
-
-        <span class="n">ld</span><span class="o">.</span><span class="n">add_action</span><span class="p">(</span><span class="n">OpaqueFunction</span><span class="p">(</span><span class="n">ros2_wrapper</span><span class="p">))</span>
+        <span class="n">ld</span><span class="o">.</span><span class="n">add_action</span><span class="p">(</span><span class="n">OpaqueFunction</span><span class="p">(</span><span class="n">function</span><span class="o">=</span><span class="n">ros2_wrapper</span><span class="p">))</span>
         <span class="k">return</span> <span class="n">ld</span>
 
     <span class="c1"># Add our generate_launch_description function to the module launch_this was called from</span>

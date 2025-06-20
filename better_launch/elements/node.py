@@ -129,7 +129,7 @@ class Node(AbstractNode, LiveParamsMixin):
             return
 
         try:
-            cmd = launcher.find(self.package, self.executable, f"lib/{self.package}")
+            cmd = launcher.find(self.package, self.executable, f"lib/**/{self.package}")
             final_cmd = [cmd] + self.cmd_args + ["--ros-args"]
 
             # Attach node parameters

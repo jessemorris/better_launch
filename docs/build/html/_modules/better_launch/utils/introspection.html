@@ -6,7 +6,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>better_launch.utils.introspection &mdash; better_launch 0.9.1 documentation</title>
-      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=e59714d7" />
 
   
@@ -71,14 +71,14 @@
            <div itemprop="articleBody">
              
   <h1>Source code for better_launch.utils.introspection</h1><div class="highlight"><pre>
-<span></span><span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Any</span>
-<span class="kn">import</span> <span class="nn">ast</span>
-<span class="kn">import</span> <span class="nn">inspect</span>
+<span></span><span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Any</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">ast</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">inspect</span>
 
 
 <div class="viewcode-block" id="find_function_frame">
 <a class="viewcode-back" href="../../../better_launch.utils.html#better_launch.utils.introspection.find_function_frame">[docs]</a>
-<span class="k">def</span> <span class="nf">find_function_frame</span><span class="p">(</span><span class="n">func</span><span class="p">:</span> <span class="n">Callable</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">inspect</span><span class="o">.</span><span class="n">FrameInfo</span><span class="p">:</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">find_function_frame</span><span class="p">(</span><span class="n">func</span><span class="p">:</span> <span class="n">Callable</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">inspect</span><span class="o">.</span><span class="n">FrameInfo</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Find the most recent stack frame the specified function is called in.</span>
 
 <span class="sd">    Note that the function **must** be part of the current stack frame that led to the invocation of this function.</span>
@@ -108,7 +108,7 @@
 
 <div class="viewcode-block" id="find_calling_frame">
 <a class="viewcode-back" href="../../../better_launch.utils.html#better_launch.utils.introspection.find_calling_frame">[docs]</a>
-<span class="k">def</span> <span class="nf">find_calling_frame</span><span class="p">(</span><span class="n">func</span><span class="p">:</span> <span class="n">Callable</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">inspect</span><span class="o">.</span><span class="n">FrameInfo</span><span class="p">:</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">find_calling_frame</span><span class="p">(</span><span class="n">func</span><span class="p">:</span> <span class="n">Callable</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">inspect</span><span class="o">.</span><span class="n">FrameInfo</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Find the most recent stack frame the specified function is called in that is NOT in the same file as the</span>
 <span class="sd">    function. This is useful to e.g. identify the python file a function is imported from and called in.</span>
 
@@ -144,7 +144,7 @@
 
 <div class="viewcode-block" id="get_bound_arguments">
 <a class="viewcode-back" href="../../../better_launch.utils.html#better_launch.utils.introspection.get_bound_arguments">[docs]</a>
-<span class="k">def</span> <span class="nf">get_bound_arguments</span><span class="p">(</span><span class="n">func</span><span class="p">:</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">with_defaults</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">get_bound_arguments</span><span class="p">(</span><span class="n">func</span><span class="p">:</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">with_defaults</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Retrieve the arguments that were passed to the specified function.</span>
 
 <span class="sd">    Note that the function **must** be part of the current stack frame that led to the invocation of this function.</span>
@@ -182,7 +182,7 @@
 
 <div class="viewcode-block" id="find_decorated_function_args">
 <a class="viewcode-back" href="../../../better_launch.utils.html#better_launch.utils.introspection.find_decorated_function_args">[docs]</a>
-<span class="k">def</span> <span class="nf">find_decorated_function_args</span><span class="p">(</span><span class="n">decorator_func</span><span class="p">:</span> <span class="n">Callable</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">find_decorated_function_args</span><span class="p">(</span><span class="n">decorator_func</span><span class="p">:</span> <span class="n">Callable</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Retrieve the arguments of the function that the specified decorator is wrapping.</span>
 
 <span class="sd">    Note that the function **must** be part of the current stack frame that led to the invocation of this function.</span>
@@ -216,7 +216,7 @@
 
 <div class="viewcode-block" id="find_launchthis_function">
 <a class="viewcode-back" href="../../../better_launch.utils.html#better_launch.utils.introspection.find_launchthis_function">[docs]</a>
-<span class="k">def</span> <span class="nf">find_launchthis_function</span><span class="p">(</span><span class="n">filepath</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ast</span><span class="o">.</span><span class="n">FunctionDef</span><span class="p">:</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">find_launchthis_function</span><span class="p">(</span><span class="n">filepath</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ast</span><span class="o">.</span><span class="n">FunctionDef</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Parses a source file into an AST tree and searches for a function decorated by :py:meth:`better_launch.launch_this`.</span>
 
 <span class="sd">    Parameters</span>
@@ -254,7 +254,7 @@
 
 <div class="viewcode-block" id="get_launchfunc_signature_from_file">
 <a class="viewcode-back" href="../../../better_launch.utils.html#better_launch.utils.introspection.get_launchfunc_signature_from_file">[docs]</a>
-<span class="k">def</span> <span class="nf">get_launchfunc_signature_from_file</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">get_launchfunc_signature_from_file</span><span class="p">(</span>
     <span class="n">filepath</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">inspect</span><span class="o">.</span><span class="n">Signature</span><span class="p">,</span> <span class="nb">str</span><span class="p">]:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Searches for a launch function in the specified source file and returns its name, signature and docstring.</span>

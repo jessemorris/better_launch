@@ -6,7 +6,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>better_launch.gazebo &mdash; better_launch 0.9.1 documentation</title>
-      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=e59714d7" />
 
   
@@ -87,23 +87,23 @@
 <span class="p">]</span>
 
 
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Literal</span><span class="p">,</span> <span class="n">get_args</span>
-<span class="kn">import</span> <span class="nn">os</span>
-<span class="kn">from</span> <span class="nn">subprocess</span> <span class="kn">import</span> <span class="n">check_output</span><span class="p">,</span> <span class="n">STDOUT</span>
-<span class="kn">from</span> <span class="nn">tempfile</span> <span class="kn">import</span> <span class="n">NamedTemporaryFile</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Literal</span><span class="p">,</span> <span class="n">get_args</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">subprocess</span><span class="w"> </span><span class="kn">import</span> <span class="n">check_output</span><span class="p">,</span> <span class="n">STDOUT</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tempfile</span><span class="w"> </span><span class="kn">import</span> <span class="n">NamedTemporaryFile</span>
 
-<span class="kn">from</span> <span class="nn">ament_index_python.packages</span> <span class="kn">import</span> <span class="p">(</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">ament_index_python.packages</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">get_package_share_directory</span><span class="p">,</span>
     <span class="n">PackageNotFoundError</span><span class="p">,</span>
 <span class="p">)</span>
 
-<span class="kn">from</span> <span class="nn">better_launch</span> <span class="kn">import</span> <span class="n">BetterLaunch</span>
-<span class="kn">from</span> <span class="nn">better_launch.elements</span> <span class="kn">import</span> <span class="n">Node</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">better_launch</span><span class="w"> </span><span class="kn">import</span> <span class="n">BetterLaunch</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">better_launch.elements</span><span class="w"> </span><span class="kn">import</span> <span class="n">Node</span>
 
 
 <div class="viewcode-block" id="get_gazebo_version">
 <a class="viewcode-back" href="../../better_launch.html#better_launch.gazebo.get_gazebo_version">[docs]</a>
-<span class="k">def</span> <span class="nf">get_gazebo_version</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">get_gazebo_version</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Get the Gazebo version from the environment variables.</span>
 
 <span class="sd">    Returns</span>
@@ -122,7 +122,7 @@
 
 <div class="viewcode-block" id="get_gazebo_prefix">
 <a class="viewcode-back" href="../../better_launch.html#better_launch.gazebo.get_gazebo_prefix">[docs]</a>
-<span class="k">def</span> <span class="nf">get_gazebo_prefix</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">get_gazebo_prefix</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;For a short time, Gazebo rebranded to &quot;Ignition&quot; before returning to Gazebo again. This function returns the associated prefix.</span>
 
 <span class="sd">    Returns</span>
@@ -145,7 +145,7 @@
 
 <div class="viewcode-block" id="get_gazebo_axes_args">
 <a class="viewcode-back" href="../../better_launch.html#better_launch.gazebo.get_gazebo_axes_args">[docs]</a>
-<span class="k">def</span> <span class="nf">get_gazebo_axes_args</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">get_gazebo_axes_args</span><span class="p">(</span>
     <span class="n">x</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span>
     <span class="n">y</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span>
     <span class="n">z</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span>
@@ -188,7 +188,7 @@
 
 <div class="viewcode-block" id="spawn_gazebo_topic_bridge">
 <a class="viewcode-back" href="../../better_launch.html#better_launch.gazebo.spawn_gazebo_topic_bridge">[docs]</a>
-<span class="k">def</span> <span class="nf">spawn_gazebo_topic_bridge</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">spawn_gazebo_topic_bridge</span><span class="p">(</span>
     <span class="o">*</span><span class="n">bridges</span><span class="p">:</span> <span class="s2">&quot;GazeboBridge&quot;</span><span class="p">,</span> <span class="n">node_name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;gz_bridge&quot;</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">Node</span><span class="p">,</span> <span class="n">Node</span><span class="p">]:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Creates a `ros_gz_bridge::parameter_bridge` node with the specified `GazeboBridge` instances.</span>
@@ -252,7 +252,7 @@
 
 <div class="viewcode-block" id="spawn_gazebo_world_transform">
 <a class="viewcode-back" href="../../better_launch.html#better_launch.gazebo.spawn_gazebo_world_transform">[docs]</a>
-<span class="k">def</span> <span class="nf">spawn_gazebo_world_transform</span><span class="p">(</span><span class="n">gazebo_world_frame</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Node</span><span class="p">:</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">spawn_gazebo_world_transform</span><span class="p">(</span><span class="n">gazebo_world_frame</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Node</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Runs a static_transform_publisher to connect the ROS `world` frame and a Gazebo world frame, if the Gazebo world frame is specified and different from &#39;world&#39;.</span>
 
@@ -284,7 +284,7 @@
 
 <div class="viewcode-block" id="gazebo_launch">
 <a class="viewcode-back" href="../../better_launch.html#better_launch.gazebo.gazebo_launch">[docs]</a>
-<span class="k">def</span> <span class="nf">gazebo_launch</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">gazebo_launch</span><span class="p">(</span>
     <span class="n">package</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
     <span class="n">world_file</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
     <span class="n">gz_args</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -318,7 +318,7 @@
 
 <div class="viewcode-block" id="gazebo_save_world">
 <a class="viewcode-back" href="../../better_launch.html#better_launch.gazebo.gazebo_save_world">[docs]</a>
-<span class="k">def</span> <span class="nf">gazebo_save_world</span><span class="p">(</span><span class="n">filepath</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">after</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">5.0</span><span class="p">):</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">gazebo_save_world</span><span class="p">(</span><span class="n">filepath</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">after</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">5.0</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Saves the current gazebo world to a file. Resolves any spawned URDF through their description parameter and converts to SDF.</span>
 
 <span class="sd">    Parameters</span>
@@ -330,7 +330,7 @@
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">bl</span> <span class="o">=</span> <span class="n">BetterLaunch</span><span class="o">.</span><span class="n">instance</span><span class="p">()</span>
 
-    <span class="k">def</span> <span class="nf">save</span><span class="p">():</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">save</span><span class="p">():</span>
         <span class="n">bl</span><span class="o">.</span><span class="n">node</span><span class="p">(</span>
             <span class="n">package</span><span class="o">=</span><span class="s2">&quot;better_launch&quot;</span><span class="p">,</span>
             <span class="n">executable</span><span class="o">=</span><span class="s2">&quot;generate_gz_world&quot;</span><span class="p">,</span>
@@ -346,7 +346,7 @@
 
 <div class="viewcode-block" id="gazebo_spawn_model">
 <a class="viewcode-back" href="../../better_launch.html#better_launch.gazebo.gazebo_spawn_model">[docs]</a>
-<span class="k">def</span> <span class="nf">gazebo_spawn_model</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">gazebo_spawn_model</span><span class="p">(</span>
     <span class="n">model_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
     <span class="n">topic</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;robot_description&quot;</span><span class="p">,</span>
     <span class="n">model_file</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -394,7 +394,7 @@
 
 
 
-<span class="k">def</span> <span class="nf">_get_gazebo_launch_args</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_get_gazebo_launch_args</span><span class="p">(</span>
     <span class="n">package</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
     <span class="n">world_file</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
     <span class="n">gz_args</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -418,7 +418,7 @@
 <span class="sd">    Returns</span>
 <span class="sd">    -------</span>
 <span class="sd">    tuple[str, str, dict]</span>
-<span class="sd">        - The name of the world foudn in the `world_file`.</span>
+<span class="sd">        - The name of the world found in the `world_file`.</span>
 <span class="sd">        - The path to the launch file for Gazebo.</span>
 <span class="sd">        - A dictionary of arguments to be passed to the Gazebo launch file.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
@@ -461,7 +461,7 @@
 
 <div class="viewcode-block" id="GazeboBridge">
 <a class="viewcode-back" href="../../better_launch.html#better_launch.gazebo.GazeboBridge">[docs]</a>
-<span class="k">class</span> <span class="nc">GazeboBridge</span><span class="p">:</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">GazeboBridge</span><span class="p">:</span>
     <span class="n">Direction</span> <span class="o">=</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">&quot;gz2ros&quot;</span><span class="p">,</span> <span class="s2">&quot;ros2gz&quot;</span><span class="p">,</span> <span class="s2">&quot;bidirectional&quot;</span><span class="p">]</span>
 
     <span class="n">_active_world_name</span> <span class="o">=</span> <span class="kc">None</span>
@@ -544,7 +544,7 @@
 
 <div class="viewcode-block" id="GazeboBridge.__init__">
 <a class="viewcode-back" href="../../better_launch.html#better_launch.gazebo.GazeboBridge.__init__">[docs]</a>
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">gz_topic</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
         <span class="n">ros_topic</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
@@ -601,7 +601,7 @@
 <div class="viewcode-block" id="GazeboBridge.gz_exec">
 <a class="viewcode-back" href="../../better_launch.html#better_launch.gazebo.GazeboBridge.gz_exec">[docs]</a>
     <span class="nd">@classmethod</span>
-    <span class="k">def</span> <span class="nf">gz_exec</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">gz_exec</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_gz_exec</span><span class="p">:</span>
             <span class="bp">cls</span><span class="o">.</span><span class="n">_gz_exec</span> <span class="o">=</span> <span class="n">get_gazebo_prefix</span><span class="p">()</span>
         <span class="k">return</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_gz_exec</span></div>
@@ -609,7 +609,7 @@
 
 <div class="viewcode-block" id="GazeboBridge.yaml">
 <a class="viewcode-back" href="../../better_launch.html#better_launch.gazebo.GazeboBridge.yaml">[docs]</a>
-    <span class="k">def</span> <span class="nf">yaml</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">yaml</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Returns a YAML snippet that can be used to configure other bridges.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">gz_exec</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">gz_exec</span><span class="p">()</span>
@@ -635,7 +635,7 @@
 <div class="viewcode-block" id="GazeboBridge.set_world_name">
 <a class="viewcode-back" href="../../better_launch.html#better_launch.gazebo.GazeboBridge.set_world_name">[docs]</a>
     <span class="nd">@classmethod</span>
-    <span class="k">def</span> <span class="nf">set_world_name</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">set_world_name</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Overwrite world name in order to avoid communicating with Gazebo</span>
 <span class="sd">        Useful when Gazebo is launched in an included file, where the world name cannot be guessed</span>
@@ -646,7 +646,7 @@
 <div class="viewcode-block" id="GazeboBridge.world">
 <a class="viewcode-back" href="../../better_launch.html#better_launch.gazebo.GazeboBridge.world">[docs]</a>
     <span class="nd">@classmethod</span>
-    <span class="k">def</span> <span class="nf">world</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">world</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Return the name of the currently loaded world. If it was not loaded from better_launch, Gazebo will be asked directly.</span>
 
 <span class="sd">        Returns</span>
@@ -683,7 +683,7 @@
 <div class="viewcode-block" id="GazeboBridge.get_model_path">
 <a class="viewcode-back" href="../../better_launch.html#better_launch.gazebo.GazeboBridge.get_model_path">[docs]</a>
     <span class="nd">@classmethod</span>
-    <span class="k">def</span> <span class="nf">get_model_path</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">model</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_model_path</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">model</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Constructs a Gazebo model prefix string for the given model name.</span>
 
@@ -703,7 +703,7 @@
 <div class="viewcode-block" id="GazeboBridge.get_model_topic">
 <a class="viewcode-back" href="../../better_launch.html#better_launch.gazebo.GazeboBridge.get_model_topic">[docs]</a>
     <span class="nd">@classmethod</span>
-    <span class="k">def</span> <span class="nf">get_model_topic</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">model</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">topic</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_model_topic</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">model</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">topic</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Constructs a tuple representing the model topic in Gazebo.</span>
 
@@ -726,7 +726,7 @@
 <div class="viewcode-block" id="GazeboBridge.make_clock_bridge">
 <a class="viewcode-back" href="../../better_launch.html#better_launch.gazebo.GazeboBridge.make_clock_bridge">[docs]</a>
     <span class="nd">@classmethod</span>
-    <span class="k">def</span> <span class="nf">make_clock_bridge</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;GazeboBridge&quot;</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">make_clock_bridge</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;GazeboBridge&quot;</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Creates a GazeboBridge instance for the /clock topic.</span>
 
@@ -743,7 +743,7 @@
 <div class="viewcode-block" id="GazeboBridge.make_joint_state_bridge">
 <a class="viewcode-back" href="../../better_launch.html#better_launch.gazebo.GazeboBridge.make_joint_state_bridge">[docs]</a>
     <span class="nd">@classmethod</span>
-    <span class="k">def</span> <span class="nf">make_joint_state_bridge</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">model</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;GazeboBridge&quot;</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">make_joint_state_bridge</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">model</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;GazeboBridge&quot;</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Creates a GazeboBridge instance for the joint states of a given model.</span>
 

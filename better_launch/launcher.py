@@ -7,6 +7,7 @@ import inspect
 import time
 import re
 import threading
+from pathlib import Path
 from concurrent.futures import Future
 from contextlib import contextmanager
 import logging
@@ -543,8 +544,8 @@ Takeoff in 3... 2... 1...
         self,
         package: str = None,
         filename: str = None,
-        subdir: str = None,
-        resolve_result: bool = True,
+        glob: str = None,
+        sbustitutions: bool = True,
     ) -> str:
         """Resolve a path to a file or package.
 
@@ -552,9 +553,11 @@ Takeoff in 3... 2... 1...
 
         If `package` is provided, the corresponding ROS2 package path will be used as the base path. Else we attempt to locate the current launch file's package by searching its directory and parent directories for a `package.xml`. If the package cannot be determined the current working dir is used as the base path.
 
-        If neither `subdir` nor `filename` are provided, the base path is returned. Otherwise, subdir and filename are concatenated to form a target path. The base path is then searched for any directory or file matching the target path.
+        If neither `glob` nor `filename` is provided the base path will be returned.
 
-        More specifically, if only `filename` is provided, a file with that name is located. If only `subdir` is provided, a matching path within the base path is located. If both `filename` and `subdir` are provided, a file matching the specified path fragment is located.
+        If `filename` is provided but `glob` is not, the base path will be searched recursively for the given filename. Otherwise, `glob` will be used to locate valid candidate files and directories within the base path, allowing patterns like `**/lib` (any lib folder) and `*.py` (any python file). See the `pathlib pattern language <https://docs.python.org/3/library/pathlib.html#pathlib-pattern-language>`_ for details.
+
+        If only `glob` is provided but not `filename`, the first candidate is returned. Otherwise the discovered candidates will be searched for the given filename.
 
         Parameters
         ----------
@@ -562,10 +565,10 @@ Takeoff in 3... 2... 1...
             Name of a ROS2 package to resolve.
         filename : str, optional
             Name of a file to look for.
-        subdir : str, optional
-            Path snippet that should be located inside the base path.
-        resolve_result : bool, optional
-            If True, the result will be passed through :py:meth:`resolve_string` before returning.
+        glob : str, optional
+            A glob pattern to locate subdirectories and files.
+        sbustitutions : bool, optional
+            If True, text substitution strings within the package and base path will be resolved (see :py:meth:`resolve_string`).
 
         Returns
         -------
@@ -577,7 +580,7 @@ Takeoff in 3... 2... 1...
         ValueError
             If `package` contains path separators, or if a `filename` is provided but could not be found within base path.
         """
-        if resolve_result:
+        if sbustitutions:
             resolve = self.resolve_string
         else:
             resolve = lambda s: s
@@ -598,16 +601,29 @@ Takeoff in 3... 2... 1...
             base_path = os.getcwd()
 
         base_path = resolve(base_path)
-        if not filename and not subdir:
+        if not filename and not glob:
             return base_path
 
-        targetpath = os.path.normpath(subdir) if subdir else ""
-        for dirpath, _, files in os.walk(base_path, topdown=False):
-            if dirpath.endswith(targetpath) and (not filename or filename in files):
-                return os.path.join(dirpath, filename)
+        if not glob:
+            glob = "**"
+
+        for candidate in Path(base_path).glob(glob):
+            if not filename:
+                # Return the first candidate
+                return str(candidate.resolve().absolute())
+
+            if candidate.is_file() and candidate.name == filename:
+                # We found a match
+                return str(candidate.resolve().absolute())
+
+            elif candidate.is_dir():
+                # Candidate is a dir, search the filename within
+                ret = next(candidate.glob(f"**/{filename}"), None)
+                if ret:
+                    return str(ret.resolve().absolute())
 
         raise ValueError(
-            f"Could not find file or directory (filename={filename}, package={package}, subdir={subdir})"
+            f"Could not find file or directory (filename={filename}, package={package}, glob={glob})"
         )
 
     def resolve_string(self, s: str) -> str:

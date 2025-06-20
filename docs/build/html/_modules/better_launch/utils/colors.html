@@ -6,7 +6,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>better_launch.utils.colors &mdash; better_launch 0.9.1 documentation</title>
-      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=e59714d7" />
 
   
@@ -71,30 +71,30 @@
            <div itemprop="articleBody">
              
   <h1>Source code for better_launch.utils.colors</h1><div class="highlight"><pre>
-<span></span><span class="kn">import</span> <span class="nn">colorsys</span>
+<span></span><span class="kn">import</span><span class="w"> </span><span class="nn">colorsys</span>
 
 
 <div class="viewcode-block" id="HighContrastColorGenerator">
 <a class="viewcode-back" href="../../../better_launch.utils.html#better_launch.utils.colors.HighContrastColorGenerator">[docs]</a>
-<span class="k">class</span> <span class="nc">HighContrastColorGenerator</span><span class="p">:</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">HighContrastColorGenerator</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Generates RGB colors with a certain distance apart so that subsequent colors are visually distinct.&quot;&quot;&quot;</span>
     
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="c1"># Golden ratio conjugate, ensures well-spaced hues</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">hue_step</span> <span class="o">=</span> <span class="mf">0.61803398875</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">hue</span> <span class="o">=</span> <span class="mi">0</span>
 
-    <span class="k">def</span> <span class="fm">__iter__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__iter__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Allows the class to be used as an iterable.&quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="bp">self</span>
 
-    <span class="k">def</span> <span class="fm">__next__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__next__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Generates the next high-contrast color.&quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">hue</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">hue</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">hue_step</span><span class="p">)</span> <span class="o">%</span> <span class="mi">1</span>
         <span class="n">r</span><span class="p">,</span> <span class="n">g</span><span class="p">,</span> <span class="n">b</span> <span class="o">=</span> <span class="n">colorsys</span><span class="o">.</span><span class="n">hsv_to_rgb</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">hue</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
         <span class="k">return</span> <span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">r</span> <span class="o">*</span> <span class="mi">255</span><span class="p">),</span> <span class="nb">int</span><span class="p">(</span><span class="n">g</span> <span class="o">*</span> <span class="mi">255</span><span class="p">),</span> <span class="nb">int</span><span class="p">(</span><span class="n">b</span> <span class="o">*</span> <span class="mi">255</span><span class="p">))</span>
 
-    <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Allows calling the instance directly to get the next color.&quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="nb">next</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span></div>
 

@@ -6,7 +6,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>better_launch.elements.ros2_launch_wrapper &mdash; better_launch 0.9.1 documentation</title>
-      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=e59714d7" />
 
   
@@ -71,26 +71,26 @@
            <div itemprop="articleBody">
              
   <h1>Source code for better_launch.elements.ros2_launch_wrapper</h1><div class="highlight"><pre>
-<span></span><span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Any</span>
-<span class="kn">import</span> <span class="nn">os</span>
-<span class="kn">import</span> <span class="nn">platform</span>
-<span class="kn">import</span> <span class="nn">signal</span>
-<span class="kn">import</span> <span class="nn">logging</span>
-<span class="kn">import</span> <span class="nn">asyncio</span>
-<span class="kn">import</span> <span class="nn">threading</span>
-<span class="kn">from</span> <span class="nn">multiprocessing</span> <span class="kn">import</span> <span class="n">Process</span><span class="p">,</span> <span class="n">Queue</span>
-<span class="kn">import</span> <span class="nn">subprocess</span>
-<span class="kn">import</span> <span class="nn">osrf_pycommon.process_utils</span>
-<span class="kn">from</span> <span class="nn">setproctitle</span> <span class="kn">import</span> <span class="n">setproctitle</span><span class="p">,</span> <span class="n">getproctitle</span>
+<span></span><span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">platform</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">signal</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">asyncio</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">threading</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">multiprocessing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Process</span><span class="p">,</span> <span class="n">Queue</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">subprocess</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">osrf_pycommon.process_utils</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">setproctitle</span><span class="w"> </span><span class="kn">import</span> <span class="n">setproctitle</span><span class="p">,</span> <span class="n">getproctitle</span>
 
-<span class="kn">import</span> <span class="nn">better_launch.ros.logging</span> <span class="k">as</span> <span class="nn">roslog</span>
-<span class="kn">from</span> <span class="nn">better_launch.utils.better_logging</span> <span class="kn">import</span> <span class="n">LogSink</span><span class="p">,</span> <span class="n">PrettyLogFormatter</span><span class="p">,</span> <span class="n">RecordForwarder</span><span class="p">,</span> <span class="n">StubbornHandler</span>
-<span class="kn">from</span> <span class="nn">better_launch.utils.colors</span> <span class="kn">import</span> <span class="n">get_contrast_color</span>
-<span class="kn">from</span> <span class="nn">.abstract_node</span> <span class="kn">import</span> <span class="n">AbstractNode</span>
-<span class="kn">from</span> <span class="nn">.node</span> <span class="kn">import</span> <span class="n">Node</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">better_launch.ros.logging</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">roslog</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">better_launch.utils.better_logging</span><span class="w"> </span><span class="kn">import</span> <span class="n">LogSink</span><span class="p">,</span> <span class="n">PrettyLogFormatter</span><span class="p">,</span> <span class="n">RecordForwarder</span><span class="p">,</span> <span class="n">StubbornHandler</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">better_launch.utils.colors</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_contrast_color</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">.abstract_node</span><span class="w"> </span><span class="kn">import</span> <span class="n">AbstractNode</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">.node</span><span class="w"> </span><span class="kn">import</span> <span class="n">Node</span>
 
 
-<span class="k">def</span> <span class="nf">_launchservice_worker</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_launchservice_worker</span><span class="p">(</span>
     <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
     <span class="n">launchservice_args</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">Any</span><span class="p">],</span>
     <span class="n">launch_action_queue</span><span class="p">:</span> <span class="n">Queue</span><span class="p">,</span>
@@ -109,7 +109,7 @@
 
     <span class="c1"># The child process will have clones of the host process&#39; signal handlers installed (i.e. those </span>
     <span class="c1"># defined in launch_this), so we should rewire these, otherwise we&#39;ll get parallel calls</span>
-    <span class="k">def</span> <span class="nf">_on_sigint</span><span class="p">(</span><span class="n">signum</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">frame</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_on_sigint</span><span class="p">(</span><span class="n">signum</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">frame</span><span class="p">):</span>
         <span class="k">try</span><span class="p">:</span>
             <span class="n">ret</span> <span class="o">=</span> <span class="n">launch_service</span><span class="o">.</span><span class="n">_shutdown</span><span class="p">(</span><span class="n">reason</span><span class="o">=</span><span class="s2">&quot;SIGINT&quot;</span><span class="p">,</span> <span class="n">due_to_sigint</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
             <span class="k">if</span> <span class="n">ret</span><span class="p">:</span>
@@ -119,7 +119,7 @@
             <span class="c1"># Recommended to use this special _exit call in child processes</span>
             <span class="n">os</span><span class="o">.</span><span class="n">_exit</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">EX_OK</span><span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">_on_sigterm</span><span class="p">(</span><span class="n">signum</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">frame</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_on_sigterm</span><span class="p">(</span><span class="n">signum</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">frame</span><span class="p">):</span>
         <span class="c1"># Recommended to use this special _exit call in child processes</span>
         <span class="n">os</span><span class="o">.</span><span class="n">_exit</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">EX_OK</span><span class="p">)</span>
 
@@ -127,7 +127,7 @@
     <span class="n">signal</span><span class="o">.</span><span class="n">signal</span><span class="p">(</span><span class="n">signal</span><span class="o">.</span><span class="n">SIGTERM</span><span class="p">,</span> <span class="n">_on_sigterm</span><span class="p">)</span>
 
     <span class="c1"># Late import to avoid adding ROS2 launch as a dependency - we are committed here!</span>
-    <span class="kn">import</span> <span class="nn">launch</span>
+    <span class="kn">import</span><span class="w"> </span><span class="nn">launch</span>
 
     <span class="c1"># LaunchService is a little stubborn about log formatting and always prepends the node&#39;s</span>
     <span class="c1"># name and then appends the output format, but this also allows us to capture the actual </span>
@@ -138,7 +138,7 @@
     <span class="c1"># Create an offset to avoid going through the same sequence of colors as the host process</span>
     <span class="n">get_contrast_color</span><span class="o">.</span><span class="n">hue</span> <span class="o">=</span> <span class="mf">0.3</span>
 
-    <span class="k">def</span> <span class="nf">handle_record</span><span class="p">(</span><span class="n">record</span><span class="p">:</span> <span class="n">logging</span><span class="o">.</span><span class="n">LogRecord</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">handle_record</span><span class="p">(</span><span class="n">record</span><span class="p">:</span> <span class="n">logging</span><span class="o">.</span><span class="n">LogRecord</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">log_queue</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="n">record</span><span class="p">)</span>
 
     <span class="n">std_handler</span> <span class="o">=</span> <span class="n">RecordForwarder</span><span class="p">(</span>
@@ -167,7 +167,7 @@
     <span class="p">)</span>
 
     <span class="c1"># We want to keep an eye on the pipe for new LaunchDescriptions to load</span>
-    <span class="k">async</span> <span class="k">def</span> <span class="nf">forward_launch_descriptions</span><span class="p">():</span>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">forward_launch_descriptions</span><span class="p">():</span>
         <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
             <span class="k">try</span><span class="p">:</span>
                 <span class="k">while</span> <span class="ow">not</span> <span class="n">launch_action_queue</span><span class="o">.</span><span class="n">empty</span><span class="p">():</span>
@@ -178,7 +178,7 @@
                 <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Failed to add actions to ROS launch service: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
                 <span class="k">raise</span>
 
-    <span class="k">async</span> <span class="k">def</span> <span class="nf">wrapper</span><span class="p">():</span>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">wrapper</span><span class="p">():</span>
         <span class="k">try</span><span class="p">:</span>
             <span class="c1"># Execute both our forwarder and the ros2 launch service</span>
             <span class="k">return</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">gather</span><span class="p">(</span>
@@ -204,10 +204,10 @@
 
 <div class="viewcode-block" id="Ros2LaunchWrapper">
 <a class="viewcode-back" href="../../../better_launch.elements.html#better_launch.elements.ros2_launch_wrapper.Ros2LaunchWrapper">[docs]</a>
-<span class="k">class</span> <span class="nc">Ros2LaunchWrapper</span><span class="p">(</span><span class="n">AbstractNode</span><span class="p">):</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">Ros2LaunchWrapper</span><span class="p">(</span><span class="n">AbstractNode</span><span class="p">):</span>
 <div class="viewcode-block" id="Ros2LaunchWrapper.__init__">
 <a class="viewcode-back" href="../../../better_launch.elements.html#better_launch.elements.ros2_launch_wrapper.Ros2LaunchWrapper.__init__">[docs]</a>
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;LaunchService&quot;</span><span class="p">,</span>
         <span class="n">launchservice_args</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -253,7 +253,7 @@
 
 
     <span class="nd">@property</span>
-    <span class="k">def</span> <span class="nf">pid</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">pid</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;The process ID of the node process. Will be -1 if the process is not running.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_process</span><span class="p">:</span>
@@ -261,13 +261,13 @@
         <span class="k">return</span> <span class="o">-</span><span class="mi">1</span>
 
     <span class="nd">@property</span>
-    <span class="k">def</span> <span class="nf">launchservice_args</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">launchservice_args</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Additional arguments that are passed to the launch service.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_launchservice_args</span>
 
     <span class="nd">@property</span>
-    <span class="k">def</span> <span class="nf">is_running</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">is_running</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
         <span class="k">try</span><span class="p">:</span>
             <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_process</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">_process</span><span class="o">.</span><span class="n">is_alive</span><span class="p">()</span>
         <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
@@ -276,7 +276,7 @@
 
 <div class="viewcode-block" id="Ros2LaunchWrapper.check_ros2_connected">
 <a class="viewcode-back" href="../../../better_launch.elements.html#better_launch.elements.ros2_launch_wrapper.Ros2LaunchWrapper.check_ros2_connected">[docs]</a>
-    <span class="k">def</span> <span class="nf">check_ros2_connected</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">timeout</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">check_ros2_connected</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">timeout</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Equal to :py:meth:`is_running` for this class.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_running</span></div>
@@ -284,7 +284,7 @@
 
 <div class="viewcode-block" id="Ros2LaunchWrapper.check_lifecycle_node">
 <a class="viewcode-back" href="../../../better_launch.elements.html#better_launch.elements.ros2_launch_wrapper.Ros2LaunchWrapper.check_lifecycle_node">[docs]</a>
-    <span class="k">def</span> <span class="nf">check_lifecycle_node</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">timeout</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">check_lifecycle_node</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">timeout</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;This is never a lifecycle node.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="kc">False</span></div>
@@ -292,10 +292,10 @@
 
 <div class="viewcode-block" id="Ros2LaunchWrapper.queue_ros2_actions">
 <a class="viewcode-back" href="../../../better_launch.elements.html#better_launch.elements.ros2_launch_wrapper.Ros2LaunchWrapper.queue_ros2_actions">[docs]</a>
-    <span class="k">def</span> <span class="nf">queue_ros2_actions</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">actions</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">queue_ros2_actions</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">actions</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Add ROS2 actions that will be loaded asynchronously by the launch service once it is running. Actions are bundled as a `LaunchDescription` before sending them off.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="kn">import</span> <span class="nn">launch</span>
+        <span class="kn">import</span><span class="w"> </span><span class="nn">launch</span>
 
         <span class="n">ld</span> <span class="o">=</span> <span class="n">launch</span><span class="o">.</span><span class="n">LaunchDescription</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">actions</span><span class="p">))</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_launch_action_queue</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="n">ld</span><span class="p">)</span>
@@ -304,7 +304,7 @@
 
 <div class="viewcode-block" id="Ros2LaunchWrapper.start">
 <a class="viewcode-back" href="../../../better_launch.elements.html#better_launch.elements.ros2_launch_wrapper.Ros2LaunchWrapper.start">[docs]</a>
-    <span class="k">def</span> <span class="nf">start</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">start</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_running</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;LaunchService </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2"> is alrady running&quot;</span><span class="p">)</span>
             <span class="k">return</span>
@@ -332,7 +332,7 @@
         <span class="p">)</span><span class="o">.</span><span class="n">start</span><span class="p">()</span></div>
 
 
-    <span class="k">def</span> <span class="nf">_process_watcher</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">logout</span><span class="p">:</span> <span class="n">logging</span><span class="o">.</span><span class="n">Logger</span><span class="p">,</span> <span class="n">logerr</span><span class="p">:</span> <span class="n">logging</span><span class="o">.</span><span class="n">Logger</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_process_watcher</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">logout</span><span class="p">:</span> <span class="n">logging</span><span class="o">.</span><span class="n">Logger</span><span class="p">,</span> <span class="n">logerr</span><span class="p">:</span> <span class="n">logging</span><span class="o">.</span><span class="n">Logger</span><span class="p">):</span>
         <span class="n">q</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_process_log_queue</span>
 
         <span class="k">while</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_running</span><span class="p">:</span>
@@ -347,7 +347,7 @@
 
 <div class="viewcode-block" id="Ros2LaunchWrapper.shutdown">
 <a class="viewcode-back" href="../../../better_launch.elements.html#better_launch.elements.ros2_launch_wrapper.Ros2LaunchWrapper.shutdown">[docs]</a>
-    <span class="k">def</span> <span class="nf">shutdown</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">reason</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">signum</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">signal</span><span class="o">.</span><span class="n">SIGTERM</span><span class="p">,</span> <span class="n">timeout</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">shutdown</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">reason</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">signum</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">signal</span><span class="o">.</span><span class="n">SIGTERM</span><span class="p">,</span> <span class="n">timeout</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_terminate_requested</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_running</span><span class="p">:</span>
             <span class="c1"># Give the process a little bit of time to terminate</span>
             <span class="k">try</span><span class="p">:</span>
@@ -394,7 +394,7 @@
 
 <div class="viewcode-block" id="Ros2LaunchWrapper.send_signal">
 <a class="viewcode-back" href="../../../better_launch.elements.html#better_launch.elements.ros2_launch_wrapper.Ros2LaunchWrapper.send_signal">[docs]</a>
-    <span class="k">def</span> <span class="nf">send_signal</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">signum</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">send_signal</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">signum</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_running</span><span class="p">:</span>
             <span class="k">return</span>
 
@@ -407,7 +407,7 @@
             <span class="n">os</span><span class="o">.</span><span class="n">killpg</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">getpgid</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">pid</span><span class="p">),</span> <span class="n">signum</span><span class="p">)</span></div>
 
 
-    <span class="k">def</span> <span class="nf">_get_info_section_general</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_get_info_section_general</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
         <span class="k">return</span> <span class="p">(</span>
             <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_get_info_section_general</span><span class="p">()</span>
             <span class="o">+</span> <span class="sa">f</span><span class="s2">&quot;&quot;&quot;</span><span class="se">\</span>
@@ -416,7 +416,7 @@
 <span class="s2">&quot;&quot;&quot;</span>
         <span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">_get_info_section_ros</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_get_info_section_ros</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
         <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;&quot;&quot;</span><span class="se">\</span>
 <span class="s2">&lt;bold&gt;Loaded Actions&lt;/bold&gt;</span>
 <span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">describe_launch_actions</span><span class="p">()</span><span class="si">}</span>
@@ -424,7 +424,7 @@
 
 <div class="viewcode-block" id="Ros2LaunchWrapper.describe_launch_actions">
 <a class="viewcode-back" href="../../../better_launch.elements.html#better_launch.elements.ros2_launch_wrapper.Ros2LaunchWrapper.describe_launch_actions">[docs]</a>
-    <span class="k">def</span> <span class="nf">describe_launch_actions</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">describe_launch_actions</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Returns a best-effort summary of all `LaunchDescriptions` that have been loaded so far.</span>
 
 <span class="sd">        Since ROS2 does not provide a way to serialize its slew of launch actions (beyond *maybe* pickle), it is not possible to create a full representation without special handlers. However, *most* launch actions expose their relevant data as properties. This function will look for these and recurse into them if they return launch actions.</span>
@@ -447,7 +447,7 @@
         <span class="k">return</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">descriptions</span><span class="p">)</span></div>
 
 
-    <span class="k">def</span> <span class="nf">_format_properties</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">entity</span><span class="p">,</span> <span class="n">depth</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_format_properties</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">entity</span><span class="p">,</span> <span class="n">depth</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">):</span>
         <span class="n">indent</span> <span class="o">=</span> <span class="s2">&quot;    &quot;</span>
         <span class="n">description</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">entity</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">(&quot;</span>
 

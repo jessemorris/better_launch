@@ -7,7 +7,7 @@
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>better_launch package &mdash; better_launch 0.9.1 documentation</title>
-      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
 
   
@@ -375,19 +375,20 @@ Note that this will not appear in the logs!</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="better_launch.launcher.BetterLaunch.find">
-<span class="sig-name descname"><span class="pre">find</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">package</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">filename</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">subdir</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">resolve_result</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/better_launch/launcher.html#BetterLaunch.find"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#better_launch.launcher.BetterLaunch.find" title="Link to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">find</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">package</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">filename</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">glob</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sbustitutions</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/better_launch/launcher.html#BetterLaunch.find"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#better_launch.launcher.BetterLaunch.find" title="Link to this definition"></a></dt>
 <dd><p>Resolve a path to a file or package.</p>
 <p>If the <cite>filename</cite> is absolute, all other arguments will be ignored and the filename will be returned.</p>
 <p>If <cite>package</cite> is provided, the corresponding ROS2 package path will be used as the base path. Else we attempt to locate the current launch file’s package by searching its directory and parent directories for a <cite>package.xml</cite>. If the package cannot be determined the current working dir is used as the base path.</p>
-<p>If neither <cite>subdir</cite> nor <cite>filename</cite> are provided, the base path is returned. Otherwise, subdir and filename are concatenated to form a target path. The base path is then searched for any directory or file matching the target path.</p>
-<p>More specifically, if only <cite>filename</cite> is provided, a file with that name is located. If only <cite>subdir</cite> is provided, a matching path within the base path is located. If both <cite>filename</cite> and <cite>subdir</cite> are provided, a file matching the specified path fragment is located.</p>
+<p>If neither <cite>glob</cite> nor <cite>filename</cite> is provided the base path will be returned.</p>
+<p>If <cite>filename</cite> is provided but <cite>glob</cite> is not, the base path will be searched recursively for the given filename. Otherwise, <cite>glob</cite> will be used to locate valid candidate files and directories within the base path, allowing patterns like <cite>**/lib</cite> (any lib folder) and <cite>*.py</cite> (any python file). See the <a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib-pattern-language">pathlib pattern language</a> for details.</p>
+<p>If only <cite>glob</cite> is provided but not <cite>filename</cite>, the first candidate is returned. Otherwise the discovered candidates will be searched for the given filename.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>package</strong> (<em>str</em><em>, </em><em>optional</em>) – Name of a ROS2 package to resolve.</p></li>
 <li><p><strong>filename</strong> (<em>str</em><em>, </em><em>optional</em>) – Name of a file to look for.</p></li>
-<li><p><strong>subdir</strong> (<em>str</em><em>, </em><em>optional</em>) – Path snippet that should be located inside the base path.</p></li>
-<li><p><strong>resolve_result</strong> (<em>bool</em><em>, </em><em>optional</em>) – If True, the result will be passed through <a class="reference internal" href="#better_launch.launcher.BetterLaunch.resolve_string" title="better_launch.launcher.BetterLaunch.resolve_string"><code class="xref py py-meth docutils literal notranslate"><span class="pre">resolve_string()</span></code></a> before returning.</p></li>
+<li><p><strong>glob</strong> (<em>str</em><em>, </em><em>optional</em>) – A glob pattern to locate subdirectories and files.</p></li>
+<li><p><strong>sbustitutions</strong> (<em>bool</em><em>, </em><em>optional</em>) – If True, text substitution strings within the package and base path will be resolved (see <a class="reference internal" href="#better_launch.launcher.BetterLaunch.resolve_string" title="better_launch.launcher.BetterLaunch.resolve_string"><code class="xref py py-meth docutils literal notranslate"><span class="pre">resolve_string()</span></code></a>).</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
@@ -735,7 +736,7 @@ for the duration of the context window.</p>
 <li><p><strong>cmd_args</strong> (<em>list</em><em>[</em><em>str</em><em>]</em><em>, </em><em>optional</em>) – Additional command line arguments to pass to the node.</p></li>
 <li><p><strong>env</strong> (<em>dict</em><em>[</em><em>str</em><em>, </em><em>str</em><em>]</em><em>, </em><em>optional</em>) – Additional environment variables to set for the node’s process. The node process will merge these with the environment variables of the better_launch host process unless <code class="xref py py-meth docutils literal notranslate"><span class="pre">isolate_env()</span></code> is True.</p></li>
 <li><p><strong>isolate_env</strong> (<em>bool</em><em>, </em><em>optional</em>) – If True, the node process’ env will not be inherited from the parent process and only those passed via <cite>env</cite> will be used. Be aware that this can result in many common things to not work anymore since e.g. keys like <em>PATH</em> will be missing.</p></li>
-<li><p><strong>log_level</strong> (<em>int</em><em>, </em><em>optional</em>) – The minimum severity a logged message from this node must have in order to be published.</p></li>
+<li><p><strong>log_level</strong> (<em>int</em><em>, </em><em>optional</em>) – The minimum severity a logged message from this node must have in order to be published. This will be added to the cmd_args unless it is None.</p></li>
 <li><p><strong>output</strong> (<em>LogSink</em><em> | </em><em>set</em><em>[</em><em>LogSink</em><em>]</em><em>, </em><em>optional</em>) – Determines if and where this node’s output should be directed. Common choices are <cite>screen</cite> to print to terminal, <cite>log</cite> to write to a common log file, <cite>own_log</cite> to write to a node-specific log file, and <cite>none</cite> to not write any output anywhere. See <code class="xref py py-meth docutils literal notranslate"><span class="pre">configure_logger()</span></code> for details.</p></li>
 <li><p><strong>anonymous</strong> (<em>bool</em><em>, </em><em>optional</em>) – If True, the node name will be appended with a unique suffix to avoid name conflicts.</p></li>
 <li><p><strong>hidden</strong> (<em>bool</em><em>, </em><em>optional</em>) – If True, the node name will be prepended with a “_”, hiding it from common listings.</p></li>
@@ -932,16 +933,17 @@ for the duration of the context window.</p>
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>launch_func</strong> (<em>Callable</em><em>, </em><em>optional</em>) – Your launch function, typically using BetterLaunch to start ROS2 nodes.</p></li>
-<li><p><strong>ui</strong> (<em>bool</em><em>, </em><em>optional</em>) – Whether to start the better_launch TUI.</p></li>
+<li><p><strong>ui</strong> (<em>bool</em><em>, </em><em>optional</em>) – Whether to start the better_launch TUI. Superseded by the <cite>BL_UI_OVERRIDE</cite> environment variable and the <cite>–bl_ui_override</cite> argument.</p></li>
 <li><p><strong>join</strong> (<em>bool</em><em>, </em><em>optional</em>) – If True, join the better_launch process. Has no effect when ui == True.</p></li>
-<li><p><strong>screen_log_format</strong> (<em>str</em><em>, </em><em>optional</em>) – Customize how log output will be formatted when printing it to the screen. Will be overridden by the <cite>OVERRIDE_SCREEN_LOG_FORMAT</cite> environment variable. See <code class="xref py py-class docutils literal notranslate"><span class="pre">PrettyLogFormatter</span></code> for details.</p></li>
-<li><p><strong>file_log_format</strong> (<em>str</em><em>, </em><em>optional</em>) – Customize how log output will be formatted when writing it to a file. Will be overridden by the <cite>OVERRIDE_FILE_LOG_FORMAT</cite> environment variable. See <code class="xref py py-class docutils literal notranslate"><span class="pre">PrettyLogFormatter</span></code> for details.</p></li>
+<li><p><strong>screen_log_format</strong> (<em>str</em><em>, </em><em>optional</em>) – Customize how log output will be formatted when printing it to the screen. Will be overridden by the <cite>BL_SCREEN_LOG_FORMAT_OVERRIDE</cite> environment variable. See <code class="xref py py-class docutils literal notranslate"><span class="pre">PrettyLogFormatter</span></code> for details.</p></li>
+<li><p><strong>file_log_format</strong> (<em>str</em><em>, </em><em>optional</em>) – Customize how log output will be formatted when writing it to a file. Will be overridden by the <cite>BL_FILE_LOG_FORMAT_OVERRIDE</cite> environment variable. See <code class="xref py py-class docutils literal notranslate"><span class="pre">PrettyLogFormatter</span></code> for details.</p></li>
 <li><p><strong>colormode</strong> (<em>Colormode</em><em>, </em><em>optional</em>) – Decides what colors will be used for:
 * default: one color per log severity level and a single color for all message sources
 * severity: one color per log severity, don’t colorize message sources
 * source: one color per message source, don’t colorize log severity
 * none: don’t colorize anything
-* rainbow: colorize log severity and give each message source its own color</p></li>
+* rainbow: colorize log severity and give each message source its own color
+Superseded by the <cite>BL_COLORMODE_OVERRIDE</cite> environment variable and the <cite>–bl_colormode_override</cite> argument.</p></li>
 <li><p><strong>manage_foreign_nodes</strong> (<em>bool</em><em>, </em><em>optional</em>) – If True, the TUI will also include node processes not started by this process. Has no effect if the TUI is not started.</p></li>
 </ul>
 </dd>
