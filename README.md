@@ -203,10 +203,10 @@ In addition, *better_launch* includes a couple of modules that make some common 
 - [convenience.py](better_launch/convenience.py): convenience functions to start rviz, robot state publishers, read urdf/xacro files, and more.
 - [gazebo.py](better_launch/gazebo.py): functions and helpers for starting and populating gazebo simulations as well as bridging topics.
 
-While you could run *better_launch* launch files via `ros2 launch`, this would obviously mean running two launch systems on top of each other. Not only is that terrible for performance and introduces a dependency on ROS2's launch system, its autocomplete is also slow as hell, cluttering the terminal with useless command line options yet is unable to discover the arguments you have declared inside your launch files. For these reasons, *better_launch* comes with the `bl` script, which fixes all of the above and then some. Once you have sourced your workspace you can use it as follows:
+Note that you are not forced to choose between *better_launch* and the ROS2 launch system. In fact, *better_launch* launch files can be run via `ros2 launch` and even be included from ROS2 launch files! However, this means running two launch systems on top of each other - not the best for performance. The auto completion of `ros2 launch` is also slow as hell, cluttering the terminal with useless command line options yet is unable to discover the arguments you have declared inside your launch files. For these reasons, *better_launch* comes with the `bl` script, which fixes all of the above and then some. Once you have sourced your workspace you can use it as follows:
 
 ```bash
-# Try <tab> for autocomplete and check the example launch file for details!
+# Try <tab><tab> for autocomplete and check the example launch file for details!
 bl better_launch 05_launch_arguments.py --help
 ```
 
@@ -292,7 +292,7 @@ The scripts, launch files and results from the benchmarks can be found under [me
 # Installation
 *better_launch* is a regular ROS2 package, which means you can install it in your workspace and then use it in all launch files within that workspace.
 
-Unfortunately, the ROS foundation is adamant about maintaining their own python package list for `rosdep` instead of forwarding to e.g. `pip` to handle dependencies. Since *better_launch* uses a few python libraries that are not found in the official ROS package list, you will have to install them manually - a `requirements.txt` file is provided of course. In case you have setup a *venv* or *conda* environment for your workspace you should activate it first. 
+Unfortunately, the ROS foundation is adamant about maintaining their own python package list for `rosdep` instead of forwarding to e.g. `pip` to handle dependencies. Since *better_launch* uses a few python libraries that are not found in the official ROS package list, you will have to install them manually - a [requirements.txt](requirements.txt) file is provided of course. In case you have setup a *venv* or *conda* environment for your workspace you should activate it first. 
 
 ```bash
 rosdep install --from-paths path/to/better_launch

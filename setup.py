@@ -8,7 +8,6 @@ setup(
         "click",
         "docstring_parser",
         "osrf_pycommon",
-        "pyperclip",
         "PyYAML",
         "rich",
         "setproctitle",
