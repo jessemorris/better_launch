@@ -282,11 +282,46 @@ ROS2 launch has a bad reputation of leaving stale and abandoned processes behind
 
 
 # Performance
-I am not an expert on profiling code. That being said, in my tests *better_launch* showed comparable yet slightly worse performance compared to using the `ros2 launch`. This is expected as `asyncio` is highly optimized for performance while *better_launch* uses synchronous calls (or classic threads if necessary), and does some additional work to reformat output from nodes. In most cases the performance difference will be neglectable.
+I am not an expert on profiling code. That being said, in my tests *better_launch* consistently used more CPU and RAM than `ros2 launch`. This is expected as `asyncio` is highly optimized for performance while *better_launch* uses synchronous calls (or classic threads if necessary), and does some additional work to reformat output from nodes. This can be detrimental on embedded systems - however, there is still a lot of potential for optimization. This is something I will work on in the near future.
+
+> `bl` is just a script to locate the launch file and then run it, so I decided to not use `bl` for these benchmarks and run the launch file directly; otherwise the resources used by the launch file will not be visible to most profilers.
 
 The scripts, launch files and results from the benchmarks can be found under [media/benchmarks](media/benchmarks/). This section will only show the most relevant parts.
 
-**TODO**
+<details>
+  <summary>memray</summary>
+
+[memray](https://github.com/bloomberg/memray) reports that *better_launch* uses more heap memory. 
+
+|                   | better_launch | ros2 launch |
+| ----------------- | ------------- | ----------- |
+| allocations       | 79186         | 60494       |
+| peak memory usage | 19.5 MiB      | 9.7 MiB     |
+| details           | [link](docs/benchmarks/results/memray/memray-flamegraph-bl.html) | [link](docs/benchmarks/results/memray/memray-flamegraph-ros2.html) |
+
+</details>
+
+<details>
+  <summary>psutil</summary>
+
+[psutil](https://psutil.readthedocs.io/en/latest/index.html#psutil.Process.memory_full_info) shows that *better_launch* uses more CPU in the beginning and more memory in total compared to `ros2 launch`. The memory reported is the unique set size (see the previous link).
+
+![](docs/benchmarks/results/psutil/cpu_usage.png)
+
+![](docs/benchmarks/results/psutil/memory_usage.png)
+
+</details>
+
+<details>
+  <summary>py-spy</summary>
+
+[py-spy](https://github.com/benfred/py-spy) shows that *better_launch* occupies more memory even after all the nodes are fully up and running. There is some potential for optimization here, especially regarding thread locks and idle waits.
+
+![](docs/benchmarks/results/pyspy/bl.svg)
+
+![](docs/benchmarks/results/pyspy/ros2.svg)
+
+</details>
 
 
 # Installation
@@ -367,11 +402,7 @@ Overall, ROS2 launch seems like a system architect's wet fever dream, and I don'
 
 
 # What doesn't work yet
-There are a couple of areas that still need some work:
-- [x] test include from ros
-- [ ] test convenience module
-- [x] test gazebo module
-- [ ] document benchmarks
+For the time being, *better_launch* is feature complete, is well documented and has no known serious bugs. The focus therefore currently lies on performance optimization and cleanup.
 
 
 # Contributors
