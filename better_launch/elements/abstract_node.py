@@ -237,6 +237,7 @@ class AbstractNode:
             while True:
                 living_nodes = set(
                     ns + ("" if ns.endswith("/") else "/") + name
+                    # TODO can we do this without relying on the ROSAdapter's shared node?
                     for name, ns in bl.shared_node.get_node_names_and_namespaces()
                 )
 

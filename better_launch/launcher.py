@@ -228,8 +228,12 @@ Takeoff in 3... 2... 1...
         exit_with_last_node : bool, optional
             If True this function will return when all nodes have been stopped.
         """
+        # TODO once we spin we probably don't need the ros adapter anymore, yet it takes up
+        # more than 6MB of memory. We probably can't get rid of the adapter entirely as it is 
+        # commonly used in e.g. AbstractNode.check_ros2_connected. 
         if exit_with_last_node:
             while self.ros_adapter._thread.is_alive():
+                # TODO not a nice solution, find something smarter
                 self.ros_adapter._thread.join(0.1)
                 nodes = self.all_nodes(
                     include_components=True,

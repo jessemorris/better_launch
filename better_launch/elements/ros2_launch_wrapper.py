@@ -10,11 +10,9 @@ import subprocess
 import osrf_pycommon.process_utils
 from setproctitle import setproctitle, getproctitle
 
-import better_launch.ros.logging as roslog
 from better_launch.utils.better_logging import LogSink, PrettyLogFormatter, RecordForwarder, StubbornHandler
 from better_launch.utils.colors import get_contrast_color
 from .abstract_node import AbstractNode
-from .node import Node
 
 
 def _launchservice_worker(

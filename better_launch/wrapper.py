@@ -1,10 +1,9 @@
-from typing import Callable, Literal, get_args
+from typing import Callable, get_args
 import os
 import platform
 from ast import literal_eval
 import signal
 import inspect
-import logging
 import click
 import threading
 from docstring_parser import parse as parse_docstring
@@ -15,7 +14,6 @@ from better_launch.launcher import (
     _bl_include_args,
 )
 from better_launch.utils.better_logging import (
-    PrettyLogFormatter,
     Colormode,
     init_logging,
 )

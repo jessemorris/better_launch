@@ -153,14 +153,14 @@ class LifecycleManager:
         from better_launch import BetterLaunch
 
         launcher = BetterLaunch.instance()
-        self._state_sub = launcher.ros_adapter.ros_node.create_subscription(
+        self._state_sub = launcher.shared_node.create_subscription(
             TransitionEvent,
             f"{self._node.fullname}/transition_event",
             self._on_transition_event,
             10,
         )
 
-        self._transition_client = launcher.ros_adapter.ros_node.create_client(
+        self._transition_client = launcher.shared_node.create_client(
             ChangeLifecycleState, f"{self._node.fullname}/change_state"
         )
         if not self._transition_client.wait_for_service(5.0):

@@ -282,9 +282,9 @@ ROS2 launch has a bad reputation of leaving stale and abandoned processes behind
 
 
 # Performance
-I am not an expert on profiling code. That being said, in my tests *better_launch* consistently used more CPU and RAM than `ros2 launch`. This is expected as `asyncio` is highly optimized for performance while *better_launch* uses synchronous calls (or classic threads if necessary), and does some additional work to reformat output from nodes. This can be detrimental on embedded systems - however, there is still a lot of potential for optimization. This is something I will work on in the near future.
+I am not an expert on profiling code. That being said, in my tests *better_launch* consistently used more CPU and RAM than `ros2 launch`. This is expected, as `asyncio` is highly optimized for performance while *better_launch* uses synchronous calls (or classic threads if necessary), and does some additional work to reformat output from nodes. This can be detrimental on embedded systems - however, there is still a lot of potential for optimization. This is something I will work on in the near future.
 
-> `bl` is just a script to locate the launch file and then run it, so I decided to not use `bl` for these benchmarks and run the launch file directly; otherwise the resources used by the launch file will not be visible to most profilers.
+> `bl` is just a script to locate the launch file and then run it, so I decided to not use `bl` for these benchmarks and instead run the launch file directly; otherwise the resources used by the launch file will not be visible to most profilers.
 
 The scripts, launch files and results from the benchmarks can be found under [media/benchmarks](media/benchmarks/). This section will only show the most relevant parts.
 
@@ -295,8 +295,8 @@ The scripts, launch files and results from the benchmarks can be found under [me
 
 |                   | better_launch | ros2 launch |
 | ----------------- | ------------- | ----------- |
-| allocations       | 79186         | 60494       |
-| peak memory usage | 19.5 MiB      | 9.7 MiB     |
+| allocations       | 80984         | 60494       |
+| peak memory usage | 14.6 MiB      | 9.7 MiB     |
 | details           | [link](docs/benchmarks/results/memray/memray-flamegraph-bl.html) | [link](docs/benchmarks/results/memray/memray-flamegraph-ros2.html) |
 
 </details>
@@ -402,7 +402,7 @@ Overall, ROS2 launch seems like a system architect's wet fever dream, and I don'
 
 
 # What doesn't work yet
-For the time being, *better_launch* is feature complete, is well documented and has no known serious bugs. The focus therefore currently lies on performance optimization and cleanup.
+For the time being, *better_launch* is feature complete, is well documented and has no known bugs. The focus therefore currently lies on performance optimization and cleanup.
 
 
 # Contributors

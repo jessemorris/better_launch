@@ -1,16 +1,10 @@
 from typing import Any, Literal, Callable
 import os
-import re
+import yaml
 from ast import literal_eval
 
 from rcl_interfaces.srv import GetParameters
-
-try:
-    # Jazzy
-    from rclpy.parameter import get_parameter_value
-except ImportError:
-    # Humble
-    from ros2param.api import get_parameter_value
+from rcl_interfaces.msg import ParameterType
 
 
 _sentinel = object()
@@ -78,7 +72,35 @@ def default_substitution_handlers(
                 f"Failed to retrieve parameter {param} from {full_node_name}"
             )
 
-        return get_parameter_value(res.values[0]) or ""
+        try:
+            value = yaml.safe_load(res.values[0])
+        except:
+            # Treat it as a string
+            value = str(res.values[0])
+
+        # Using get_value from ros2param will increase memory footprint by ~5MB
+        if value.type == ParameterType.PARAMETER_BOOL:
+            return value.bool_value
+        elif value.type == ParameterType.PARAMETER_INTEGER:
+            return value.integer_value
+        elif value.type == ParameterType.PARAMETER_DOUBLE:
+            return value.double_value
+        elif value.type == ParameterType.PARAMETER_STRING:
+            return value.string_value
+        elif value.type == ParameterType.PARAMETER_BYTE_ARRAY:
+            return list(value.byte_array_value)
+        elif value.type == ParameterType.PARAMETER_BOOL_ARRAY:
+            return list(value.bool_array_value)
+        elif value.type == ParameterType.PARAMETER_INTEGER_ARRAY:
+            return list(value.integer_array_value)
+        elif value.type == ParameterType.PARAMETER_DOUBLE_ARRAY:
+            return list(value.double_array_value)
+        elif value.type == ParameterType.PARAMETER_STRING_ARRAY:
+            return list(value.string_array_value)
+        elif value.type == ParameterType.PARAMETER_NOT_SET:
+            return None
+        
+        return None
 
     # $(env ROS_DISTRO)
     def _env(key: str, default: Any = _sentinel):
