@@ -289,12 +289,12 @@ I am not an expert on profiling code. Even though *better_launch* uses synchrono
 <details>
   <summary>memray</summary>
 
-[memray](https://github.com/bloomberg/memray) reports that *better_launch* uses about 30% less memory than `ros2 launch`. There is still some potential for optimization in this area as well, like late imports and managing string caches.
+[memray](https://github.com/bloomberg/memray) reports that *better_launch* uses about 30% less memory than `ros2 launch`.
 
 |                   | better_launch | ros2 launch |
 | ----------------- | ------------- | ----------- |
-| allocations       | 68367         | 60943       |
-| peak memory usage | 6.7 MiB       | 9.7 MiB     |
+| allocations       | 48196         | 60943       |
+| peak memory usage | 6.6 MiB       | 9.7 MiB     |
 | details           | [link](docs/benchmarks/results/memray/memray-flamegraph-bl.html) | [link](docs/benchmarks/results/memray/memray-flamegraph-ros2.html) |
 
 </details>
@@ -302,7 +302,7 @@ I am not an expert on profiling code. Even though *better_launch* uses synchrono
 <details>
   <summary>psutil</summary>
 
-[psutil](https://psutil.readthedocs.io/en/latest/index.html#psutil.Process.memory_full_info) shows that *better_launch* uses more CPU in the beginning and more memory in total compared to `ros2 launch`. The memory reported is the unique set size (see the previous link). I'm not sure how this relates to the memray statistics above. 
+[psutil](https://psutil.readthedocs.io/en/latest/index.html#psutil.Process.memory_full_info) shows that *better_launch* uses more CPU in the beginning and more memory in total compared to `ros2 launch`. The memory reported is the unique set size (see the previous link). I'm not sure how these results relate to the memray statistics above. 
 
 ![](docs/benchmarks/results/psutil/cpu_usage.png)
 
@@ -313,7 +313,7 @@ I am not an expert on profiling code. Even though *better_launch* uses synchrono
 <details>
   <summary>py-spy</summary>
 
-I use [py-spy](https://github.com/benfred/py-spy) to see where *better_launch* is using resources that can still be optimized.
+I use [py-spy](https://github.com/benfred/py-spy) to see where *better_launch* is using resources that can still be optimized. The speedscope files can be visualized on [speedscope.app](https://www.speedscope.app/).
 
 ![](docs/benchmarks/results/pyspy/bl.svg)
 

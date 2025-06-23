@@ -3,7 +3,7 @@ import signal
 import time
 import re
 from rclpy import Parameter
-from composition_interfaces.srv import ListNodes, LoadNode, UnloadNode
+# NOTE messages are imported late because the composer is not always used
 
 from better_launch.utils.better_logging import LogSink
 from .abstract_node import AbstractNode
@@ -253,6 +253,7 @@ class Composer(AbstractNode):
             return []
 
         from better_launch import BetterLaunch
+        from composition_interfaces.srv import ListNodes
 
         bl = BetterLaunch.instance()
         res = bl.call_service(
@@ -279,6 +280,7 @@ class Composer(AbstractNode):
         if service_timeout not in (0.0, None):
             # Check if all expected services are present
             from better_launch import BetterLaunch
+            from composition_interfaces.srv import ListNodes, LoadNode, UnloadNode
 
             services = {
                 f"{self.fullname}/_container/list_nodes": ListNodes,
@@ -367,6 +369,8 @@ class Composer(AbstractNode):
             component._composer = self
 
         # Reference: https://github.com/ros2/launch_ros/blob/rolling/launch_ros/launch_ros/actions/load_composable_nodes.py
+        from composition_interfaces.srv import LoadNode
+
         req = LoadNode.Request()
         req.package_name = component.package
         req.plugin_name = component.plugin
@@ -467,6 +471,8 @@ class Composer(AbstractNode):
             cname = self._managed_components[cid].name
         else:
             cname = self.get_live_components()[cid]
+
+        from composition_interfaces.srv import UnloadNode
 
         req = UnloadNode.Request()
         req.unique_id = cid

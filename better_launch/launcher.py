@@ -150,7 +150,7 @@ class BetterLaunch(metaclass=_BetterLaunchMeta):
             The namespace of the root group.
         """
         if not name:
-            if not BetterLaunch._launch_func_args:
+            if not BetterLaunch._launchfile:
                 frame = find_calling_frame(self.__init__)
                 BetterLaunch._launchfile = frame.filename
             name = os.path.basename(BetterLaunch._launchfile)
