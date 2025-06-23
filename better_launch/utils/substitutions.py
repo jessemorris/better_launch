@@ -78,7 +78,7 @@ def default_substitution_handlers(
             # Treat it as a string
             value = str(res.values[0])
 
-        # Using get_value from ros2param will increase memory footprint by ~5MB
+        # Importing get_value from ros2param will increase memory footprint by ~5MB, so diy
         if value.type == ParameterType.PARAMETER_BOOL:
             return value.bool_value
         elif value.type == ParameterType.PARAMETER_INTEGER:

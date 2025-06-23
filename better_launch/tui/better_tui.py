@@ -146,7 +146,7 @@ class BetterTui:
             get_app().exit()
         except Exception as e:
             # Might already have exited
-            print(e)
+            pass
 
     # Some common helpers
     def _is_footer_visible(self) -> bool:

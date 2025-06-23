@@ -74,7 +74,7 @@ class LifecycleManager:
         now = time.time()
         while True:
             # Check if the node provides one of the key lifecycle services
-            services = node.get_live_services()
+            services = node.get_published_services()
             for srv_name, srv_types in services.items():
                 if (
                     srv_name == f"{node.fullname}/get_state"

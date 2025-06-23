@@ -13,14 +13,17 @@ except ImportError:
 
 
 class LiveParamsMixin:
-    """Mixin class to add interactions with ROS parameters for running nodes. This class must be mixed in with an object providing a `fullname` member.
-    """
+    """Mixin class to add interactions with ROS parameters for running nodes. This class must be mixed in with an object providing a `fullname` member."""
+
     def __init__(self):
         super().__init__()
-        self._list_params_srv = None
-        self._get_params_srv = None
-        self._set_params_srv = None
-        self._set_params_atomic_srv = None
+        
+        # NOTE: we should avoid storing services as they rely on the ros_adapter staying alive, as 
+        # it can be terminated for performance reasons. Better to use call_service instead.
+        self._list_params_req_type = None
+        self._get_params_req_type = None
+        self._set_params_req_type = None
+        self._set_params_atomic_req_type = None
 
     def list_live_params(self, *, timeout: float = 5.0) -> list[str]:
         """List the names of the ROS parameters this node has registered.
@@ -42,18 +45,20 @@ class LiveParamsMixin:
         TimeoutError
             If the service fails to connect.
         """
-        if not self._list_params_srv:
-            from better_launch import BetterLaunch
+        from better_launch import BetterLaunch
 
-            bl = BetterLaunch.instance()
-            self._list_params_srv = bl.service_client(
-                f"{self.fullname}/list_parameters",
-                "rcl_interfaces/srv/ListParameters",
-                timeout=timeout,
+        bl = BetterLaunch.instance()
+
+        if not self._list_params_req_type:
+            self._list_params_req_type = bl.get_ros_message_type(
+                "rcl_interfaces/srv/ListParameters"
             )
 
-        req = self._list_params_srv.srv_type.Request()
-        res = self._list_params_srv.call(req)
+        res = bl.call_service(
+            f"{self.fullname}/list_parameters",
+            self._list_params_req_type,
+            timeout=timeout,
+        )
 
         return res.result.names
 
@@ -79,10 +84,14 @@ class LiveParamsMixin:
         TimeoutError
             If the service fails to connect.
         """
-        if not self._get_params_srv:
-            from better_launch import BetterLaunch
+        from better_launch import BetterLaunch
 
-            bl = BetterLaunch.instance()
+        bl = BetterLaunch.instance()
+
+        if not self._get_params_req_type:
+            self._get_params_req_type = bl.get_ros_message_type(
+                "rcl_interfaces/srv/GetParameters"
+            )
             self._get_params_srv = bl.service_client(
                 f"{self.fullname}/get_parameters",
                 "rcl_interfaces/srv/GetParameters",
@@ -92,8 +101,12 @@ class LiveParamsMixin:
         if not params:
             params = self.list_live_params(timeout=timeout)
 
-        req = self._get_params_srv.srv_type.Request(names=params)
-        res = self._get_params_srv.call(req)
+        res = bl.call_service(
+            f"{self.fullname}/get_parameters",
+            self._get_params_req_type,
+            names=params,
+            timeout=timeout,
+        )
 
         return {
             name: parameter_value_to_python(pval)
@@ -103,8 +116,8 @@ class LiveParamsMixin:
     def set_live_params(
         self, params: dict[str, Any], *, timeout: float = 5.0
     ) -> dict[str, bool]:
-        """Sets the specified ROS parameters on this node. 
-        
+        """Sets the specified ROS parameters on this node.
+
         This will only work if the node is up and running. This will also not change :py:meth:`params`, which is used for starting the node.
 
         Parameters
@@ -124,23 +137,26 @@ class LiveParamsMixin:
         TimeoutError
             If the service fails to connect.
         """
-        if not self._set_params_srv:
-            from better_launch import BetterLaunch
+        from better_launch import BetterLaunch
 
-            bl = BetterLaunch.instance()
-            self._set_params_srv = bl.service_client(
-                f"{self.fullname}/set_parameters",
-                "rcl_interfaces/srv/SetParameters",
-                timeout=timeout,
+        bl = BetterLaunch.instance()
+
+        if not self._set_params_req_type:
+            self._set_params_req_type = bl.get_ros_message_type(
+                "rcl_interfaces/srv/SetParameters"
             )
 
-        req = self._set_params_srv.srv_type.Request(
-            parameters=[
-                Parameter(key, value=val).to_parameter_msg()
-                for key, val in params.items()
-            ]
+        res = bl.call_service(
+            f"{self.fullname}/set_parameters",
+            self._set_params_req_type,
+            request_args={
+                "parameters": [
+                    Parameter(key, value=val).to_parameter_msg()
+                    for key, val in params.items()
+                ]
+            },
+            timeout=timeout,
         )
-        res = self._set_params_srv.call(req)
 
         return {
             param: item.successful for param, item in zip(params.keys(), res.results)
@@ -170,22 +186,25 @@ class LiveParamsMixin:
         TimeoutError
             If the service fails to connect.
         """
-        if not self._set_params_atomic_srv:
-            from better_launch import BetterLaunch
+        from better_launch import BetterLaunch
 
-            bl = BetterLaunch.instance()
-            self._set_params_atomic_srv = bl.service_client(
-                f"{self.fullname}/set_parameters_atomically",
-                "rcl_interfaces/srv/SetParametersAtomically",
-                timeout=timeout,
+        bl = BetterLaunch.instance()
+
+        if not self._set_params_atomic_req_type:
+            self._set_params_atomic_req_type = bl.get_ros_message_type(
+                "rcl_interfaces/srv/SetParametersAtomically"
             )
 
-        req = self._set_params_atomic_srv.srv_type.Request(
-            parameters=[
-                Parameter(key, value=val).to_parameter_msg()
-                for key, val in params.items()
-            ]
+        res = bl.call_service(
+            f"{self.fullname}/set_parameters_atomically",
+            self._set_params_atomic_req_type,
+            request_args={
+                "parameters": [
+                    Parameter(key, value=val).to_parameter_msg()
+                    for key, val in params.items()
+                ]
+            },
+            timeout=timeout,
         )
-        res = self._set_params_atomic_srv.call(req)
 
         return res.successful

@@ -237,7 +237,6 @@ class AbstractNode:
             while True:
                 living_nodes = set(
                     ns + ("" if ns.endswith("/") else "/") + name
-                    # TODO can we do this without relying on the ROSAdapter's shared node?
                     for name, ns in bl.shared_node.get_node_names_and_namespaces()
                 )
 
@@ -300,7 +299,7 @@ class AbstractNode:
         """
         return self._lifecycle_manager
 
-    def get_live_services(self) -> dict[str, list[str]]:
+    def get_published_services(self) -> dict[str, list[str]]:
         """Get the ROS2 services provided by this node.
 
         Returns
@@ -324,7 +323,7 @@ class AbstractNode:
 
         return res
 
-    def get_live_topics(self) -> dict[str, list[str]]:
+    def get_published_topics(self) -> dict[str, list[str]]:
         """Get the ROS2 topics published by this node.
 
         Returns

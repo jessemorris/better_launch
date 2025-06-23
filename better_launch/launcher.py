@@ -8,7 +8,7 @@ import time
 import re
 import threading
 from pathlib import Path
-from concurrent.futures import Future
+from concurrent.futures import Future, CancelledError, TimeoutError
 from contextlib import contextmanager
 import logging
 import yaml
@@ -162,7 +162,7 @@ class BetterLaunch(metaclass=_BetterLaunchMeta):
             BetterLaunch._launch_func_args = launch_args
 
         # For those cases where we need to interact with ROS (e.g. service calls)
-        self.ros_adapter = ROSAdapter()
+        self._ros_adapter: ROSAdapter = None
 
         if root_namespace is None:
             root_namespace = "/"
@@ -221,32 +221,37 @@ Takeoff in 3... 2... 1...
         self.logger.critical(f"Log files at {roslog.launch_config.log_dir}")
 
     def spin(self, exit_with_last_node: bool = True) -> None:
-        """Join the BetterLaunch thread until it terminates.
+        """Join the BetterLaunch thread until it terminates. You do **not** need to call this if you're using the :py:meth:`launch_this` wrapper or the TUI.
 
         Parameters
         ----------
         exit_with_last_node : bool, optional
             If True this function will return when all nodes have been stopped.
         """
-        # TODO once we spin we probably don't need the ros adapter anymore, yet it takes up
-        # more than 6MB of memory. We probably can't get rid of the adapter entirely as it is 
-        # commonly used in e.g. AbstractNode.check_ros2_connected. 
+        # The ros_adapter takes up quite a bit of memory (around 6 MiB), however, killing it by 
+        # default once we spin is not a good option right now, as some types like composers will
+        # create services needed for shutdown that would become invalid once we kill the adapter.
         if exit_with_last_node:
-            while self.ros_adapter._thread.is_alive():
+            while not self._shutdown_future.done():
                 # TODO not a nice solution, find something smarter
-                self.ros_adapter._thread.join(0.1)
-                nodes = self.all_nodes(
-                    include_components=True,
-                    include_launch_service=True,
-                    include_foreign=False,
-                )
+                try:
+                    self._shutdown_future.result(0.1)
+                except TimeoutError:
+                    nodes = self.all_nodes(
+                        include_components=True,
+                        include_launch_service=True,
+                        include_foreign=False,
+                    )
 
-                if all(not n.is_running for n in nodes):
-                    self.logger.info("All nodes have stopped, exiting")
-                    break
+                    if all(not n.is_running for n in nodes):
+                        self.shutdown("all nodes have stopped")
+                        break
 
         else:
-            self.ros_adapter._thread.join()
+            try:
+                self._shutdown_future.result()
+            except (CancelledError, TimeoutError):
+                pass
 
     def get_unique_name(self, name: str = "") -> str:
         """Adds a unique suffix to the provided string.
@@ -413,6 +418,14 @@ Takeoff in 3... 2... 1...
         return BetterLaunch._launch_func_args
 
     @property
+    def ros_adapter(self) -> ROSAdapter:
+        """Contains and runs a shared ROS2 node to interact with topics, services, etc. The adapter is instantiated lazily as it brings a major performance hit (about 6 MiB memory and a high CPU spike)."""
+        if not self._ros_adapter or not self._ros_adapter._thread.is_alive():
+            self._ros_adapter = ROSAdapter()
+
+        return self._ros_adapter
+
+    @property
     def shared_node(self) -> RosNode:
         """A ROS2 node instance that can be used for creating publishers, services, etc."""
         return self.ros_adapter.ros_node
@@ -488,7 +501,6 @@ Takeoff in 3... 2... 1...
     @property
     def is_shutdown(self) -> bool:
         """Whether *better_launch* has shutdown."""
-        # TODO this is a remnant from the very beginning when we still took inspiration from ROS2 launch. Remove?
         return self._shutdown_future.done()
 
     def add_shutdown_callback(self, callback: Callable[[], Any]) -> None:
@@ -521,10 +533,12 @@ Takeoff in 3... 2... 1...
                 self.logger.warning(
                     f"Shutdown was called without providing a reason and the calling frame could not be determined"
                 )
+        else:
+            self.logger.info(f"Shutdown: {reason}")
 
         # Tell all nodes to shut down
         for n in self.all_nodes(
-            include_components=True, include_launch_service=True, include_foreign=False
+            include_components=False, include_launch_service=True, include_foreign=False
         ):
             try:
                 n.shutdown(reason, signum)
@@ -536,7 +550,9 @@ Takeoff in 3... 2... 1...
                 )
 
         try:
-            self.ros_adapter.shutdown()
+            if self._ros_adapter:
+                self._ros_adapter.shutdown()
+                self._ros_adapter = None
         except Exception as e:
             self.logger.error(f"RosAdapter raised an exception during shutdown: {e}")
 
@@ -615,11 +631,11 @@ Takeoff in 3... 2... 1...
                 return filename
 
         if not package:
-            _, package = get_package_for_path(os.path.dirname(self.launchfile))
+            package, _ = get_package_for_path(os.path.dirname(self.launchfile))
 
         if package:
             if "/" in package or os.pathsep in package:
-                raise ValueError("Package must be a single name, not a path")
+                raise ValueError(f"Package must be a single name, not a path ({package})")
             base_path = get_package_prefix(package)
         else:
             base_path = os.getcwd()
@@ -888,7 +904,7 @@ Takeoff in 3... 2... 1...
         message_args: dict[str, Any],
         qos_profile: QoSProfile | int = 10,
     ) -> None:
-        """Convenience method to publish a single message. If you plan to publish additional messages, use :py:meth:`publisher` instead and use the instance.
+        """Convenience method to publish a single message. The publisher will be destroyed once the message has been published. If you plan to publish additional messages, use :py:meth:`publisher` instead and use the instance.
 
         Parameters
         ----------
@@ -907,6 +923,7 @@ Takeoff in 3... 2... 1...
         pub = self.publisher(topic, message_type, qos_profile)
         msg = message_type(**message_args)
         pub.publish(msg)
+        pub.destroy()
 
     def service(
         self,
@@ -996,11 +1013,13 @@ Takeoff in 3... 2... 1...
         self,
         topic: str,
         service_type: str | type,
-        request_args: dict[str, Any],
+        request_args: dict[str, Any] | Any = None,
+        *,
         timeout: float = 5.0,
         qos_profile: QoSProfile = None,
+        call_async: bool = False,
     ) -> Any:
-        """Makes a single service request and returns the result. If you plan to make additional requests, use :py:meth:`service_client` instead.
+        """Makes a single service request and returns the result. The client is destroyed once the request has been handled. If you plan to make additional requests, use :py:meth:`service_client` instead.
 
         Parameters
         ----------
@@ -1008,17 +1027,19 @@ Takeoff in 3... 2... 1...
             The service topic to post requests on.
         service_type : str | type
             The service's message type. Strings must follow the pattern `<package>/srv/<message>`.
-        request_args : dict[str, Any]
-            The keyword arguments from which the request message will be constructed.
+        request_args : dict[str, Any] | Any
+            The keyword arguments from which the request message will be constructed. May also be an instance of `service_type.Request`.
         timeout : float, optional
             Time to wait for the service to become available. Ignored if <= 0.
         qos_profile : QoSProfile, optional
             A quality of service profile that changes how the service handles connections.
+        call_async : bool, optional
+            If True, make the service call async and return a :py:class:`rclpy.task.Future` instead.
 
         Returns
         -------
         Any
-            The result of the service call of type `service_type.Request`.
+            A :py:class:`rclpy.task.Future` if `call_async` is True, otherwise the result of the service call of type `service_type.Request`.
 
         Raises
         ------
@@ -1028,9 +1049,23 @@ Takeoff in 3... 2... 1...
         if isinstance(service_type, str):
             service_type = self.get_ros_message_type(service_type)
 
+        if isinstance(request_args, service_type.Request):
+            req = request_args
+        elif isinstance(request_args, dict):
+            req = service_type.Request(**request_args)
+        else:
+            req = service_type.Request()
+
         srv = self.service_client(topic, service_type, timeout, qos_profile)
-        req = service_type.Request(**request_args)
-        return srv.call(req)
+
+        if call_async:
+            res = srv.call_async(req)
+            res.add_done_callback(lambda f: srv.destroy())
+        else:
+            res = srv.call(req)
+            srv.destroy()
+        
+        return res
 
     def action_server(
         self,
@@ -1267,9 +1302,9 @@ Takeoff in 3... 2... 1...
         autostart_process : bool, optional
             If True, start the node process before returning from this function.
         ros_waittime : float, optional
-            How long to wait for the node to register with ROS. This should cover the time between the process starting and the node initializing itself. Set negative to wait indefinitely. Will do nothing if `autostart_process` is False.
+            How long to wait for the node to register with ROS. This should cover the time between the process starting and the node initializing itself. Set negative to wait indefinitely. Set to None to avoid the check entirely. Will do nothing if `autostart_process` is False.
         lifecycle_waittime : float, optional
-            How long to wait for the node's lifecycle management to come up. This should cover the time between the node initializing itself (see `ros_waittime`) and creating its additional topics and services. While neglible on modern computers, slower devices and embedded systems may experience a noticable delay here. Set negative to wait indefinitely. Will do nothing if `autostart_process` is False.
+            How long to wait for the node's lifecycle management to come up. This should cover the time between the node initializing itself (see `ros_waittime`) and creating its additional topics and services. While neglible on modern computers, slower devices and embedded systems may experience a noticable delay here. Set negative to wait indefinitely. Set to None to avoid the check entirely. Will do nothing if `autostart_process` is False.
         lifecycle_target : LifecycleStage, optional
             The lifecycle stage to bring the node into after starting. Has no effect if `autostart_process` is False or if the node does not appear to be a lifecycle node after waiting `ros_waittime + lifecycle_waittime`.
         raw : bool, optional
@@ -1324,8 +1359,12 @@ Takeoff in 3... 2... 1...
         if autostart_process:
             node.start()
 
-            if node.check_ros2_connected(ros_waittime):
-                if node.check_lifecycle_node(lifecycle_waittime):
+            if ros_waittime is not None and node.check_ros2_connected(ros_waittime):
+                if (
+                    lifecycle_target not in (None, LifecycleStage.PRISTINE)
+                    and lifecycle_waittime is not None
+                    and node.check_lifecycle_node(lifecycle_waittime)
+                ):
                     node.lifecycle.transition(lifecycle_target)
 
         return node
@@ -1520,9 +1559,9 @@ Takeoff in 3... 2... 1...
         use_intra_process_comms : bool, optional
             If True, ask the composer node to enable intra-process communication, i.e. share memory between components when passing messages instead of serializing and deserializing.
         ros_waittime : float, optional
-            How long to wait for the component to register with ROS. This should cover the time between the process starting and the component initializing itself. Set negative to wait indefinitely. Will do nothing if `autostart_process` is False.
+            How long to wait for the component to register with ROS. This should cover the time between the process starting and the component initializing itself. Set negative to wait indefinitely. Set to None to avoid the check entirely. Will do nothing if `autostart_process` is False.
         lifecycle_waittime : float, optional
-            How long to wait for the component's lifecycle management to come up. This should cover the time between the component initializing itself (see `ros_waittime`) and creating its additional topics and services. While neglible on modern computers, slower devices and embedded systems may experience a noticable delay here. Set negative to wait indefinitely. Will do nothing if `autostart_process` is False.
+            How long to wait for the component's lifecycle management to come up. This should cover the time between the component initializing itself (see `ros_waittime`) and creating its additional topics and services. While neglible on modern computers, slower devices and embedded systems may experience a noticable delay here. Set negative to wait indefinitely. Set to None to avoid the check entirely. Will do nothing if `autostart_process` is False.
         lifecycle_target : LifecycleStage, optional
             The lifecycle stage to bring the component into after starting. Has no effect if `autostart_process` is False or if the component does not appear to be a lifecycle component after waiting `ros_waittime + lifecycle_waittime`.
         output : LogSink | set[LogSink], optional
@@ -1571,8 +1610,12 @@ Takeoff in 3... 2... 1...
             **extra_composer_args,
         )
 
-        if comp.check_ros2_connected(ros_waittime):
-            if comp.check_lifecycle_node(lifecycle_waittime):
+        if ros_waittime is not None and comp.check_ros2_connected(ros_waittime):
+            if (
+                lifecycle_target not in (None, LifecycleStage.PRISTINE)
+                and lifecycle_waittime is not None
+                and comp.check_lifecycle_node(lifecycle_waittime)
+            ):
                 comp.lifecycle.transition(lifecycle_target)
 
         return comp

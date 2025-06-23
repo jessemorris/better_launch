@@ -60,7 +60,6 @@ class ROSAdapter:
         if not self._thread or not self._thread.is_alive():
             return
         
-        print("shutting down shared ROS node")
         self.ros_executor.shutdown()
         self._thread.join()
         self.ros_node.destroy_node()

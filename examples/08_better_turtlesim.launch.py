@@ -26,7 +26,7 @@ def great_atuin(
             executable="turtlesim_node",
             name="sim",
             # Pass parameters directly 
-            params={"background_r": 120}
+            params={"background_r": 120},
         )
 
         bl.call_service(

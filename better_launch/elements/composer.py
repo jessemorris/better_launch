@@ -156,8 +156,8 @@ class Composer(AbstractNode):
         """
         now = time.time()
         while True:
-            # Check if the node provides one of the key lifecycle services
-            services = node.get_live_services()
+            # Check if the node provides one of the key composition services
+            services = node.get_published_services()
             for srv_name, srv_types in services.items():
                 if (
                     srv_name == f"{node.fullname}/_container/load_node"
@@ -221,9 +221,6 @@ class Composer(AbstractNode):
         # Remaps are not useful for a composable node, but we can forward them to the components
         self._component_remaps: dict[str, str] = component_remaps or {}
         self._managed_components: dict[int, Component] = {}
-        self._list_components_client = None
-        self._load_component_client = None
-        self._unload_component_client = None
 
     @property
     def is_running(self) -> bool:
@@ -255,44 +252,47 @@ class Composer(AbstractNode):
         if not self._wrapped_node.is_running:
             return []
 
-        res = self._list_components_client.call(ListNodes.Request())
+        from better_launch import BetterLaunch
+
+        bl = BetterLaunch.instance()
+        res = bl.call_service(
+            f"{self.fullname}/_container/list_nodes",
+            ListNodes,
+            timeout=5.0,
+        )
+
         return [(uid, name) for uid, name in zip(res.unique_ids, res.full_node_names)]
 
     def start(self, service_timeout: float = 5.0) -> None:
+        """Start this node. Once this succeeds, :py:meth:`is_running` will return True.
+
+        Parameters
+        ----------
+        service_timeout : float, optional
+            How long to wait for each composition service to appear (3 total). Wait forever if set negative. Don't check at all if None or 0.
+        """
         try:
             self._wrapped_node.start()
         except NotImplementedError:
             pass
 
-        from better_launch import BetterLaunch
+        if service_timeout not in (0.0, None):
+            # Check if all expected services are present
+            from better_launch import BetterLaunch
 
-        bl = BetterLaunch.instance()
-        self._list_components_client = bl.service_client(
-            f"{self.fullname}/_container/list_nodes", ListNodes
-        )
-        if not self._list_components_client.wait_for_service(
-            timeout_sec=service_timeout
-        ):
-            raise RuntimeError("Failed to connect to composer load service")
+            services = {
+                f"{self.fullname}/_container/list_nodes": ListNodes,
+                f"{self.fullname}/_container/load_node": LoadNode,
+                f"{self.fullname}/_container/unload_node": UnloadNode
+            }
 
-        self._load_component_client = bl.service_client(
-            f"{self.fullname}/_container/load_node", LoadNode
-        )
-        if not self._load_component_client.wait_for_service(
-            timeout_sec=service_timeout
-        ):
-            raise RuntimeError("Failed to connect to composer load service")
-
-        self._unload_component_client = bl.service_client(
-            f"{self.fullname}/_container/unload_node", UnloadNode
-        )
-        if not self._unload_component_client.wait_for_service(
-            timeout_sec=service_timeout
-        ):
-            raise RuntimeError("Failed to connect to composer unload service")
+            bl = BetterLaunch.instance()
+            for topic, srv_type in services.items():
+                srv = bl.service_client(topic, srv_type, timeout=service_timeout)
+                srv.destroy()
 
     def shutdown(self, reason: str, signum: int = signal.SIGTERM, timeout: float = 0.0) -> None:
-        """This will unload all components first, then shutdown the composer node.
+        """This will shutdown the composer node. Unloading any loaded components is left to the actual composer implementation.
 
         Parameters
         ----------
@@ -308,15 +308,16 @@ class Composer(AbstractNode):
         TimeoutError
             If a timeout > 0 was set and any of the components or the composer did not shutdown before then.
         """
-        components = list(self.managed_components)
-        for comp in components:
-            try:
-                self.unload_component(comp, timeout=timeout)
-            except:
-                pass
+        # components = list(self.managed_components)
+        # for comp in components:
+        #     try:
+        #         self.unload_component(comp, timeout=timeout)
+        #     except:
+        #         pass
 
         try:
             self._wrapped_node.shutdown(reason, signum, timeout)
+            self.managed_components.clear()
         except NotImplementedError:
             pass
 
@@ -400,8 +401,17 @@ class Composer(AbstractNode):
             raise ValueError(f"Could not serialize extra parameters: {e}") from e
 
         # Call the load_node service
+        from better_launch import BetterLaunch
+        
         self.logger.info(f"Loading component {component.name}")
-        res = self._load_component_client.call(req)
+        bl = BetterLaunch.instance()
+
+        res = bl.call_service(
+            f"{self.fullname}/_container/load_node",
+            LoadNode,
+            req,
+            timeout=5.0,
+        )
 
         if res.success:
             if res.full_node_name:
@@ -462,7 +472,17 @@ class Composer(AbstractNode):
         req.unique_id = cid
 
         self.logger.info(f"Unloading component {cid} ({cname})")
-        res = self._unload_component_client.call_async(req)
+
+        from better_launch import BetterLaunch
+
+        bl = BetterLaunch.instance()
+        res = bl.call_service(
+            f"{self.fullname}/_container/unload_node",
+            UnloadNode,
+            req,
+            timeout=5.0,
+            call_async=True,
+        )
 
         # ROS2 has its own implementation of a future that doesn't support timeouts...
         if timeout == 0.0:
