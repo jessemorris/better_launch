@@ -23,8 +23,8 @@ import time
 import csv
 
 
-COMMAND_BL = ["python", "../../examples/08_better_turtlesim.launch.py"]
-COMMAND_ROS2 = ["ros2", "launch", "better_launch", "ros2_turtlesim.launch.py"]
+COMMAND_BL = ["python", "../../examples/11_performance.launch.py"]
+COMMAND_ROS2 = ["ros2", "launch", "better_launch", "ros2_performance.launch.py"]
 INTERVAL = 0.1  
 OUTPUT_NAME_FMT = "results/psutil/psutil_%s.csv"
 

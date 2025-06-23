@@ -3,7 +3,7 @@
 # Generates memray-ros2.bin and the corresponding plot
 # Memray shows similar memory usage for better_launch and ros2
 
-rm -f ./results/memory/memray-ros2.bin ./results/memory/memray-ros2.
-memray run -o ./results/memory/memray-ros2.bin bl.py better_launch 08_better_turtlesim.py
-memray flamegraph ./results/memory/memray-ros2.bin
-firefox ./results/memory/memray-flamegraph-ros2.html
+rm -f ./results/memray/memray-ros2.bin ./results/memray/memray-flamegraph-ros2.html
+memray run -o ./results/memray/memray-ros2.bin /opt/ros/humble/bin/ros2 launch better_launch ros2_performance.launch.py
+memray flamegraph ./results/memray/memray-ros2.bin
+firefox ./results/memray/memray-flamegraph-ros2.html
