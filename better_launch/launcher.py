@@ -585,7 +585,7 @@ Takeoff in 3... 2... 1...
         package: str = None,
         filename: str = None,
         glob: str = None,
-        sbustitutions: bool = True,
+        substitutions: bool = True,
     ) -> str:
         """Resolve a path to a file or package.
 
@@ -607,8 +607,8 @@ Takeoff in 3... 2... 1...
             Name of a file to look for.
         glob : str, optional
             A glob pattern to locate subdirectories and files.
-        sbustitutions : bool, optional
-            If True, text substitution strings within the package and base path will be resolved (see :py:meth:`resolve_string`).
+        substitutions : bool, optional
+            If True, text substitution strings within the package and base path will be resolved (see :py:meth:`resolve_strin​g`).
 
         Returns
         -------
@@ -620,7 +620,7 @@ Takeoff in 3... 2... 1...
         ValueError
             If `package` contains path separators, or if a `filename` is provided but could not be found within base path.
         """
-        if sbustitutions:
+        if substitutions:
             resolve = self.resolve_string
         else:
             resolve = lambda s: s

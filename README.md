@@ -218,7 +218,7 @@ bl better_launch 05_launch_arguments.py --help
 
 
 # The TUI
-*better_launch* comes with a sneaky, unobstrusive TUI (terminal user interface) based on [prompt_toolkit](https://github.com/prompt-toolkit/python-prompt-toolkit), which will hover below the log output. You can start it by either passing `ui=True` to the `launch_this` wrapper, or by adding `--bl_ui_override=enable` on the command line. 
+*better_launch* comes with a sneaky, unobstrusive TUI (terminal user interface) based on [prompt_toolkit](https://github.com/prompt-toolkit/python-prompt-toolkit), which will hover below the log output. You can start it by either passing `ui=True` to the `launch_this` wrapper, or by adding `--bl_ui_override=enable` on the command line. Use *\<tab>* to switch between menu items.
 
 ![TUI](media/tui.png)
 

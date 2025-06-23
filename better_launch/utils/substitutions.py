@@ -3,9 +3,6 @@ import os
 import yaml
 from ast import literal_eval
 
-from rcl_interfaces.srv import GetParameters
-from rcl_interfaces.msg import ParameterType
-
 
 _sentinel = object()
 
@@ -40,6 +37,9 @@ def default_substitution_handlers(
     dict[str, Callable]
         A dict mapping substitution keys to handler functions. Note that handler functions are allowed to throw instances of :py:class:`SubstitutionError` when invalid parameters are passed.
     """
+    # Try to delay ROS2 imports until we actually need them
+    from rcl_interfaces.srv import GetParameters
+    from rcl_interfaces.msg import ParameterType
     from better_launch import BetterLaunch
 
     bl = BetterLaunch.instance()
