@@ -71,13 +71,12 @@
            <div itemprop="articleBody">
              
   <h1>Source code for better_launch.wrapper</h1><div class="highlight"><pre>
-<span></span><span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Literal</span><span class="p">,</span> <span class="n">get_args</span>
+<span></span><span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">get_args</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">platform</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">ast</span><span class="w"> </span><span class="kn">import</span> <span class="n">literal_eval</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">signal</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">inspect</span>
-<span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">click</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">threading</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">docstring_parser</span><span class="w"> </span><span class="kn">import</span> <span class="n">parse</span> <span class="k">as</span> <span class="n">parse_docstring</span>
@@ -88,7 +87,6 @@
     <span class="n">_bl_include_args</span><span class="p">,</span>
 <span class="p">)</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">better_launch.utils.better_logging</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
-    <span class="n">PrettyLogFormatter</span><span class="p">,</span>
     <span class="n">Colormode</span><span class="p">,</span>
     <span class="n">init_logging</span><span class="p">,</span>
 <span class="p">)</span>
@@ -110,6 +108,7 @@
     <span class="n">file_log_format</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">colormode</span><span class="p">:</span> <span class="n">Colormode</span> <span class="o">=</span> <span class="s2">&quot;default&quot;</span><span class="p">,</span>
     <span class="n">manage_foreign_nodes</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="n">keep_alive</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
 <span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Use this to decorate your launch function. The function will be run automatically. The function is allowed to block even when using the UI.</span>
 
@@ -137,6 +136,8 @@
 <span class="sd">        Superseded by the `BL_COLORMODE_OVERRIDE` environment variable and the `--bl_colormode_override` argument.</span>
 <span class="sd">    manage_foreign_nodes : bool, optional</span>
 <span class="sd">        If True, the TUI will also include node processes not started by this process. Has no effect if the TUI is not started.</span>
+<span class="sd">    keep_alive : bool, optional</span>
+<span class="sd">        If True, keep the process alive even when all nodes have stopped.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">decoration_helper</span><span class="p">(</span><span class="n">func</span><span class="p">):</span>
@@ -148,6 +149,7 @@
             <span class="n">file_log_format</span><span class="o">=</span><span class="n">file_log_format</span><span class="p">,</span>
             <span class="n">colormode</span><span class="o">=</span><span class="n">colormode</span><span class="p">,</span>
             <span class="n">manage_foreign_nodes</span><span class="o">=</span><span class="n">manage_foreign_nodes</span><span class="p">,</span>
+            <span class="n">keep_alive</span><span class="o">=</span><span class="n">keep_alive</span><span class="p">,</span>
         <span class="p">)</span>
 
     <span class="k">return</span> <span class="n">decoration_helper</span> <span class="k">if</span> <span class="n">launch_func</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">decoration_helper</span><span class="p">(</span><span class="n">launch_func</span><span class="p">)</span></div>
@@ -162,6 +164,7 @@
     <span class="n">file_log_format</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">colormode</span><span class="p">:</span> <span class="n">Colormode</span> <span class="o">=</span> <span class="s2">&quot;default&quot;</span><span class="p">,</span>
     <span class="n">manage_foreign_nodes</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="n">keep_alive</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
 <span class="p">):</span>
     <span class="c1"># Globals of the calling module</span>
     <span class="n">glob</span> <span class="o">=</span> <span class="n">find_calling_frame</span><span class="p">(</span><span class="n">_launch_this_wrapper</span><span class="p">)</span><span class="o">.</span><span class="n">frame</span><span class="o">.</span><span class="n">f_globals</span>
@@ -261,7 +264,8 @@
         <span class="n">owner</span> <span class="o">=</span> <span class="n">frame_locals</span><span class="p">[</span><span class="s2">&quot;self&quot;</span><span class="p">]</span>
 
         <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">owner</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">==</span> <span class="s2">&quot;IncludeLaunchDescription&quot;</span><span class="p">:</span>
-            <span class="c1"># We were included, expose the expected method in our caller&#39;s globals and return</span>
+            <span class="c1"># We were included or started by ROS2, expose the expected launch method in our </span>
+            <span class="c1"># caller&#39;s globals and return</span>
             <span class="nb">print</span><span class="p">(</span>
                 <span class="sa">f</span><span class="s2">&quot;[NOTE] Launch file </span><span class="si">{</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">BetterLaunch</span><span class="o">.</span><span class="n">_launchfile</span><span class="p">)</span><span class="si">}</span><span class="s2"> got included from ROS2&quot;</span>
             <span class="p">)</span>
@@ -359,7 +363,7 @@
         <span class="k">def</span><span class="w"> </span><span class="nf">launch_func_wrapper</span><span class="p">():</span>
             <span class="k">if</span> <span class="n">launch_func_kwarg</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
                 <span class="c1"># If the launch func defines a **kwarg we can pass all extra arguments to it, with</span>
-                <span class="c1"># the caveat that these extra arguments need to be defined as `-[-]&lt;key&gt; val` tuples.</span>
+                <span class="c1"># the caveat that these extra args need to be defined as `-[-]&lt;key&gt; val` tuples.</span>
                 <span class="k">assert</span> <span class="p">(</span>
                     <span class="nb">len</span><span class="p">(</span><span class="n">ctx</span><span class="o">.</span><span class="n">args</span><span class="p">)</span> <span class="o">%</span> <span class="mi">2</span> <span class="o">==</span> <span class="mi">0</span>
                 <span class="p">),</span> <span class="s2">&quot;extra arguments need to be &#39;--&lt;key&gt; &lt;value&gt;&#39; tuples&quot;</span>
@@ -386,8 +390,10 @@
 
             <span class="c1"># Retrieve the BetterLaunch singleton</span>
             <span class="n">bl</span> <span class="o">=</span> <span class="n">BetterLaunch</span><span class="p">()</span>
+
+            <span class="c1"># The UI will manage spinning itself</span>
             <span class="k">if</span> <span class="n">join</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">ui</span><span class="p">:</span>
-                <span class="n">bl</span><span class="o">.</span><span class="n">spin</span><span class="p">()</span>
+                <span class="n">bl</span><span class="o">.</span><span class="n">spin</span><span class="p">(</span><span class="n">exit_with_last_node</span><span class="o">=</span><span class="ow">not</span> <span class="n">keep_alive</span><span class="p">)</span>
 
         <span class="c1"># By default BetterLaunch has access to all arguments from its launch function</span>
         <span class="n">bound_args</span> <span class="o">=</span> <span class="n">launch_func_sig</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
@@ -398,7 +404,9 @@
             <span class="kn">from</span><span class="w"> </span><span class="nn">better_launch.tui.better_tui</span><span class="w"> </span><span class="kn">import</span> <span class="n">BetterTui</span>
 
             <span class="n">app</span> <span class="o">=</span> <span class="n">BetterTui</span><span class="p">(</span>
-                <span class="n">launch_func_wrapper</span><span class="p">,</span> <span class="n">manage_foreign_nodes</span><span class="o">=</span><span class="n">manage_foreign_nodes</span>
+                <span class="n">launch_func_wrapper</span><span class="p">,</span> 
+                <span class="n">manage_foreign_nodes</span><span class="o">=</span><span class="n">manage_foreign_nodes</span><span class="p">,</span>
+                <span class="n">keep_alive</span><span class="o">=</span><span class="n">keep_alive</span><span class="p">,</span>
             <span class="p">)</span>
             <span class="n">app</span><span class="o">.</span><span class="n">run</span><span class="p">()</span>
         <span class="k">else</span><span class="p">:</span>

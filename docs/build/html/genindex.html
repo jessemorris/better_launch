@@ -137,6 +137,8 @@
 </li>
         <li><a href="better_launch.ros.html#better_launch.ros.ros_adapter.ROSAdapter.__init__">(better_launch.ros.ros_adapter.ROSAdapter method)</a>
 </li>
+        <li><a href="better_launch.tui.html#better_launch.tui.better_tui.BetterTui.__init__">(better_launch.tui.better_tui.BetterTui method)</a>
+</li>
         <li><a href="better_launch.tui.html#better_launch.tui.footer_menu.FooterMenu.__init__">(better_launch.tui.footer_menu.FooterMenu method)</a>
 </li>
         <li><a href="better_launch.utils.html#better_launch.utils.better_logging.PrettyLogFormatter.__init__">(better_launch.utils.better_logging.PrettyLogFormatter method)</a>
@@ -614,10 +616,6 @@
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="better_launch.html#better_launch.gazebo.gazebo_launch">gazebo_launch() (in module better_launch.gazebo)</a>
 </li>
-      <li><a href="better_launch.html#better_launch.gazebo.gazebo_save_world">gazebo_save_world() (in module better_launch.gazebo)</a>
-</li>
-      <li><a href="better_launch.html#better_launch.gazebo.gazebo_spawn_model">gazebo_spawn_model() (in module better_launch.gazebo)</a>
-</li>
       <li><a href="better_launch.html#better_launch.gazebo.GazeboBridge">GazeboBridge (class in better_launch.gazebo)</a>
 </li>
       <li><a href="better_launch.utils.html#better_launch.utils.introspection.get_bound_arguments">get_bound_arguments() (in module better_launch.utils.introspection)</a>
@@ -625,8 +623,6 @@
       <li><a href="better_launch.utils.html#better_launch.utils.colors.get_contrast_color">get_contrast_color (in module better_launch.utils.colors)</a>
 </li>
       <li><a href="better_launch.html#better_launch.gazebo.get_gazebo_axes_args">get_gazebo_axes_args() (in module better_launch.gazebo)</a>
-</li>
-      <li><a href="better_launch.html#better_launch.gazebo.get_gazebo_prefix">get_gazebo_prefix() (in module better_launch.gazebo)</a>
 </li>
       <li><a href="better_launch.html#better_launch.gazebo.get_gazebo_version">get_gazebo_version() (in module better_launch.gazebo)</a>
 </li>
@@ -642,16 +638,10 @@
       </ul></li>
       <li><a href="better_launch.elements.html#better_launch.elements.live_params_mixin.LiveParamsMixin.get_live_params">get_live_params() (better_launch.elements.live_params_mixin.LiveParamsMixin method)</a>
 </li>
-      <li><a href="better_launch.elements.html#better_launch.elements.abstract_node.AbstractNode.get_live_services">get_live_services() (better_launch.elements.abstract_node.AbstractNode method)</a>
-</li>
-      <li><a href="better_launch.elements.html#better_launch.elements.abstract_node.AbstractNode.get_live_topics">get_live_topics() (better_launch.elements.abstract_node.AbstractNode method)</a>
-</li>
       <li><a href="better_launch.ros.html#better_launch.ros.logging.get_logger">get_logger() (in module better_launch.ros.logging)</a>
 </li>
       <li><a href="better_launch.utils.html#better_launch.utils.better_logging.PrettyLogFormatter.get_loglevel_color">get_loglevel_color() (better_launch.utils.better_logging.PrettyLogFormatter method)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="better_launch.html#better_launch.gazebo.GazeboBridge.get_model_path">get_model_path() (better_launch.gazebo.GazeboBridge class method)</a>
 </li>
       <li><a href="better_launch.html#better_launch.gazebo.GazeboBridge.get_model_topic">get_model_topic() (better_launch.gazebo.GazeboBridge class method)</a>
@@ -659,6 +649,12 @@
       <li><a href="better_launch.ros.html#better_launch.ros.logging.get_output_loggers">get_output_loggers() (in module better_launch.ros.logging)</a>
 </li>
       <li><a href="better_launch.elements.html#better_launch.elements.foreign_node.get_package_for_path">get_package_for_path() (in module better_launch.elements.foreign_node)</a>
+</li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="better_launch.elements.html#better_launch.elements.abstract_node.AbstractNode.get_published_services">get_published_services() (better_launch.elements.abstract_node.AbstractNode method)</a>
+</li>
+      <li><a href="better_launch.elements.html#better_launch.elements.abstract_node.AbstractNode.get_published_topics">get_published_topics() (better_launch.elements.abstract_node.AbstractNode method)</a>
 </li>
       <li><a href="better_launch.html#better_launch.BetterLaunch.get_ros_message_type">get_ros_message_type() (better_launch.BetterLaunch method)</a>
 
@@ -1097,6 +1093,12 @@
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="better_launch.elements.html#better_launch.elements.ros2_launch_wrapper.Ros2LaunchWrapper">Ros2LaunchWrapper (class in better_launch.elements.ros2_launch_wrapper)</a>
 </li>
+      <li><a href="better_launch.html#better_launch.BetterLaunch.ros_adapter">ros_adapter (better_launch.BetterLaunch property)</a>
+
+      <ul>
+        <li><a href="better_launch.html#better_launch.launcher.BetterLaunch.ros_adapter">(better_launch.launcher.BetterLaunch property)</a>, <a href="better_launch_custom.html#better_launch.launcher.BetterLaunch.ros_adapter">[1]</a>
+</li>
+      </ul></li>
       <li><a href="better_launch.elements.html#better_launch.elements.lifecycle_manager.LifecycleManager.ros_state">ros_state (better_launch.elements.lifecycle_manager.LifecycleManager property)</a>
 
       <ul>
@@ -1127,6 +1129,8 @@
 <h2 id="S">S</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="better_launch.html#better_launch.gazebo.save_world">save_world() (in module better_launch.gazebo)</a>
+</li>
       <li><a href="better_launch.tui.html#better_launch.tui.better_tui.AppMode.SEARCH_NODE">SEARCH_NODE (better_launch.tui.better_tui.AppMode attribute)</a>
 </li>
       <li><a href="better_launch.tui.html#better_launch.tui.footer_menu.FooterMenu.select">select() (better_launch.tui.footer_menu.FooterMenu method)</a>
@@ -1154,8 +1158,6 @@
       <li><a href="better_launch.elements.html#better_launch.elements.live_params_mixin.LiveParamsMixin.set_live_params">set_live_params() (better_launch.elements.live_params_mixin.LiveParamsMixin method)</a>
 </li>
       <li><a href="better_launch.elements.html#better_launch.elements.live_params_mixin.LiveParamsMixin.set_live_params_atomic">set_live_params_atomic() (better_launch.elements.live_params_mixin.LiveParamsMixin method)</a>
-</li>
-      <li><a href="better_launch.tui.html#better_launch.tui.better_tui.BetterTui.set_log_level">set_log_level() (better_launch.tui.better_tui.BetterTui method)</a>
 </li>
       <li><a href="better_launch.html#better_launch.gazebo.GazeboBridge.set_world_name">set_world_name() (better_launch.gazebo.GazeboBridge class method)</a>
 </li>
@@ -1201,9 +1203,11 @@
       </ul></li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="better_launch.html#better_launch.gazebo.spawn_gazebo_topic_bridge">spawn_gazebo_topic_bridge() (in module better_launch.gazebo)</a>
+      <li><a href="better_launch.html#better_launch.gazebo.spawn_model">spawn_model() (in module better_launch.gazebo)</a>
 </li>
-      <li><a href="better_launch.html#better_launch.gazebo.spawn_gazebo_world_transform">spawn_gazebo_world_transform() (in module better_launch.gazebo)</a>
+      <li><a href="better_launch.html#better_launch.gazebo.spawn_topic_bridges">spawn_topic_bridges() (in module better_launch.gazebo)</a>
+</li>
+      <li><a href="better_launch.html#better_launch.gazebo.spawn_world_transform">spawn_world_transform() (in module better_launch.gazebo)</a>
 </li>
       <li><a href="better_launch.html#better_launch.BetterLaunch.spin">spin() (better_launch.BetterLaunch method)</a>
 

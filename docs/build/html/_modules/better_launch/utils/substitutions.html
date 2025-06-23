@@ -73,17 +73,11 @@
   <h1>Source code for better_launch.utils.substitutions</h1><div class="highlight"><pre>
 <span></span><span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Literal</span><span class="p">,</span> <span class="n">Callable</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
-<span class="kn">import</span><span class="w"> </span><span class="nn">re</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">yaml</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">ast</span><span class="w"> </span><span class="kn">import</span> <span class="n">literal_eval</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">rcl_interfaces.srv</span><span class="w"> </span><span class="kn">import</span> <span class="n">GetParameters</span>
-
-<span class="k">try</span><span class="p">:</span>
-    <span class="c1"># Jazzy</span>
-    <span class="kn">from</span><span class="w"> </span><span class="nn">rclpy.parameter</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_parameter_value</span>
-<span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
-    <span class="c1"># Humble</span>
-    <span class="kn">from</span><span class="w"> </span><span class="nn">ros2param.api</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_parameter_value</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">rcl_interfaces.msg</span><span class="w"> </span><span class="kn">import</span> <span class="n">ParameterType</span>
 
 
 <span class="n">_sentinel</span> <span class="o">=</span> <span class="nb">object</span><span class="p">()</span>
@@ -156,7 +150,35 @@
                 <span class="sa">f</span><span class="s2">&quot;Failed to retrieve parameter </span><span class="si">{</span><span class="n">param</span><span class="si">}</span><span class="s2"> from </span><span class="si">{</span><span class="n">full_node_name</span><span class="si">}</span><span class="s2">&quot;</span>
             <span class="p">)</span>
 
-        <span class="k">return</span> <span class="n">get_parameter_value</span><span class="p">(</span><span class="n">res</span><span class="o">.</span><span class="n">values</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="ow">or</span> <span class="s2">&quot;&quot;</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">value</span> <span class="o">=</span> <span class="n">yaml</span><span class="o">.</span><span class="n">safe_load</span><span class="p">(</span><span class="n">res</span><span class="o">.</span><span class="n">values</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+        <span class="k">except</span><span class="p">:</span>
+            <span class="c1"># Treat it as a string</span>
+            <span class="n">value</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">res</span><span class="o">.</span><span class="n">values</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+
+        <span class="c1"># Importing get_value from ros2param will increase memory footprint by ~5MB, so diy</span>
+        <span class="k">if</span> <span class="n">value</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="n">ParameterType</span><span class="o">.</span><span class="n">PARAMETER_BOOL</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">value</span><span class="o">.</span><span class="n">bool_value</span>
+        <span class="k">elif</span> <span class="n">value</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="n">ParameterType</span><span class="o">.</span><span class="n">PARAMETER_INTEGER</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">value</span><span class="o">.</span><span class="n">integer_value</span>
+        <span class="k">elif</span> <span class="n">value</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="n">ParameterType</span><span class="o">.</span><span class="n">PARAMETER_DOUBLE</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">value</span><span class="o">.</span><span class="n">double_value</span>
+        <span class="k">elif</span> <span class="n">value</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="n">ParameterType</span><span class="o">.</span><span class="n">PARAMETER_STRING</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">value</span><span class="o">.</span><span class="n">string_value</span>
+        <span class="k">elif</span> <span class="n">value</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="n">ParameterType</span><span class="o">.</span><span class="n">PARAMETER_BYTE_ARRAY</span><span class="p">:</span>
+            <span class="k">return</span> <span class="nb">list</span><span class="p">(</span><span class="n">value</span><span class="o">.</span><span class="n">byte_array_value</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">value</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="n">ParameterType</span><span class="o">.</span><span class="n">PARAMETER_BOOL_ARRAY</span><span class="p">:</span>
+            <span class="k">return</span> <span class="nb">list</span><span class="p">(</span><span class="n">value</span><span class="o">.</span><span class="n">bool_array_value</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">value</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="n">ParameterType</span><span class="o">.</span><span class="n">PARAMETER_INTEGER_ARRAY</span><span class="p">:</span>
+            <span class="k">return</span> <span class="nb">list</span><span class="p">(</span><span class="n">value</span><span class="o">.</span><span class="n">integer_array_value</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">value</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="n">ParameterType</span><span class="o">.</span><span class="n">PARAMETER_DOUBLE_ARRAY</span><span class="p">:</span>
+            <span class="k">return</span> <span class="nb">list</span><span class="p">(</span><span class="n">value</span><span class="o">.</span><span class="n">double_array_value</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">value</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="n">ParameterType</span><span class="o">.</span><span class="n">PARAMETER_STRING_ARRAY</span><span class="p">:</span>
+            <span class="k">return</span> <span class="nb">list</span><span class="p">(</span><span class="n">value</span><span class="o">.</span><span class="n">string_array_value</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">value</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="n">ParameterType</span><span class="o">.</span><span class="n">PARAMETER_NOT_SET</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span>
+        
+        <span class="k">return</span> <span class="kc">None</span>
 
     <span class="c1"># $(env ROS_DISTRO)</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">_env</span><span class="p">(</span><span class="n">key</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">default</span><span class="p">:</span> <span class="n">Any</span> <span class="o">=</span> <span class="n">_sentinel</span><span class="p">):</span>

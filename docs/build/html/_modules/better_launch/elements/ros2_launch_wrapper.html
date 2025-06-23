@@ -83,11 +83,9 @@
 <span class="kn">import</span><span class="w"> </span><span class="nn">osrf_pycommon.process_utils</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">setproctitle</span><span class="w"> </span><span class="kn">import</span> <span class="n">setproctitle</span><span class="p">,</span> <span class="n">getproctitle</span>
 
-<span class="kn">import</span><span class="w"> </span><span class="nn">better_launch.ros.logging</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">roslog</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">better_launch.utils.better_logging</span><span class="w"> </span><span class="kn">import</span> <span class="n">LogSink</span><span class="p">,</span> <span class="n">PrettyLogFormatter</span><span class="p">,</span> <span class="n">RecordForwarder</span><span class="p">,</span> <span class="n">StubbornHandler</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">better_launch.utils.colors</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_contrast_color</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">.abstract_node</span><span class="w"> </span><span class="kn">import</span> <span class="n">AbstractNode</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">.node</span><span class="w"> </span><span class="kn">import</span> <span class="n">Node</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_launchservice_worker</span><span class="p">(</span>
@@ -309,8 +307,6 @@
             <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;LaunchService </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2"> is alrady running&quot;</span><span class="p">)</span>
             <span class="k">return</span>
 
-        <span class="n">logout</span><span class="p">,</span> <span class="n">logerr</span> <span class="o">=</span> <span class="n">roslog</span><span class="o">.</span><span class="n">get_output_loggers</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">output</span><span class="p">)</span>
-
         <span class="c1"># Note that passing loggers will not work for the TUI, as they would have to communicate</span>
         <span class="c1"># across the process boundaries. In general, only basic values and instances from the </span>
         <span class="c1"># multiprocessing module should be passed to the process</span>
@@ -328,20 +324,20 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">_process</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
 
         <span class="n">threading</span><span class="o">.</span><span class="n">Thread</span><span class="p">(</span>
-            <span class="n">target</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_process_watcher</span><span class="p">,</span> <span class="n">args</span><span class="o">=</span><span class="p">(</span><span class="n">logout</span><span class="p">,</span> <span class="n">logerr</span><span class="p">),</span> <span class="n">daemon</span><span class="o">=</span><span class="kc">True</span>
+            <span class="n">target</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_process_watcher</span><span class="p">,</span> <span class="n">daemon</span><span class="o">=</span><span class="kc">True</span>
         <span class="p">)</span><span class="o">.</span><span class="n">start</span><span class="p">()</span></div>
 
 
-    <span class="k">def</span><span class="w"> </span><span class="nf">_process_watcher</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">logout</span><span class="p">:</span> <span class="n">logging</span><span class="o">.</span><span class="n">Logger</span><span class="p">,</span> <span class="n">logerr</span><span class="p">:</span> <span class="n">logging</span><span class="o">.</span><span class="n">Logger</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_process_watcher</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="n">q</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_process_log_queue</span>
 
         <span class="k">while</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_running</span><span class="p">:</span>
             <span class="k">try</span><span class="p">:</span>
                 <span class="k">while</span> <span class="ow">not</span> <span class="n">q</span><span class="o">.</span><span class="n">empty</span><span class="p">():</span>
                     <span class="n">record</span><span class="p">:</span> <span class="n">logging</span><span class="o">.</span><span class="n">LogRecord</span> <span class="o">=</span> <span class="n">q</span><span class="o">.</span><span class="n">get</span><span class="p">()</span>
-                    <span class="n">logout</span><span class="o">.</span><span class="n">handle</span><span class="p">(</span><span class="n">record</span><span class="p">)</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">handle</span><span class="p">(</span><span class="n">record</span><span class="p">)</span>
             <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
-                <span class="n">logerr</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Receiving log record failed: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Receiving log record failed: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">_process</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
 

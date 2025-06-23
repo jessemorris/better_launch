@@ -81,7 +81,7 @@
 <span class="kn">import</span><span class="w"> </span><span class="nn">re</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">threading</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">concurrent.futures</span><span class="w"> </span><span class="kn">import</span> <span class="n">Future</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">concurrent.futures</span><span class="w"> </span><span class="kn">import</span> <span class="n">Future</span><span class="p">,</span> <span class="n">CancelledError</span><span class="p">,</span> <span class="ne">TimeoutError</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">contextlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">contextmanager</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">yaml</span>
@@ -227,7 +227,7 @@
 <span class="sd">            The namespace of the root group.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="n">name</span><span class="p">:</span>
-            <span class="k">if</span> <span class="ow">not</span> <span class="n">BetterLaunch</span><span class="o">.</span><span class="n">_launch_func_args</span><span class="p">:</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">BetterLaunch</span><span class="o">.</span><span class="n">_launchfile</span><span class="p">:</span>
                 <span class="n">frame</span> <span class="o">=</span> <span class="n">find_calling_frame</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="fm">__init__</span><span class="p">)</span>
                 <span class="n">BetterLaunch</span><span class="o">.</span><span class="n">_launchfile</span> <span class="o">=</span> <span class="n">frame</span><span class="o">.</span><span class="n">filename</span>
             <span class="n">name</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">BetterLaunch</span><span class="o">.</span><span class="n">_launchfile</span><span class="p">)</span>
@@ -239,7 +239,7 @@
             <span class="n">BetterLaunch</span><span class="o">.</span><span class="n">_launch_func_args</span> <span class="o">=</span> <span class="n">launch_args</span>
 
         <span class="c1"># For those cases where we need to interact with ROS (e.g. service calls)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">ros_adapter</span> <span class="o">=</span> <span class="n">ROSAdapter</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_ros_adapter</span><span class="p">:</span> <span class="n">ROSAdapter</span> <span class="o">=</span> <span class="kc">None</span>
 
         <span class="k">if</span> <span class="n">root_namespace</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">root_namespace</span> <span class="o">=</span> <span class="s2">&quot;/&quot;</span>
@@ -303,9 +303,38 @@
 
 <div class="viewcode-block" id="BetterLaunch.spin">
 <a class="viewcode-back" href="../../better_launch_custom.html#better_launch.launcher.BetterLaunch.spin">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">spin</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Join the BetterLaunch thread until it terminates.&quot;&quot;&quot;</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">ros_adapter</span><span class="o">.</span><span class="n">_thread</span><span class="o">.</span><span class="n">join</span><span class="p">()</span></div>
+    <span class="k">def</span><span class="w"> </span><span class="nf">spin</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">exit_with_last_node</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Join the BetterLaunch thread until it terminates. You do **not** need to call this if you&#39;re using the :py:meth:`launch_this` wrapper or the TUI.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        exit_with_last_node : bool, optional</span>
+<span class="sd">            If True this function will return when all nodes have been stopped.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># The ros_adapter takes up quite a bit of memory (around 6 MiB), however, killing it by </span>
+        <span class="c1"># default once we spin is not a good option right now, as some types like composers will</span>
+        <span class="c1"># create services needed for shutdown that would become invalid once we kill the adapter.</span>
+        <span class="k">if</span> <span class="n">exit_with_last_node</span><span class="p">:</span>
+            <span class="k">while</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_shutdown_future</span><span class="o">.</span><span class="n">done</span><span class="p">():</span>
+                <span class="c1"># TODO not a nice solution, find something smarter</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_shutdown_future</span><span class="o">.</span><span class="n">result</span><span class="p">(</span><span class="mf">0.1</span><span class="p">)</span>
+                <span class="k">except</span> <span class="ne">TimeoutError</span><span class="p">:</span>
+                    <span class="n">nodes</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">all_nodes</span><span class="p">(</span>
+                        <span class="n">include_components</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                        <span class="n">include_launch_service</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                        <span class="n">include_foreign</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                    <span class="p">)</span>
+
+                    <span class="k">if</span> <span class="nb">all</span><span class="p">(</span><span class="ow">not</span> <span class="n">n</span><span class="o">.</span><span class="n">is_running</span> <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="n">nodes</span><span class="p">):</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">shutdown</span><span class="p">(</span><span class="s2">&quot;all nodes have stopped&quot;</span><span class="p">)</span>
+                        <span class="k">break</span>
+
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_shutdown_future</span><span class="o">.</span><span class="n">result</span><span class="p">()</span>
+            <span class="k">except</span> <span class="p">(</span><span class="n">CancelledError</span><span class="p">,</span> <span class="ne">TimeoutError</span><span class="p">):</span>
+                <span class="k">pass</span></div>
 
 
 <div class="viewcode-block" id="BetterLaunch.get_unique_name">
@@ -491,6 +520,14 @@
         <span class="k">return</span> <span class="n">BetterLaunch</span><span class="o">.</span><span class="n">_launch_func_args</span>
 
     <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">ros_adapter</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ROSAdapter</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Contains and runs a shared ROS2 node to interact with topics, services, etc. The adapter is instantiated lazily as it brings a major performance hit (about 6 MiB memory and a high CPU spike).&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ros_adapter</span> <span class="ow">or</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ros_adapter</span><span class="o">.</span><span class="n">_thread</span><span class="o">.</span><span class="n">is_alive</span><span class="p">():</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_ros_adapter</span> <span class="o">=</span> <span class="n">ROSAdapter</span><span class="p">()</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ros_adapter</span>
+
+    <span class="nd">@property</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">shared_node</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">RosNode</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;A ROS2 node instance that can be used for creating publishers, services, etc.&quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">ros_adapter</span><span class="o">.</span><span class="n">ros_node</span>
@@ -569,7 +606,6 @@
     <span class="nd">@property</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">is_shutdown</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Whether *better_launch* has shutdown.&quot;&quot;&quot;</span>
-        <span class="c1"># TODO this is a remnant from the very beginning when we still took inspiration from ROS2 launch. Remove?</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_shutdown_future</span><span class="o">.</span><span class="n">done</span><span class="p">()</span>
 
 <div class="viewcode-block" id="BetterLaunch.add_shutdown_callback">
@@ -607,10 +643,12 @@
                 <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
                     <span class="sa">f</span><span class="s2">&quot;Shutdown was called without providing a reason and the calling frame could not be determined&quot;</span>
                 <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Shutdown: </span><span class="si">{</span><span class="n">reason</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
 
         <span class="c1"># Tell all nodes to shut down</span>
         <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">all_nodes</span><span class="p">(</span>
-            <span class="n">include_components</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">include_launch_service</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">include_foreign</span><span class="o">=</span><span class="kc">False</span>
+            <span class="n">include_components</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">include_launch_service</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">include_foreign</span><span class="o">=</span><span class="kc">False</span>
         <span class="p">):</span>
             <span class="k">try</span><span class="p">:</span>
                 <span class="n">n</span><span class="o">.</span><span class="n">shutdown</span><span class="p">(</span><span class="n">reason</span><span class="p">,</span> <span class="n">signum</span><span class="p">)</span>
@@ -622,7 +660,9 @@
                 <span class="p">)</span>
 
         <span class="k">try</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">ros_adapter</span><span class="o">.</span><span class="n">shutdown</span><span class="p">()</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ros_adapter</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_ros_adapter</span><span class="o">.</span><span class="n">shutdown</span><span class="p">()</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_ros_adapter</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;RosAdapter raised an exception during shutdown: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
 
@@ -668,7 +708,7 @@
 
 <span class="sd">        If neither `glob` nor `filename` is provided the base path will be returned.</span>
 
-<span class="sd">        If `filename` is provided but `glob` is not, the base path will be searched recursively for the given filename. Otherwise, `glob` will be used to locate valid candidate files and directories within the base path, allowing patterns like `**/lib` (any lib folder) and `*.py` (any python file). See the `pathlib pattern language &lt;https://docs.python.org/3/library/pathlib.html#pathlib-pattern-language&gt;`_ for details.</span>
+<span class="sd">        If `filename` is provided but `glob` is not, the base path will be searched recursively for the given filename. Otherwise, `glob` will be used to locate valid candidate files and directories within the base path, allowing patterns like `**/lib/` (any lib folder) and `*.py` (any python file). See the `pathlib pattern language &lt;https://docs.python.org/3/library/pathlib.html#pathlib-pattern-language&gt;`_ for details.</span>
 
 <span class="sd">        If only `glob` is provided but not `filename`, the first candidate is returned. Otherwise the discovered candidates will be searched for the given filename.</span>
 
@@ -704,11 +744,11 @@
                 <span class="k">return</span> <span class="n">filename</span>
 
         <span class="k">if</span> <span class="ow">not</span> <span class="n">package</span><span class="p">:</span>
-            <span class="n">_</span><span class="p">,</span> <span class="n">package</span> <span class="o">=</span> <span class="n">get_package_for_path</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">launchfile</span><span class="p">))</span>
+            <span class="n">package</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">get_package_for_path</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">launchfile</span><span class="p">))</span>
 
         <span class="k">if</span> <span class="n">package</span><span class="p">:</span>
             <span class="k">if</span> <span class="s2">&quot;/&quot;</span> <span class="ow">in</span> <span class="n">package</span> <span class="ow">or</span> <span class="n">os</span><span class="o">.</span><span class="n">pathsep</span> <span class="ow">in</span> <span class="n">package</span><span class="p">:</span>
-                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Package must be a single name, not a path&quot;</span><span class="p">)</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Package must be a single name, not a path (</span><span class="si">{</span><span class="n">package</span><span class="si">}</span><span class="s2">)&quot;</span><span class="p">)</span>
             <span class="n">base_path</span> <span class="o">=</span> <span class="n">get_package_prefix</span><span class="p">(</span><span class="n">package</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="n">base_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">getcwd</span><span class="p">()</span>
@@ -725,7 +765,7 @@
                 <span class="c1"># Return the first candidate</span>
                 <span class="k">return</span> <span class="nb">str</span><span class="p">(</span><span class="n">candidate</span><span class="o">.</span><span class="n">resolve</span><span class="p">()</span><span class="o">.</span><span class="n">absolute</span><span class="p">())</span>
 
-            <span class="k">if</span> <span class="n">candidate</span><span class="o">.</span><span class="n">is_file</span><span class="p">()</span> <span class="ow">and</span> <span class="n">candidate</span><span class="o">.</span><span class="n">name</span> <span class="o">==</span> <span class="n">filename</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">candidate</span><span class="o">.</span><span class="n">is_file</span><span class="p">()</span> <span class="ow">and</span> <span class="n">candidate</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;**/</span><span class="si">{</span><span class="n">filename</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">):</span>
                 <span class="c1"># We found a match</span>
                 <span class="k">return</span> <span class="nb">str</span><span class="p">(</span><span class="n">candidate</span><span class="o">.</span><span class="n">resolve</span><span class="p">()</span><span class="o">.</span><span class="n">absolute</span><span class="p">())</span>
 
@@ -995,7 +1035,7 @@
         <span class="n">message_args</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
         <span class="n">qos_profile</span><span class="p">:</span> <span class="n">QoSProfile</span> <span class="o">|</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">10</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Convenience method to publish a single message. If you plan to publish additional messages, use :py:meth:`publisher` instead and use the instance.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Convenience method to publish a single message. The publisher will be destroyed once the message has been published. If you plan to publish additional messages, use :py:meth:`publisher` instead and use the instance.</span>
 
 <span class="sd">        Parameters</span>
 <span class="sd">        ----------</span>
@@ -1013,7 +1053,8 @@
 
         <span class="n">pub</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">publisher</span><span class="p">(</span><span class="n">topic</span><span class="p">,</span> <span class="n">message_type</span><span class="p">,</span> <span class="n">qos_profile</span><span class="p">)</span>
         <span class="n">msg</span> <span class="o">=</span> <span class="n">message_type</span><span class="p">(</span><span class="o">**</span><span class="n">message_args</span><span class="p">)</span>
-        <span class="n">pub</span><span class="o">.</span><span class="n">publish</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span></div>
+        <span class="n">pub</span><span class="o">.</span><span class="n">publish</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+        <span class="n">pub</span><span class="o">.</span><span class="n">destroy</span><span class="p">()</span></div>
 
 
 <div class="viewcode-block" id="BetterLaunch.service">
@@ -1112,11 +1153,13 @@
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">topic</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
         <span class="n">service_type</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="nb">type</span><span class="p">,</span>
-        <span class="n">request_args</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
+        <span class="n">request_args</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">|</span> <span class="n">Any</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="o">*</span><span class="p">,</span>
         <span class="n">timeout</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">5.0</span><span class="p">,</span>
         <span class="n">qos_profile</span><span class="p">:</span> <span class="n">QoSProfile</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">call_async</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Makes a single service request and returns the result. If you plan to make additional requests, use :py:meth:`service_client` instead.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Makes a single service request and returns the result. The client is destroyed once the request has been handled. If you plan to make additional requests, use :py:meth:`service_client` instead.</span>
 
 <span class="sd">        Parameters</span>
 <span class="sd">        ----------</span>
@@ -1124,17 +1167,19 @@
 <span class="sd">            The service topic to post requests on.</span>
 <span class="sd">        service_type : str | type</span>
 <span class="sd">            The service&#39;s message type. Strings must follow the pattern `&lt;package&gt;/srv/&lt;message&gt;`.</span>
-<span class="sd">        request_args : dict[str, Any]</span>
-<span class="sd">            The keyword arguments from which the request message will be constructed.</span>
+<span class="sd">        request_args : dict[str, Any] | Any</span>
+<span class="sd">            The keyword arguments from which the request message will be constructed. May also be an instance of `service_type.Request`.</span>
 <span class="sd">        timeout : float, optional</span>
 <span class="sd">            Time to wait for the service to become available. Ignored if &lt;= 0.</span>
 <span class="sd">        qos_profile : QoSProfile, optional</span>
 <span class="sd">            A quality of service profile that changes how the service handles connections.</span>
+<span class="sd">        call_async : bool, optional</span>
+<span class="sd">            If True, make the service call async and return a :py:class:`rclpy.task.Future` instead.</span>
 
 <span class="sd">        Returns</span>
 <span class="sd">        -------</span>
 <span class="sd">        Any</span>
-<span class="sd">            The result of the service call of type `service_type.Request`.</span>
+<span class="sd">            A :py:class:`rclpy.task.Future` if `call_async` is True, otherwise the result of the service call of type `service_type.Request`.</span>
 
 <span class="sd">        Raises</span>
 <span class="sd">        ------</span>
@@ -1144,9 +1189,23 @@
         <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">service_type</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
             <span class="n">service_type</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_ros_message_type</span><span class="p">(</span><span class="n">service_type</span><span class="p">)</span>
 
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">request_args</span><span class="p">,</span> <span class="n">service_type</span><span class="o">.</span><span class="n">Request</span><span class="p">):</span>
+            <span class="n">req</span> <span class="o">=</span> <span class="n">request_args</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">request_args</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+            <span class="n">req</span> <span class="o">=</span> <span class="n">service_type</span><span class="o">.</span><span class="n">Request</span><span class="p">(</span><span class="o">**</span><span class="n">request_args</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">req</span> <span class="o">=</span> <span class="n">service_type</span><span class="o">.</span><span class="n">Request</span><span class="p">()</span>
+
         <span class="n">srv</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">service_client</span><span class="p">(</span><span class="n">topic</span><span class="p">,</span> <span class="n">service_type</span><span class="p">,</span> <span class="n">timeout</span><span class="p">,</span> <span class="n">qos_profile</span><span class="p">)</span>
-        <span class="n">req</span> <span class="o">=</span> <span class="n">service_type</span><span class="o">.</span><span class="n">Request</span><span class="p">(</span><span class="o">**</span><span class="n">request_args</span><span class="p">)</span>
-        <span class="k">return</span> <span class="n">srv</span><span class="o">.</span><span class="n">call</span><span class="p">(</span><span class="n">req</span><span class="p">)</span></div>
+
+        <span class="k">if</span> <span class="n">call_async</span><span class="p">:</span>
+            <span class="n">res</span> <span class="o">=</span> <span class="n">srv</span><span class="o">.</span><span class="n">call_async</span><span class="p">(</span><span class="n">req</span><span class="p">)</span>
+            <span class="n">res</span><span class="o">.</span><span class="n">add_done_callback</span><span class="p">(</span><span class="k">lambda</span> <span class="n">f</span><span class="p">:</span> <span class="n">srv</span><span class="o">.</span><span class="n">destroy</span><span class="p">())</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">res</span> <span class="o">=</span> <span class="n">srv</span><span class="o">.</span><span class="n">call</span><span class="p">(</span><span class="n">req</span><span class="p">)</span>
+            <span class="n">srv</span><span class="o">.</span><span class="n">destroy</span><span class="p">()</span>
+        
+        <span class="k">return</span> <span class="n">res</span></div>
 
 
 <div class="viewcode-block" id="BetterLaunch.action_server">
@@ -1350,6 +1409,7 @@
         <span class="n">ros_waittime</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">3.0</span><span class="p">,</span>
         <span class="n">lifecycle_waittime</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.01</span><span class="p">,</span>
         <span class="n">lifecycle_target</span><span class="p">:</span> <span class="n">LifecycleStage</span> <span class="o">=</span> <span class="n">LifecycleStage</span><span class="o">.</span><span class="n">ACTIVE</span><span class="p">,</span>
+        <span class="n">raw</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Node</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Create a new ROS2 node process. The bread and butter of every ROS setup!</span>
 
@@ -1394,11 +1454,13 @@
 <span class="sd">        autostart_process : bool, optional</span>
 <span class="sd">            If True, start the node process before returning from this function.</span>
 <span class="sd">        ros_waittime : float, optional</span>
-<span class="sd">            How long to wait for the node to register with ROS. This should cover the time between the process starting and the node initializing itself. Set negative to wait indefinitely. Will do nothing if `autostart_process` is False.</span>
+<span class="sd">            How long to wait for the node to register with ROS. This should cover the time between the process starting and the node initializing itself. Set negative to wait indefinitely. Set to None to avoid the check entirely. Will do nothing if `autostart_process` is False.</span>
 <span class="sd">        lifecycle_waittime : float, optional</span>
-<span class="sd">            How long to wait for the node&#39;s lifecycle management to come up. This should cover the time between the node initializing itself (see `ros_waittime`) and creating its additional topics and services. While neglible on modern computers, slower devices and embedded systems may experience a noticable delay here. Set negative to wait indefinitely. Will do nothing if `autostart_process` is False.</span>
+<span class="sd">            How long to wait for the node&#39;s lifecycle management to come up. This should cover the time between the node initializing itself (see `ros_waittime`) and creating its additional topics and services. While neglible on modern computers, slower devices and embedded systems may experience a noticable delay here. Set negative to wait indefinitely. Set to None to avoid the check entirely. Will do nothing if `autostart_process` is False.</span>
 <span class="sd">        lifecycle_target : LifecycleStage, optional</span>
 <span class="sd">            The lifecycle stage to bring the node into after starting. Has no effect if `autostart_process` is False or if the node does not appear to be a lifecycle node after waiting `ros_waittime + lifecycle_waittime`.</span>
+<span class="sd">        raw : bool, optional</span>
+<span class="sd">            If True, don&#39;t treat the executable as a ROS2 node and avoid passing it any command line arguments except those specified.</span>
 
 <span class="sd">        Returns</span>
 <span class="sd">        -------</span>
@@ -1442,14 +1504,19 @@
             <span class="n">max_respawns</span><span class="o">=</span><span class="n">max_respawns</span><span class="p">,</span>
             <span class="n">respawn_delay</span><span class="o">=</span><span class="n">respawn_delay</span><span class="p">,</span>
             <span class="n">use_shell</span><span class="o">=</span><span class="n">use_shell</span><span class="p">,</span>
+            <span class="n">raw</span><span class="o">=</span><span class="n">raw</span><span class="p">,</span>
         <span class="p">)</span>
 
         <span class="n">group</span><span class="o">.</span><span class="n">add_node</span><span class="p">(</span><span class="n">node</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">autostart_process</span><span class="p">:</span>
             <span class="n">node</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
 
-            <span class="k">if</span> <span class="n">node</span><span class="o">.</span><span class="n">check_ros2_connected</span><span class="p">(</span><span class="n">ros_waittime</span><span class="p">):</span>
-                <span class="k">if</span> <span class="n">node</span><span class="o">.</span><span class="n">check_lifecycle_node</span><span class="p">(</span><span class="n">lifecycle_waittime</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">ros_waittime</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">node</span><span class="o">.</span><span class="n">check_ros2_connected</span><span class="p">(</span><span class="n">ros_waittime</span><span class="p">):</span>
+                <span class="k">if</span> <span class="p">(</span>
+                    <span class="n">lifecycle_target</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="n">LifecycleStage</span><span class="o">.</span><span class="n">PRISTINE</span><span class="p">)</span>
+                    <span class="ow">and</span> <span class="n">lifecycle_waittime</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+                    <span class="ow">and</span> <span class="n">node</span><span class="o">.</span><span class="n">check_lifecycle_node</span><span class="p">(</span><span class="n">lifecycle_waittime</span><span class="p">)</span>
+                <span class="p">):</span>
                     <span class="n">node</span><span class="o">.</span><span class="n">lifecycle</span><span class="o">.</span><span class="n">transition</span><span class="p">(</span><span class="n">lifecycle_target</span><span class="p">)</span>
 
         <span class="k">return</span> <span class="n">node</span></div>
@@ -1650,9 +1717,9 @@
 <span class="sd">        use_intra_process_comms : bool, optional</span>
 <span class="sd">            If True, ask the composer node to enable intra-process communication, i.e. share memory between components when passing messages instead of serializing and deserializing.</span>
 <span class="sd">        ros_waittime : float, optional</span>
-<span class="sd">            How long to wait for the component to register with ROS. This should cover the time between the process starting and the component initializing itself. Set negative to wait indefinitely. Will do nothing if `autostart_process` is False.</span>
+<span class="sd">            How long to wait for the component to register with ROS. This should cover the time between the process starting and the component initializing itself. Set negative to wait indefinitely. Set to None to avoid the check entirely. Will do nothing if `autostart_process` is False.</span>
 <span class="sd">        lifecycle_waittime : float, optional</span>
-<span class="sd">            How long to wait for the component&#39;s lifecycle management to come up. This should cover the time between the component initializing itself (see `ros_waittime`) and creating its additional topics and services. While neglible on modern computers, slower devices and embedded systems may experience a noticable delay here. Set negative to wait indefinitely. Will do nothing if `autostart_process` is False.</span>
+<span class="sd">            How long to wait for the component&#39;s lifecycle management to come up. This should cover the time between the component initializing itself (see `ros_waittime`) and creating its additional topics and services. While neglible on modern computers, slower devices and embedded systems may experience a noticable delay here. Set negative to wait indefinitely. Set to None to avoid the check entirely. Will do nothing if `autostart_process` is False.</span>
 <span class="sd">        lifecycle_target : LifecycleStage, optional</span>
 <span class="sd">            The lifecycle stage to bring the component into after starting. Has no effect if `autostart_process` is False or if the component does not appear to be a lifecycle component after waiting `ros_waittime + lifecycle_waittime`.</span>
 <span class="sd">        output : LogSink | set[LogSink], optional</span>
@@ -1701,8 +1768,12 @@
             <span class="o">**</span><span class="n">extra_composer_args</span><span class="p">,</span>
         <span class="p">)</span>
 
-        <span class="k">if</span> <span class="n">comp</span><span class="o">.</span><span class="n">check_ros2_connected</span><span class="p">(</span><span class="n">ros_waittime</span><span class="p">):</span>
-            <span class="k">if</span> <span class="n">comp</span><span class="o">.</span><span class="n">check_lifecycle_node</span><span class="p">(</span><span class="n">lifecycle_waittime</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">ros_waittime</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">comp</span><span class="o">.</span><span class="n">check_ros2_connected</span><span class="p">(</span><span class="n">ros_waittime</span><span class="p">):</span>
+            <span class="k">if</span> <span class="p">(</span>
+                <span class="n">lifecycle_target</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="n">LifecycleStage</span><span class="o">.</span><span class="n">PRISTINE</span><span class="p">)</span>
+                <span class="ow">and</span> <span class="n">lifecycle_waittime</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+                <span class="ow">and</span> <span class="n">comp</span><span class="o">.</span><span class="n">check_lifecycle_node</span><span class="p">(</span><span class="n">lifecycle_waittime</span><span class="p">)</span>
+            <span class="p">):</span>
                 <span class="n">comp</span><span class="o">.</span><span class="n">lifecycle</span><span class="o">.</span><span class="n">transition</span><span class="p">(</span><span class="n">lifecycle_target</span><span class="p">)</span>
 
         <span class="k">return</span> <span class="n">comp</span></div>

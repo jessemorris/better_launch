@@ -389,9 +389,9 @@
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_lifecycle_manager</span>
 
-<div class="viewcode-block" id="AbstractNode.get_live_services">
-<a class="viewcode-back" href="../../../better_launch.elements.html#better_launch.elements.abstract_node.AbstractNode.get_live_services">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">get_live_services</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]]:</span>
+<div class="viewcode-block" id="AbstractNode.get_published_services">
+<a class="viewcode-back" href="../../../better_launch.elements.html#better_launch.elements.abstract_node.AbstractNode.get_published_services">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_published_services</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]]:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Get the ROS2 services provided by this node.</span>
 
 <span class="sd">        Returns</span>
@@ -416,9 +416,9 @@
         <span class="k">return</span> <span class="n">res</span></div>
 
 
-<div class="viewcode-block" id="AbstractNode.get_live_topics">
-<a class="viewcode-back" href="../../../better_launch.elements.html#better_launch.elements.abstract_node.AbstractNode.get_live_topics">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">get_live_topics</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]]:</span>
+<div class="viewcode-block" id="AbstractNode.get_published_topics">
+<a class="viewcode-back" href="../../../better_launch.elements.html#better_launch.elements.abstract_node.AbstractNode.get_published_topics">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_published_topics</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]]:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Get the ROS2 topics published by this node.</span>
 
 <span class="sd">        Returns</span>

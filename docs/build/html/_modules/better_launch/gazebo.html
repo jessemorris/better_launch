@@ -71,18 +71,16 @@
            <div itemprop="articleBody">
              
   <h1>Source code for better_launch.gazebo</h1><div class="highlight"><pre>
-<span></span><span class="sd">&quot;&quot;&quot;Additional functions for working with Gazebo, taking inspiration from simple_launch.</span>
-<span class="sd">&quot;&quot;&quot;</span>
+<span></span><span class="sd">&quot;&quot;&quot;Additional functions for working with Gazebo, taking inspiration from simple_launch.&quot;&quot;&quot;</span>
 
 <span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span>
     <span class="s2">&quot;get_gazebo_version&quot;</span><span class="p">,</span>
-    <span class="s2">&quot;get_gazebo_prefix&quot;</span><span class="p">,</span>
-    <span class="s2">&quot;get_gazebo_axes_args&quot;</span><span class="p">,</span>
-    <span class="s2">&quot;spawn_gazebo_topic_bridge&quot;</span><span class="p">,</span>
-    <span class="s2">&quot;spawn_gazebo_world_transform&quot;</span><span class="p">,</span>
     <span class="s2">&quot;gazebo_launch&quot;</span><span class="p">,</span>
-    <span class="s2">&quot;gazebo_save_world&quot;</span><span class="p">,</span>
-    <span class="s2">&quot;gazebo_spawn_model&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;save_world&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;spawn_model&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;spawn_topic_bridges&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;spawn_world_transform&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;get_gazebo_axes_args&quot;</span><span class="p">,</span>
     <span class="s2">&quot;GazeboBridge&quot;</span><span class="p">,</span>
 <span class="p">]</span>
 
@@ -104,25 +102,6 @@
 <div class="viewcode-block" id="get_gazebo_version">
 <a class="viewcode-back" href="../../better_launch.html#better_launch.gazebo.get_gazebo_version">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">get_gazebo_version</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Get the Gazebo version from the environment variables.</span>
-
-<span class="sd">    Returns</span>
-<span class="sd">    -------</span>
-<span class="sd">    str</span>
-<span class="sd">        A Gazebo version name, e.g. &#39;garden&#39;.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">for</span> <span class="n">var</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;IGN_VERSION&quot;</span><span class="p">,</span> <span class="s2">&quot;IGNITION_VERSION&quot;</span><span class="p">,</span> <span class="s2">&quot;GZ_VERSION&quot;</span><span class="p">]:</span>
-        <span class="n">version</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">var</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">version</span><span class="p">:</span>
-            <span class="k">return</span> <span class="s2">&quot;ign&quot;</span> <span class="k">if</span> <span class="n">version</span> <span class="o">==</span> <span class="s2">&quot;fortress&quot;</span> <span class="k">else</span> <span class="s2">&quot;gz&quot;</span>
-
-    <span class="k">return</span> <span class="kc">None</span></div>
-
-
-
-<div class="viewcode-block" id="get_gazebo_prefix">
-<a class="viewcode-back" href="../../better_launch.html#better_launch.gazebo.get_gazebo_prefix">[docs]</a>
-<span class="k">def</span><span class="w"> </span><span class="nf">get_gazebo_prefix</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;For a short time, Gazebo rebranded to &quot;Ignition&quot; before returning to Gazebo again. This function returns the associated prefix.</span>
 
 <span class="sd">    Returns</span>
@@ -131,15 +110,242 @@
 <span class="sd">        The prefix indicating the type of Gazebo: &quot;ign&quot; for Ignition Gazebo or &quot;gz&quot; for Gazebo Classic.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="n">version</span> <span class="o">=</span> <span class="n">get_gazebo_version</span><span class="p">()</span>
-    <span class="k">if</span> <span class="n">version</span><span class="p">:</span>
-        <span class="k">return</span> <span class="s2">&quot;ign&quot;</span> <span class="k">if</span> <span class="n">version</span> <span class="o">==</span> <span class="s2">&quot;fortress&quot;</span> <span class="k">else</span> <span class="s2">&quot;gz&quot;</span>
+    <span class="k">for</span> <span class="n">var</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;IGN_VERSION&quot;</span><span class="p">,</span> <span class="s2">&quot;IGNITION_VERSION&quot;</span><span class="p">,</span> <span class="s2">&quot;GZ_VERSION&quot;</span><span class="p">]:</span>
+        <span class="n">version</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">var</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">version</span><span class="p">:</span>
+            <span class="k">return</span> <span class="s2">&quot;ign&quot;</span> <span class="k">if</span> <span class="n">version</span> <span class="o">==</span> <span class="s2">&quot;fortress&quot;</span> <span class="k">else</span> <span class="s2">&quot;gz&quot;</span>
 
     <span class="k">try</span><span class="p">:</span>
         <span class="n">get_package_share_directory</span><span class="p">(</span><span class="s2">&quot;ros_gz&quot;</span><span class="p">)</span>
         <span class="k">return</span> <span class="s2">&quot;gz&quot;</span>
     <span class="k">except</span> <span class="n">PackageNotFoundError</span><span class="p">:</span>
         <span class="k">return</span> <span class="s2">&quot;ign&quot;</span></div>
+
+
+
+<div class="viewcode-block" id="gazebo_launch">
+<a class="viewcode-back" href="../../better_launch.html#better_launch.gazebo.gazebo_launch">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">gazebo_launch</span><span class="p">(</span>
+    <span class="n">package</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">world_file</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">gz_args</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">world_save_file</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">save_after</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">10.0</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Starts a Gazebo simulation with the specified world. If `world_save_file` is specified, the world will be saved as an SDF to that file after `save_after` seconds, including base world and spawned entities.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    package : str,</span>
+<span class="sd">        A package to locate the world_file in. May be `None` (see :py:meth:`BetterLaunch.find`).</span>
+<span class="sd">    world_file : str</span>
+<span class="sd">        Path to the primary world file for the simulation.</span>
+<span class="sd">    gz_args : _type_, optional</span>
+<span class="sd">        Optional arguments to pass to the Gazebo simulator.</span>
+<span class="sd">    world_save_file : _type_, optional</span>
+<span class="sd">        Path where the resulting SDF should be saved.</span>
+<span class="sd">    save_after : float, optional</span>
+<span class="sd">        Time in seconds after which the world SDF should be saved.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">bl</span> <span class="o">=</span> <span class="n">BetterLaunch</span><span class="o">.</span><span class="n">instance</span><span class="p">()</span>
+
+    <span class="n">world_file</span> <span class="o">=</span> <span class="n">bl</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="n">package</span><span class="p">,</span> <span class="n">world_file</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">world_file</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Could not find world file&quot;</span><span class="p">)</span>
+
+    <span class="n">full_args</span> <span class="o">=</span> <span class="p">[</span><span class="n">world_file</span><span class="p">]</span>
+    <span class="k">if</span> <span class="n">gz_args</span><span class="p">:</span>
+        <span class="n">full_args</span> <span class="o">+=</span> <span class="n">gz_args</span>
+
+    <span class="n">full_args</span> <span class="o">=</span> <span class="s2">&quot; &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">full_args</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">get_gazebo_version</span><span class="p">()</span> <span class="o">==</span> <span class="s2">&quot;gz&quot;</span><span class="p">:</span>
+        <span class="n">launch_file</span> <span class="o">=</span> <span class="n">bl</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s2">&quot;ros_gz_sim&quot;</span><span class="p">,</span> <span class="s2">&quot;gz_sim.launch.py&quot;</span><span class="p">)</span>
+        <span class="n">launch_arguments</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;gz_args&quot;</span><span class="p">:</span> <span class="n">full_args</span><span class="p">}</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">launch_file</span> <span class="o">=</span> <span class="n">bl</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s2">&quot;ros_ign_gazebo&quot;</span><span class="p">,</span> <span class="s2">&quot;ign_gazebo.launch.py&quot;</span><span class="p">)</span>
+        <span class="n">launch_arguments</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;ign_args&quot;</span><span class="p">:</span> <span class="n">full_args</span><span class="p">}</span>
+
+    <span class="n">bl</span><span class="o">.</span><span class="n">include</span><span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="n">launch_file</span><span class="p">,</span> <span class="o">**</span><span class="n">launch_arguments</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">world_save_file</span><span class="p">:</span>
+        <span class="n">save_world</span><span class="p">(</span><span class="n">world_save_file</span><span class="p">,</span> <span class="n">save_after</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="save_world">
+<a class="viewcode-back" href="../../better_launch.html#better_launch.gazebo.save_world">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">save_world</span><span class="p">(</span><span class="n">filepath</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">after</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">5.0</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Saves the current gazebo world to a file. Resolves any spawned URDF through their description parameter and converts to SDF.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    filepath : str</span>
+<span class="sd">        Path to the file to save the gazebo world to.</span>
+<span class="sd">    after : float, optional</span>
+<span class="sd">        How long to wait before saving.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">bl</span> <span class="o">=</span> <span class="n">BetterLaunch</span><span class="o">.</span><span class="n">instance</span><span class="p">()</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">save</span><span class="p">():</span>
+        <span class="n">bl</span><span class="o">.</span><span class="n">node</span><span class="p">(</span>
+            <span class="n">package</span><span class="o">=</span><span class="s2">&quot;better_launch&quot;</span><span class="p">,</span>
+            <span class="n">executable</span><span class="o">=</span><span class="s2">&quot;generate_gz_world&quot;</span><span class="p">,</span>
+            <span class="n">params</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;output_path&quot;</span><span class="p">:</span> <span class="n">filepath</span><span class="p">},</span>
+        <span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">after</span> <span class="o">&gt;</span> <span class="mf">0.0</span><span class="p">:</span>
+        <span class="n">bl</span><span class="o">.</span><span class="n">run_later</span><span class="p">(</span><span class="n">after</span><span class="p">,</span> <span class="n">save</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">save</span><span class="p">()</span></div>
+
+
+
+<div class="viewcode-block" id="spawn_model">
+<a class="viewcode-back" href="../../better_launch.html#better_launch.gazebo.spawn_model">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">spawn_model</span><span class="p">(</span>
+    <span class="n">model_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">topic_or_file</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">spawn_args</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Node</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Spawns a model into Gazebo under the given name from the specified topic or file.</span>
+
+<span class="sd">    The spawn_args dictionary can include additional options, such as the initial pose of the model.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    name : str</span>
+<span class="sd">        The name of the model to spawn in the Gazebo environment.</span>
+<span class="sd">    topic_or_file : str</span>
+<span class="sd">        The topic or file to retrieve the model description from. Topic is tested first.</span>
+<span class="sd">    spawn_args : dict[str, Any], optional</span>
+<span class="sd">        Additional arguments for spawning the model, such as pose and other options. See :py:meth:`get_gazebo_axes_args` for defining the model&#39;s orientation.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    Node</span>
+<span class="sd">        The spawned node instance.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">bl</span> <span class="o">=</span> <span class="n">BetterLaunch</span><span class="o">.</span><span class="n">instance</span><span class="p">()</span>
+
+    <span class="k">if</span> <span class="n">spawn_args</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">spawn_args</span> <span class="o">=</span> <span class="p">{}</span>
+
+    <span class="n">cmd_args</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;-name&quot;</span><span class="p">,</span> <span class="n">model_name</span><span class="p">]</span>
+
+    <span class="n">topics</span> <span class="o">=</span> <span class="p">{</span><span class="n">t</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">bl</span><span class="o">.</span><span class="n">shared_node</span><span class="o">.</span><span class="n">get_topic_names_and_types</span><span class="p">()}</span>
+    <span class="k">if</span> <span class="n">topic_or_file</span> <span class="ow">in</span> <span class="n">topics</span><span class="p">:</span>
+        <span class="n">cmd_args</span><span class="o">.</span><span class="n">extend</span><span class="p">([</span><span class="s2">&quot;-topic&quot;</span><span class="p">,</span> <span class="n">topic_or_file</span><span class="p">])</span>
+    <span class="k">elif</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="n">topic_or_file</span><span class="p">):</span>
+        <span class="n">cmd_args</span><span class="o">.</span><span class="n">extend</span><span class="p">([</span><span class="s2">&quot;-file&quot;</span><span class="p">,</span> <span class="n">topic_or_file</span><span class="p">])</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">topic_or_file</span><span class="si">}</span><span class="s2"> is not an existing topic nor a file&quot;</span><span class="p">)</span>
+
+    <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">val</span> <span class="ow">in</span> <span class="n">spawn_args</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+        <span class="n">cmd_args</span><span class="o">.</span><span class="n">extend</span><span class="p">([</span><span class="sa">f</span><span class="s2">&quot;-</span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">val</span><span class="p">])</span>
+
+    <span class="n">pkg</span> <span class="o">=</span> <span class="s2">&quot;ros_ign_gazebo&quot;</span> <span class="k">if</span> <span class="n">get_gazebo_version</span><span class="p">()</span> <span class="o">==</span> <span class="s2">&quot;ign&quot;</span> <span class="k">else</span> <span class="s2">&quot;ros_gz_sim&quot;</span>
+    <span class="k">return</span> <span class="n">bl</span><span class="o">.</span><span class="n">node</span><span class="p">(</span>
+        <span class="n">pkg</span><span class="p">,</span> <span class="s2">&quot;create&quot;</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;spawn_</span><span class="si">{</span><span class="n">model_name</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">anonymous</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">cmd_args</span><span class="o">=</span><span class="n">cmd_args</span>
+    <span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="spawn_topic_bridges">
+<a class="viewcode-back" href="../../better_launch.html#better_launch.gazebo.spawn_topic_bridges">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">spawn_topic_bridges</span><span class="p">(</span>
+    <span class="o">*</span><span class="n">bridges</span><span class="p">:</span> <span class="s2">&quot;GazeboBridge&quot;</span><span class="p">,</span> <span class="n">node_name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;gz_bridge&quot;</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">Node</span><span class="p">,</span> <span class="n">Node</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Creates a `ros_gz_bridge::parameter_bridge` node with the specified `GazeboBridge` instances.</span>
+
+<span class="sd">    This function sets up ROS-Gazebo bridges for different topic types. Standard topic bridges (non-image) are configured via a YAML parameter file, while image topics are handled separately through remappings.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    *bridges : GazeboBridge</span>
+<span class="sd">        One or more `GazeboBridge` instances defining the Gazebo-ROS topic bridges.</span>
+<span class="sd">    node_name : str, optional</span>
+<span class="sd">        Name of the bridge node, by default `&quot;gz_bridge&quot;`.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    tuple[Node, Node]</span>
+<span class="sd">        The up to two nodes that will be started by this function. The first node will be the node handling all regular topic bridges, the second the one for the image topics. Either of these may be `None`.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">bridges</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="k">return</span> <span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+
+    <span class="n">bl</span> <span class="o">=</span> <span class="n">BetterLaunch</span><span class="o">.</span><span class="n">instance</span><span class="p">()</span>
+
+    <span class="n">ros_gz</span> <span class="o">=</span> <span class="s2">&quot;ros_&quot;</span> <span class="o">+</span> <span class="n">get_gazebo_version</span><span class="p">()</span>
+    <span class="n">image_bridges</span> <span class="o">=</span> <span class="p">[</span><span class="n">bridge</span> <span class="k">for</span> <span class="n">bridge</span> <span class="ow">in</span> <span class="n">bridges</span> <span class="k">if</span> <span class="n">bridge</span><span class="o">.</span><span class="n">is_image</span><span class="p">]</span>
+    <span class="n">std_config</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">bridge</span><span class="o">.</span><span class="n">yaml</span><span class="p">()</span> <span class="k">for</span> <span class="n">bridge</span> <span class="ow">in</span> <span class="n">bridges</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">bridge</span><span class="o">.</span><span class="n">is_image</span><span class="p">)</span>
+
+    <span class="n">node_reg</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">node_img</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="k">if</span> <span class="n">std_config</span><span class="p">:</span>
+        <span class="n">dst</span> <span class="o">=</span> <span class="n">NamedTemporaryFile</span><span class="p">()</span><span class="o">.</span><span class="n">name</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">dst</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">file</span><span class="p">:</span>
+            <span class="n">file</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">std_config</span><span class="p">)</span>
+
+        <span class="n">node_reg</span> <span class="o">=</span> <span class="n">bl</span><span class="o">.</span><span class="n">node</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">ros_gz</span><span class="si">}</span><span class="s2">_bridge&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;parameter_bridge&quot;</span><span class="p">,</span>
+            <span class="n">node_name</span><span class="p">,</span>
+            <span class="n">params</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;config_file&quot;</span><span class="p">:</span> <span class="n">dst</span><span class="p">},</span>
+        <span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">image_bridges</span><span class="p">:</span>
+        <span class="n">img_remaps</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">bridge</span> <span class="ow">in</span> <span class="n">image_bridges</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">ext</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="s2">&quot;/compressed&quot;</span><span class="p">,</span> <span class="s2">&quot;/compressedDepth&quot;</span><span class="p">,</span> <span class="s2">&quot;/theora&quot;</span><span class="p">):</span>
+                <span class="n">remapped_gz_topic</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">bridge</span><span class="o">.</span><span class="n">gz_topic</span><span class="si">}{</span><span class="n">ext</span><span class="si">}</span><span class="s2">&quot;</span>
+                <span class="n">remapped_ros_topic</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">bridge</span><span class="o">.</span><span class="n">ros_topic</span><span class="si">}{</span><span class="n">ext</span><span class="si">}</span><span class="s2">&quot;</span>
+                <span class="n">img_remaps</span><span class="p">[</span><span class="n">remapped_gz_topic</span><span class="p">]</span> <span class="o">=</span> <span class="n">remapped_ros_topic</span>
+
+        <span class="n">node_img</span> <span class="o">=</span> <span class="n">bl</span><span class="o">.</span><span class="n">node</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">ros_gz</span><span class="si">}</span><span class="s2">_image&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;image_bridge&quot;</span><span class="p">,</span>
+            <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">node_name</span><span class="si">}</span><span class="s2">_image&quot;</span><span class="p">,</span>
+            <span class="n">remaps</span><span class="o">=</span><span class="n">img_remaps</span><span class="p">,</span>
+        <span class="p">)</span>
+
+    <span class="k">return</span> <span class="p">(</span><span class="n">node_reg</span><span class="p">,</span> <span class="n">node_img</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="spawn_world_transform">
+<a class="viewcode-back" href="../../better_launch.html#better_launch.gazebo.spawn_world_transform">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">spawn_world_transform</span><span class="p">(</span><span class="n">gazebo_world_frame</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Node</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Runs a static_transform_publisher to connect the ROS `world` frame and a Gazebo world frame, if the Gazebo world frame is specified and different from &#39;world&#39;.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    gazebo_world_frame : str, optional</span>
+<span class="sd">        The name of the Gazebo world frame. If None, retrieves the default from :py:meth:`GazeboBridge.world`.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    Node</span>
+<span class="sd">        The spawned node instance.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">gazebo_world_frame</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">gazebo_world_frame</span> <span class="o">=</span> <span class="n">GazeboBridge</span><span class="o">.</span><span class="n">world</span><span class="p">()</span>
+
+    <span class="k">if</span> <span class="n">gazebo_world_frame</span> <span class="o">!=</span> <span class="s2">&quot;world&quot;</span><span class="p">:</span>
+        <span class="n">bl</span> <span class="o">=</span> <span class="n">BetterLaunch</span><span class="o">.</span><span class="n">instance</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">bl</span><span class="o">.</span><span class="n">node</span><span class="p">(</span>
+            <span class="s2">&quot;tf2_ros&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;static_transform_publisher&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;gazebo_world_tf&quot;</span><span class="p">,</span>
+            <span class="n">cmd_args</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;--frame-id&quot;</span><span class="p">,</span> <span class="s2">&quot;world&quot;</span><span class="p">,</span> <span class="s2">&quot;--child-frame-id&quot;</span><span class="p">,</span> <span class="n">gazebo_world_frame</span><span class="p">],</span>
+            <span class="n">raw</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="p">)</span>
+
+    <span class="k">return</span> <span class="kc">None</span></div>
 
 
 
@@ -184,279 +390,6 @@
         <span class="s2">&quot;R&quot;</span><span class="p">:</span> <span class="n">roll</span><span class="p">,</span>
     <span class="p">}</span></div>
 
-
-
-<div class="viewcode-block" id="spawn_gazebo_topic_bridge">
-<a class="viewcode-back" href="../../better_launch.html#better_launch.gazebo.spawn_gazebo_topic_bridge">[docs]</a>
-<span class="k">def</span><span class="w"> </span><span class="nf">spawn_gazebo_topic_bridge</span><span class="p">(</span>
-    <span class="o">*</span><span class="n">bridges</span><span class="p">:</span> <span class="s2">&quot;GazeboBridge&quot;</span><span class="p">,</span> <span class="n">node_name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;gz_bridge&quot;</span>
-<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">Node</span><span class="p">,</span> <span class="n">Node</span><span class="p">]:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Creates a `ros_gz_bridge::parameter_bridge` node with the specified `GazeboBridge` instances.</span>
-
-<span class="sd">    This function sets up ROS-Gazebo bridges for different topic types. Standard topic bridges (non-image) are configured via a YAML parameter file, while image topics are handled separately through remappings.</span>
-
-<span class="sd">    Parameters</span>
-<span class="sd">    ----------</span>
-<span class="sd">    *bridges : GazeboBridge</span>
-<span class="sd">        One or more `GazeboBridge` instances defining the Gazebo-ROS topic bridges.</span>
-<span class="sd">    node_name : str, optional</span>
-<span class="sd">        Name of the bridge node, by default `&quot;gz_bridge&quot;`.</span>
-
-<span class="sd">    Returns</span>
-<span class="sd">    -------</span>
-<span class="sd">    tuple[Node, Node]</span>
-<span class="sd">        The up to two nodes that will be started by this function. The first node will be the node handling all regular topic bridges, the second the one for the image topics. Either of these may be `None`.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">bridges</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
-        <span class="k">return</span> <span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
-
-    <span class="n">bl</span> <span class="o">=</span> <span class="n">BetterLaunch</span><span class="o">.</span><span class="n">instance</span><span class="p">()</span>
-
-    <span class="n">ros_gz</span> <span class="o">=</span> <span class="s2">&quot;ros_&quot;</span> <span class="o">+</span> <span class="n">get_gazebo_prefix</span><span class="p">()</span>
-    <span class="n">image_bridges</span> <span class="o">=</span> <span class="p">[</span><span class="n">bridge</span> <span class="k">for</span> <span class="n">bridge</span> <span class="ow">in</span> <span class="n">bridges</span> <span class="k">if</span> <span class="n">bridge</span><span class="o">.</span><span class="n">is_image</span><span class="p">]</span>
-    <span class="n">std_config</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">bridge</span><span class="o">.</span><span class="n">yaml</span><span class="p">()</span> <span class="k">for</span> <span class="n">bridge</span> <span class="ow">in</span> <span class="n">bridges</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">bridge</span><span class="o">.</span><span class="n">is_image</span><span class="p">)</span>
-
-    <span class="n">node_reg</span> <span class="o">=</span> <span class="kc">None</span>
-    <span class="n">node_img</span> <span class="o">=</span> <span class="kc">None</span>
-
-    <span class="k">if</span> <span class="n">std_config</span><span class="p">:</span>
-        <span class="n">dst</span> <span class="o">=</span> <span class="n">NamedTemporaryFile</span><span class="p">()</span><span class="o">.</span><span class="n">name</span>
-        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">dst</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">file</span><span class="p">:</span>
-            <span class="n">file</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">std_config</span><span class="p">)</span>
-
-        <span class="n">node_reg</span> <span class="o">=</span> <span class="n">bl</span><span class="o">.</span><span class="n">node</span><span class="p">(</span>
-            <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">ros_gz</span><span class="si">}</span><span class="s2">_bridge&quot;</span><span class="p">,</span>
-            <span class="s2">&quot;parameter_bridge&quot;</span><span class="p">,</span>
-            <span class="n">node_name</span><span class="p">,</span>
-            <span class="n">params</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;config_file&quot;</span><span class="p">:</span> <span class="n">dst</span><span class="p">},</span>
-        <span class="p">)</span>
-
-    <span class="k">if</span> <span class="n">image_bridges</span><span class="p">:</span>
-        <span class="n">img_remaps</span> <span class="o">=</span> <span class="p">{}</span>
-        <span class="k">for</span> <span class="n">bridge</span> <span class="ow">in</span> <span class="n">image_bridges</span><span class="p">:</span>
-            <span class="k">for</span> <span class="n">ext</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="s2">&quot;/compressed&quot;</span><span class="p">,</span> <span class="s2">&quot;/compressedDepth&quot;</span><span class="p">,</span> <span class="s2">&quot;/theora&quot;</span><span class="p">):</span>
-                <span class="n">remapped_gz_topic</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">bridge</span><span class="o">.</span><span class="n">gz_topic</span><span class="si">}{</span><span class="n">ext</span><span class="si">}</span><span class="s2">&quot;</span>
-                <span class="n">remapped_ros_topic</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">bridge</span><span class="o">.</span><span class="n">ros_topic</span><span class="si">}{</span><span class="n">ext</span><span class="si">}</span><span class="s2">&quot;</span>
-                <span class="n">img_remaps</span><span class="p">[</span><span class="n">remapped_gz_topic</span><span class="p">]</span> <span class="o">=</span> <span class="n">remapped_ros_topic</span>
-
-        <span class="n">node_img</span> <span class="o">=</span> <span class="n">bl</span><span class="o">.</span><span class="n">node</span><span class="p">(</span>
-            <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">ros_gz</span><span class="si">}</span><span class="s2">_image&quot;</span><span class="p">,</span>
-            <span class="s2">&quot;image_bridge&quot;</span><span class="p">,</span>
-            <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">node_name</span><span class="si">}</span><span class="s2">_image&quot;</span><span class="p">,</span>
-            <span class="n">remaps</span><span class="o">=</span><span class="n">img_remaps</span><span class="p">,</span>
-        <span class="p">)</span>
-
-    <span class="k">return</span> <span class="p">(</span><span class="n">node_reg</span><span class="p">,</span> <span class="n">node_img</span><span class="p">)</span></div>
-
-
-
-<div class="viewcode-block" id="spawn_gazebo_world_transform">
-<a class="viewcode-back" href="../../better_launch.html#better_launch.gazebo.spawn_gazebo_world_transform">[docs]</a>
-<span class="k">def</span><span class="w"> </span><span class="nf">spawn_gazebo_world_transform</span><span class="p">(</span><span class="n">gazebo_world_frame</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Node</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Runs a static_transform_publisher to connect the ROS `world` frame and a Gazebo world frame, if the Gazebo world frame is specified and different from &#39;world&#39;.</span>
-
-<span class="sd">    Parameters</span>
-<span class="sd">    ----------</span>
-<span class="sd">    gazebo_world_frame : str, optional</span>
-<span class="sd">        The name of the Gazebo world frame. If None, retrieves the default from :py:meth:`GazeboBridge.world`.</span>
-
-<span class="sd">    Returns</span>
-<span class="sd">    -------</span>
-<span class="sd">    Node</span>
-<span class="sd">        The spawned node instance.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">if</span> <span class="n">gazebo_world_frame</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="n">gazebo_world_frame</span> <span class="o">=</span> <span class="n">GazeboBridge</span><span class="o">.</span><span class="n">world</span><span class="p">()</span>
-
-    <span class="k">if</span> <span class="n">gazebo_world_frame</span> <span class="o">!=</span> <span class="s2">&quot;world&quot;</span><span class="p">:</span>
-        <span class="n">bl</span> <span class="o">=</span> <span class="n">BetterLaunch</span><span class="o">.</span><span class="n">instance</span><span class="p">()</span>
-        <span class="k">return</span> <span class="n">bl</span><span class="o">.</span><span class="n">node</span><span class="p">(</span>
-            <span class="s2">&quot;tf2_ros&quot;</span><span class="p">,</span>
-            <span class="s2">&quot;static_transform_publisher&quot;</span><span class="p">,</span>
-            <span class="s2">&quot;gazebo_world_tf&quot;</span><span class="p">,</span>
-            <span class="n">params</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;frame_id&quot;</span><span class="p">:</span> <span class="s2">&quot;world&quot;</span><span class="p">,</span> <span class="s2">&quot;child_frame_id&quot;</span><span class="p">:</span> <span class="n">gazebo_world_frame</span><span class="p">},</span>
-        <span class="p">)</span>
-
-    <span class="k">return</span> <span class="kc">None</span></div>
-
-
-
-<div class="viewcode-block" id="gazebo_launch">
-<a class="viewcode-back" href="../../better_launch.html#better_launch.gazebo.gazebo_launch">[docs]</a>
-<span class="k">def</span><span class="w"> </span><span class="nf">gazebo_launch</span><span class="p">(</span>
-    <span class="n">package</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
-    <span class="n">world_file</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
-    <span class="n">gz_args</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-    <span class="n">world_save_file</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-    <span class="n">save_after</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">10.0</span><span class="p">,</span>
-<span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Starts a Gazebo simulation with the specified world. If `world_save_file` is specified, the world will be saved as an SDF to that file after `save_after` seconds, including base world and spawned entities.</span>
-
-<span class="sd">    Parameters</span>
-<span class="sd">    ----------</span>
-<span class="sd">    package : str, </span>
-<span class="sd">        A package to locate the world_file in. May be `None` (see :py:meth:`BetterLaunch.find`).</span>
-<span class="sd">    world_file : str</span>
-<span class="sd">        Path to the primary world file for the simulation.</span>
-<span class="sd">    gz_args : _type_, optional</span>
-<span class="sd">        Optional arguments to pass to the Gazebo simulator.</span>
-<span class="sd">    world_save_file : _type_, optional</span>
-<span class="sd">        Path where the resulting SDF should be saved.</span>
-<span class="sd">    save_after : float, optional</span>
-<span class="sd">        Time in seconds after which the world SDF should be saved.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">bl</span> <span class="o">=</span> <span class="n">BetterLaunch</span><span class="o">.</span><span class="n">instance</span><span class="p">()</span>
-
-    <span class="n">_</span><span class="p">,</span> <span class="n">launch_file</span><span class="p">,</span> <span class="n">launch_arguments</span> <span class="o">=</span> <span class="n">_get_gazebo_launch_args</span><span class="p">(</span><span class="n">package</span><span class="p">,</span> <span class="n">world_file</span><span class="p">,</span> <span class="n">gz_args</span><span class="p">)</span>
-    <span class="n">bl</span><span class="o">.</span><span class="n">include</span><span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="n">launch_file</span><span class="p">,</span> <span class="o">**</span><span class="n">launch_arguments</span><span class="p">)</span>
-
-    <span class="k">if</span> <span class="n">world_save_file</span><span class="p">:</span>
-        <span class="n">gazebo_save_world</span><span class="p">(</span><span class="n">world_save_file</span><span class="p">,</span> <span class="n">save_after</span><span class="p">)</span></div>
-
-
-
-<div class="viewcode-block" id="gazebo_save_world">
-<a class="viewcode-back" href="../../better_launch.html#better_launch.gazebo.gazebo_save_world">[docs]</a>
-<span class="k">def</span><span class="w"> </span><span class="nf">gazebo_save_world</span><span class="p">(</span><span class="n">filepath</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">after</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">5.0</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Saves the current gazebo world to a file. Resolves any spawned URDF through their description parameter and converts to SDF.</span>
-
-<span class="sd">    Parameters</span>
-<span class="sd">    ----------</span>
-<span class="sd">    filepath : str</span>
-<span class="sd">        Path to the file to save the gazebo world to.</span>
-<span class="sd">    after : float, optional</span>
-<span class="sd">        How long to wait before saving.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">bl</span> <span class="o">=</span> <span class="n">BetterLaunch</span><span class="o">.</span><span class="n">instance</span><span class="p">()</span>
-
-    <span class="k">def</span><span class="w"> </span><span class="nf">save</span><span class="p">():</span>
-        <span class="n">bl</span><span class="o">.</span><span class="n">node</span><span class="p">(</span>
-            <span class="n">package</span><span class="o">=</span><span class="s2">&quot;better_launch&quot;</span><span class="p">,</span>
-            <span class="n">executable</span><span class="o">=</span><span class="s2">&quot;generate_gz_world&quot;</span><span class="p">,</span>
-            <span class="n">params</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;output_path&quot;</span><span class="p">:</span> <span class="n">filepath</span><span class="p">},</span>
-        <span class="p">)</span>
-
-    <span class="k">if</span> <span class="n">after</span> <span class="o">&gt;</span> <span class="mf">0.0</span><span class="p">:</span>
-        <span class="n">bl</span><span class="o">.</span><span class="n">run_later</span><span class="p">(</span><span class="n">after</span><span class="p">,</span> <span class="n">save</span><span class="p">)</span>
-    <span class="k">else</span><span class="p">:</span>
-        <span class="n">save</span><span class="p">()</span></div>
-
-
-
-<div class="viewcode-block" id="gazebo_spawn_model">
-<a class="viewcode-back" href="../../better_launch.html#better_launch.gazebo.gazebo_spawn_model">[docs]</a>
-<span class="k">def</span><span class="w"> </span><span class="nf">gazebo_spawn_model</span><span class="p">(</span>
-    <span class="n">model_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
-    <span class="n">topic</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;robot_description&quot;</span><span class="p">,</span>
-    <span class="n">model_file</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-    <span class="n">spawn_args</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Node</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Spawns a model into Gazebo under the given name from the specified topic or file.</span>
-
-<span class="sd">    The spawn_args dictionary can include additional options, such as the initial pose of the model.</span>
-
-<span class="sd">    Parameters</span>
-<span class="sd">    ----------</span>
-<span class="sd">    name : str</span>
-<span class="sd">        The name of the model to spawn in the Gazebo environment.</span>
-<span class="sd">    topic : str, optional</span>
-<span class="sd">        The topic to retrieve the model description from.</span>
-<span class="sd">    model_file : str, optional</span>
-<span class="sd">        The path to the model file to spawn. If not provided, the model will be retrieved from the specified topic.</span>
-<span class="sd">    spawn_args : dict[str, Any], optional</span>
-<span class="sd">        Additional arguments for spawning the model, such as pose and other options. See :py:meth:`get_gazebo_axes_args` for defining the model&#39;s orientation.</span>
-
-<span class="sd">    Returns</span>
-<span class="sd">    -------</span>
-<span class="sd">    Node</span>
-<span class="sd">        The spawned node instance.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">bl</span> <span class="o">=</span> <span class="n">BetterLaunch</span><span class="o">.</span><span class="n">instance</span><span class="p">()</span>
-
-    <span class="k">if</span> <span class="n">spawn_args</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="n">spawn_args</span> <span class="o">=</span> <span class="p">{}</span>
-
-    <span class="n">cmd_args</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;-name&quot;</span><span class="p">,</span> <span class="n">model_name</span><span class="p">]</span>
-    <span class="k">if</span> <span class="n">model_file</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="n">cmd_args</span><span class="o">.</span><span class="n">extend</span><span class="p">([</span><span class="s2">&quot;-file&quot;</span><span class="p">,</span> <span class="n">model_file</span><span class="p">])</span>
-    <span class="k">else</span><span class="p">:</span>
-        <span class="n">cmd_args</span><span class="o">.</span><span class="n">extend</span><span class="p">([</span><span class="s2">&quot;-topic&quot;</span><span class="p">,</span> <span class="n">topic</span><span class="p">])</span>
-
-    <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">val</span> <span class="ow">in</span> <span class="n">spawn_args</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-        <span class="n">cmd_args</span><span class="o">.</span><span class="n">extend</span><span class="p">([</span><span class="sa">f</span><span class="s2">&quot;-</span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">val</span><span class="p">])</span>
-
-    <span class="n">pkg</span> <span class="o">=</span> <span class="s2">&quot;ros_ign_gazebo&quot;</span> <span class="k">if</span> <span class="n">get_gazebo_prefix</span><span class="p">()</span> <span class="o">==</span> <span class="s2">&quot;ign&quot;</span> <span class="k">else</span> <span class="s2">&quot;ros_gz_sim&quot;</span>
-    <span class="k">return</span> <span class="n">bl</span><span class="o">.</span><span class="n">node</span><span class="p">(</span>
-        <span class="n">pkg</span><span class="p">,</span> <span class="s2">&quot;create&quot;</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;spawn_</span><span class="si">{</span><span class="n">model_name</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">anonymous</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">cmd_args</span><span class="o">=</span><span class="n">cmd_args</span>
-    <span class="p">)</span></div>
-
-
-
-<span class="k">def</span><span class="w"> </span><span class="nf">_get_gazebo_launch_args</span><span class="p">(</span>
-    <span class="n">package</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
-    <span class="n">world_file</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
-    <span class="n">gz_args</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">,</span> <span class="nb">dict</span><span class="p">]:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Prepares the launch file and arguments for starting a Gazebo simulation based on the provided world file.</span>
-
-<span class="sd">    Parameters</span>
-<span class="sd">    ----------</span>
-<span class="sd">    package : str</span>
-<span class="sd">        The package to locate the world file in. May be `None` (see :py:meth:`find`).</span>
-<span class="sd">    world_file : str</span>
-<span class="sd">        The path to the world file to be loaded in the Gazebo simulator.</span>
-<span class="sd">    gz_args : list[str], optional</span>
-<span class="sd">        Optional additional arguments to pass to Gazebo, such as simulation parameters.</span>
-
-<span class="sd">    Raises</span>
-<span class="sd">    ------</span>
-<span class="sd">    ValueError</span>
-<span class="sd">        If the world_file cannot be found.</span>
-
-<span class="sd">    Returns</span>
-<span class="sd">    -------</span>
-<span class="sd">    tuple[str, str, dict]</span>
-<span class="sd">        - The name of the world found in the `world_file`.</span>
-<span class="sd">        - The path to the launch file for Gazebo.</span>
-<span class="sd">        - A dictionary of arguments to be passed to the Gazebo launch file.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">bl</span> <span class="o">=</span> <span class="n">BetterLaunch</span><span class="o">.</span><span class="n">instance</span><span class="p">()</span>
-
-    <span class="n">world_file</span> <span class="o">=</span> <span class="n">bl</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="n">package</span><span class="p">,</span> <span class="n">world_file</span><span class="p">)</span>
-    <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">world_file</span><span class="p">):</span>
-        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Could not find world file&quot;</span><span class="p">)</span>
-
-    <span class="n">full_args</span> <span class="o">=</span> <span class="p">[</span><span class="n">world_file</span><span class="p">]</span>
-    <span class="k">if</span> <span class="n">gz_args</span><span class="p">:</span>
-        <span class="n">full_args</span> <span class="o">+=</span> <span class="n">gz_args</span>
-
-    <span class="k">if</span> <span class="n">get_gazebo_prefix</span><span class="p">()</span> <span class="o">==</span> <span class="s2">&quot;gz&quot;</span><span class="p">:</span>
-        <span class="n">launch_file</span> <span class="o">=</span> <span class="n">bl</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s2">&quot;ros_gz_sim&quot;</span><span class="p">,</span> <span class="s2">&quot;gz_sim.launch.py&quot;</span><span class="p">)</span>
-        <span class="n">launch_arguments</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;gz_args&quot;</span><span class="p">:</span> <span class="n">full_args</span><span class="p">}</span>
-    <span class="k">else</span><span class="p">:</span>
-        <span class="n">launch_file</span> <span class="o">=</span> <span class="n">bl</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s2">&quot;ros_ign_gazebo&quot;</span><span class="p">,</span> <span class="s2">&quot;ign_gazebo.launch.py&quot;</span><span class="p">)</span>
-        <span class="n">launch_arguments</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;ign_args&quot;</span><span class="p">:</span> <span class="n">full_args</span><span class="p">}</span>
-
-    <span class="n">world_name</span> <span class="o">=</span> <span class="kc">None</span>
-    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">world_file</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
-        <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
-            <span class="n">line</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">readline</span><span class="p">()</span>
-
-            <span class="k">if</span> <span class="ow">not</span> <span class="n">line</span><span class="p">:</span>
-                <span class="n">bl</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
-                    <span class="sa">f</span><span class="s2">&quot;Could not get the name of the Gazebo world </span><span class="si">{</span><span class="n">world_file</span><span class="si">}</span><span class="s2">&quot;</span>
-                <span class="p">)</span>
-                <span class="k">break</span>
-
-            <span class="k">if</span> <span class="s2">&quot;world name&quot;</span> <span class="ow">in</span> <span class="n">line</span><span class="p">:</span>
-                <span class="n">world_name</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;&quot;&#39;</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span>
-                <span class="n">GazeboBridge</span><span class="o">.</span><span class="n">set_world_name</span><span class="p">(</span><span class="n">world_name</span><span class="p">)</span>
-                <span class="n">bl</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Found Gazebo world &#39;</span><span class="si">{</span><span class="n">world_name</span><span class="si">}</span><span class="s2">&#39; in </span><span class="si">{</span><span class="n">world_file</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-                <span class="k">break</span>
-
-    <span class="k">return</span> <span class="n">world_name</span><span class="p">,</span> <span class="n">launch_file</span><span class="p">,</span> <span class="n">launch_arguments</span>
 
 
 <div class="viewcode-block" id="GazeboBridge">
@@ -583,8 +516,10 @@
             <span class="bp">self</span><span class="o">.</span><span class="n">gz_msg</span> <span class="o">=</span> <span class="n">gz_msg</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="k">if</span> <span class="n">ros_msg</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">msg_map</span><span class="p">:</span>
-                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Unknown message type &#39;</span><span class="si">{</span><span class="n">ros_msg</span><span class="si">}</span><span class="s2">&#39;, try giving an explicit gz_msg&quot;</span><span class="p">)</span>
-        
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;Unknown message type &#39;</span><span class="si">{</span><span class="n">ros_msg</span><span class="si">}</span><span class="s2">&#39;, try giving an explicit gz_msg&quot;</span>
+                <span class="p">)</span>
+
             <span class="bp">self</span><span class="o">.</span><span class="n">gz_msg</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">msg_map</span><span class="p">[</span><span class="n">ros_msg</span><span class="p">]</span>
 
         <span class="k">if</span> <span class="n">direction</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">get_args</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">Direction</span><span class="p">):</span>
@@ -593,7 +528,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">gz_topic</span> <span class="o">=</span> <span class="n">gz_topic</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">ros_topic</span> <span class="o">=</span> <span class="n">ros_topic</span>
 
-        <span class="bp">self</span><span class="o">.</span><span class="n">is_image</span> <span class="o">=</span> <span class="p">(</span><span class="n">ros_msg</span> <span class="o">==</span> <span class="s2">&quot;sensor_msgs/msg/Image&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">is_image</span> <span class="o">=</span> <span class="n">ros_msg</span> <span class="o">==</span> <span class="s2">&quot;sensor_msgs/msg/Image&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">direction</span> <span class="o">=</span> <span class="n">direction</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">ros_msg</span> <span class="o">=</span> <span class="n">ros_msg</span></div>
 
@@ -603,15 +538,14 @@
     <span class="nd">@classmethod</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">gz_exec</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_gz_exec</span><span class="p">:</span>
-            <span class="bp">cls</span><span class="o">.</span><span class="n">_gz_exec</span> <span class="o">=</span> <span class="n">get_gazebo_prefix</span><span class="p">()</span>
+            <span class="bp">cls</span><span class="o">.</span><span class="n">_gz_exec</span> <span class="o">=</span> <span class="n">get_gazebo_version</span><span class="p">()</span>
         <span class="k">return</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_gz_exec</span></div>
 
 
 <div class="viewcode-block" id="GazeboBridge.yaml">
 <a class="viewcode-back" href="../../better_launch.html#better_launch.gazebo.GazeboBridge.yaml">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">yaml</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Returns a YAML snippet that can be used to configure other bridges.</span>
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Returns a YAML snippet that can be used to configure other bridges.&quot;&quot;&quot;</span>
         <span class="n">gz_exec</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">gz_exec</span><span class="p">()</span>
 
         <span class="n">dir_string</span> <span class="o">=</span> <span class="s2">&quot;BIDIRECTIONAL&quot;</span>
@@ -666,7 +600,7 @@
             <span class="n">cmd</span> <span class="o">=</span> <span class="p">[</span><span class="bp">cls</span><span class="o">.</span><span class="n">gz_exec</span><span class="p">(),</span> <span class="s2">&quot;model&quot;</span><span class="p">,</span> <span class="s2">&quot;--list&quot;</span><span class="p">]</span>
             <span class="n">output</span> <span class="o">=</span> <span class="n">check_output</span><span class="p">(</span><span class="n">cmd</span><span class="p">,</span> <span class="n">stderr</span><span class="o">=</span><span class="n">STDOUT</span><span class="p">)</span><span class="o">.</span><span class="n">decode</span><span class="p">()</span>
         <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Failed to list loaded Gazebo models: &quot;</span> <span class="o">+</span> <span class="n">e</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Failed to list loaded Gazebo models: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
 
         <span class="k">if</span> <span class="ow">not</span> <span class="n">output</span> <span class="ow">or</span> <span class="s2">&quot;timed out&quot;</span> <span class="ow">in</span> <span class="n">output</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;No loaded Gazebo models or request timed out&quot;</span><span class="p">)</span>
@@ -674,7 +608,9 @@
         <span class="n">world_name</span> <span class="o">=</span> <span class="n">output</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;]&quot;</span><span class="p">,</span> <span class="s2">&quot;[&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;[&quot;</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span>
 
         <span class="k">if</span> <span class="ow">not</span> <span class="n">world_name</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;The command </span><span class="si">{</span><span class="s1">&#39; &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">cmd</span><span class="p">)</span><span class="si">}</span><span class="s2"> did not return a parseable world name (output was &#39;</span><span class="si">{</span><span class="n">output</span><span class="si">}</span><span class="s2">&#39;)&quot;</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;The command </span><span class="si">{</span><span class="s1">&#39; &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">cmd</span><span class="p">)</span><span class="si">}</span><span class="s2"> did not return a parseable world name (output was &#39;</span><span class="si">{</span><span class="n">output</span><span class="si">}</span><span class="s2">&#39;)&quot;</span>
+            <span class="p">)</span>
 
         <span class="n">GazeboBridge</span><span class="o">.</span><span class="n">_active_world_name</span> <span class="o">=</span> <span class="n">world_name</span>
         <span class="k">return</span> <span class="n">world_name</span></div>
@@ -735,9 +671,7 @@
 <span class="sd">        GazeboBridge</span>
 <span class="sd">            An instance of the GazeboBridge for the clock topic.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">return</span> <span class="n">GazeboBridge</span><span class="p">(</span>
-            <span class="s2">&quot;/clock&quot;</span><span class="p">,</span> <span class="s2">&quot;/clock&quot;</span><span class="p">,</span> <span class="s2">&quot;rosgraph_msgs/msg/Clock&quot;</span><span class="p">,</span> <span class="s2">&quot;gz2ros&quot;</span>
-        <span class="p">)</span></div>
+        <span class="k">return</span> <span class="n">GazeboBridge</span><span class="p">(</span><span class="s2">&quot;/clock&quot;</span><span class="p">,</span> <span class="s2">&quot;/clock&quot;</span><span class="p">,</span> <span class="s2">&quot;rosgraph_msgs/msg/Clock&quot;</span><span class="p">,</span> <span class="s2">&quot;gz2ros&quot;</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="GazeboBridge.make_joint_state_bridge">

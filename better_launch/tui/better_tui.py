@@ -34,6 +34,8 @@ from better_launch.tui.footer_menu import FooterMenu
 
 
 class AppMode(IntEnum):
+    """States of our TUI. The TUI decides what to display based on the active state. See :py:meth:`BetterTui._switch_mode` for details.
+    """
     STANDARD = auto()
     CONFIRM_EXIT = auto()
     SEARCH_NODE = auto()
@@ -63,6 +65,7 @@ _log_levels = {
 }
 
 
+# Custom level to block all output
 logging.addLevelName(999, "MUTE")
 
 
@@ -73,12 +76,25 @@ class BetterTui:
 
     def __init__(
         self,
-        launch_func: Callable,
+        launch_func: Callable[[], None],
         *,
         manage_foreign_nodes: bool = False,
         keep_alive: bool = False,
         color_depth: Literal[1, 4, 8, 24] = 8,
     ):
+        """Our TUI class. Use :py:meth:`run` to start the TUI.
+
+        Parameters
+        ----------
+        launch_func : Callable[[], None]
+            The launch function to run once this TUI is started.
+        manage_foreign_nodes : bool, optional
+            Whether to list foreign nodes in the nodes menu.
+        keep_alive : bool, optional
+            If True, the TUI will keep running even when the last node stops running.
+        color_depth : Literal[1, 4, 8, 24], optional
+            How many colors to use for display. Corresponds to monochrome, ANSI colors, 256 colors, true colors.
+        """
         self.launch_func = launch_func
         self.manage_foreign_nodes = manage_foreign_nodes
         self.keep_alive = keep_alive
@@ -110,6 +126,8 @@ class BetterTui:
         self._setup_key_bindings()
 
     def run(self):
+        """Initialize the TUI app, then run the launch function before starting the TUI.
+        """
         layout = self._make_layout()
         app = Application(
             layout=layout,
@@ -135,6 +153,13 @@ class BetterTui:
             app.run()
 
     def quit(self, reason: str) -> None:
+        """Shutdown better_launch if it is still running, then exit the TUI.
+
+        Parameters
+        ----------
+        reason : str
+            A reason for the shutdown that will be shown to the user.
+        """
         bl = BetterLaunch.instance()
         if bl:
             try:
@@ -150,18 +175,36 @@ class BetterTui:
 
     # Some common helpers
     def _is_footer_visible(self) -> bool:
+        """Whether the footer line should be visible.
+        """
         return self.mode not in (AppMode.SEARCH_NODE,)
 
     def _is_search_visible(self) -> bool:
+        """Whether the search bar should be visible.
+        """
         return self.mode in (AppMode.SEARCH_NODE,)
 
     def _is_menu_visible(self) -> bool:
+        """Whether the menu widget should be visible.
+        """
         return self.mode not in (
             AppMode.STANDARD,
             AppMode.NODE_INFO,
         )
 
-    def _get_matching_node_items(self, filter: str) -> tuple[str, str, AbstractNode]:
+    def _get_matching_node_items(self, filter: str) -> list[tuple[str, str, AbstractNode]]:
+        """Check which node items in the current node snapshot match the provided filter string.
+
+        Parameters
+        ----------
+        filter : str
+            A string that will be looked for in each nodes' full name.
+
+        Returns
+        -------
+        list[tuple[str, str, AbstractNode]]
+            The style, short name, and node for each node that matched the filter string.
+        """
         filter = filter.lower()
         ret = []
 
@@ -172,18 +215,29 @@ class BetterTui:
 
         return ret
 
-    def set_log_level(self, level: LogLevel) -> None:
+    def _set_log_level(self, level: LogLevel) -> None:
+        """Configure the severity level that our logger will output on the terminal.
+
+        Parameters
+        ----------
+        level : LogLevel
+            The new minimum severity level.
+        """
         self.prev_log_level = self.log_level
         self.log_level = level
         handler: logging.Handler = roslog.launch_config.get_screen_handler()
         handler.setLevel(level.level)
 
     def _menu_cancel(self) -> None:
+        """Hide any open menu by returning to STANDARD mode.
+        """
         self._switch_mode(AppMode.STANDARD)
         get_app().layout.focus(self.footer_window)
 
     # Setup user interactions
     def _setup_key_bindings(self) -> None:
+        """Setup the key bindings. This is how the user will interact with the TUI and usually results in calls to :py:meth:`_switch_mode` or :py:meth:`_handle_menu_accept`.
+        """
         bind = self.bindings.add
 
         mode_standard = Condition(lambda: self.mode == AppMode.STANDARD)
@@ -197,7 +251,7 @@ class BetterTui:
         def _(event: KeyPressEvent):
             self.muted = not self.muted
             level = _log_levels["MUTE"] if self.muted else self.prev_log_level
-            self.set_log_level(level)
+            self._set_log_level(level)
 
         @bind("f1", filter=mode_standard)
         def _(event: KeyPressEvent):
@@ -241,6 +295,13 @@ class BetterTui:
                 self._handle_menu_accept(self.footer_menu.selected)
 
     def _switch_mode(self, mode: AppMode) -> None:
+        """The TUI basically uses a statemachine to decide what to show in the bottom menu. This function transitions the TUI into a new state.
+
+        Parameters
+        ----------
+        mode : AppMode
+            The state to transition to.
+        """
         self.mode = mode
 
         if mode == AppMode.STANDARD:
@@ -326,6 +387,13 @@ class BetterTui:
             self.footer_menu.set_items(items, active)
 
     def _handle_menu_accept(self, idx: int) -> None:
+        """Decide what to do when a menu item is activated by the user. Usually this will result in a state transition (via :py:meth:`_switch_mode`) and some side effects.
+
+        Parameters
+        ----------
+        idx : int
+            Index of the activated menu item.
+        """
         item = self.footer_menu.get_selected_item()
 
         if self.mode == AppMode.CONFIRM_EXIT:
@@ -391,10 +459,17 @@ class BetterTui:
                 item = item[1]
 
             level = _log_levels[item]
-            self.set_log_level(level)
+            self._set_log_level(level)
             self._menu_cancel()
 
     def _make_layout(self) -> Layout:
+        """Creates our TUI's layout. Even though we run in "stdout mode", the lines we occupy still count as widgets.
+
+        Returns
+        -------
+        Layout
+            The layout to be used by the app.
+        """
 
         def on_search_update(_) -> None:
             new_text = self.search_buffer.text

@@ -86,15 +86,31 @@ class FooterMenu(FormattedTextControl):
 
         return shown
 
-    def select_next(self) -> int:
+    def select_next(self) -> None:
+        """Select the next menu item, wrapping around.
+        """
         self.selected = (self.selected + 1) % len(self.items)
         get_app().invalidate()
 
-    def select_prev(self) -> int:
+    def select_prev(self) -> None:
+        """Select the previous menu item, wrapping around.
+        """
         self.selected = (self.selected - 1) % len(self.items)
         get_app().invalidate()
 
     def select(self, idx: int) -> None:
+        """Select the specified existing menu item. No modulo operation is performed on the passed index, so it must be valid.
+
+        Parameters
+        ----------
+        idx : int
+            The index of the item to be selected.
+
+        Raises
+        ------
+        ValueError
+            If the provided index is outside the range of items in this menu.
+        """
         if not 0 <= idx < len(self.items):
             raise ValueError(
                 f"Item index out of range (idx={idx}, len={len(self.items)})"
@@ -104,14 +120,37 @@ class FooterMenu(FormattedTextControl):
         get_app().invalidate()
 
     def get_selected_item(self) -> str | tuple:
+        """Return the currently selected item data. If the item is a tuple it will have formatting in the first slot, its string representation in the second, and any additional information in subsequent slots.
+
+        Returns
+        -------
+        str | tuple
+            The item as it was passed to this menu.
+        """
         return self.items[self.selected]
 
-    def set_items(self, items: list[str], default: int = 0) -> None:
+    def set_items(self, items: list[str | tuple[str, str]], default: int = 0) -> None:
+        """Replace the items currently in this menu.
+
+        Parameters
+        ----------
+        items : list[str | tuple[str, str]]
+            The new items to use. If an item is a tuple, its first slot must be a formatting string and the second its string information. Any subsequent slots are kept, but ignored.
+        default : int, optional
+            Index of the item to select.
+        """
         self.items = items
         self.selected = default
         get_app().invalidate()
 
-    def update_items(self, items: list[str]) -> None:
+    def update_items(self, items: list[str | tuple[str, str]]) -> None:
+        """Like :py:meth:`set_items`, except that it keeps the currently selected index intact if it is contained within the new list of items.
+
+        Parameters
+        ----------
+        items : list[str | tuple[str, str]]
+            The new items to use. If an item is a tuple, its first slot must be a formatting string and the second its string information. Any subsequent slots are kept, but ignored.
+        """
         if self.selected >= len(items):
             self.selected = 0
 
