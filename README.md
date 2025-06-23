@@ -1,7 +1,7 @@
 ![Logo](media/logo_text.svg)
 
 
-[About](#about) | [Why?](#why-not-improve-the-existing-ros2-launch) | [Features](#okay-what-can-i-do-with-it) | [Usage](#how-do-i-use-it) | [TUI](#the-tui) | [Differences](#what-are-the-differences) | [Performance](#performance) | [Installation](#installation) | [ROS2](#whats-so-bad-about-ros2-launch) | [ToDo](#what-doesnt-work-yet) | [Contributors](#contributors)
+[About](#about) | [Why?](#why-not-improve-the-existing-ros2-launch) | [Features](#okay-what-can-i-do-with-it) | [Usage](#how-do-i-use-it) | [TUI](#the-tui) | [Differences](#what-are-the-differences) | [Performance](#performance) | [Installation](#installation) | [ROS2](#whats-so-bad-about-ros2-launch) | [Contributors](#contributors)
 
 
 # About
@@ -40,7 +40,7 @@ $> bl my_package my_launch_file.py --enable_x True
 # Why not improve the existing ROS2 launch?
 Because I think it is beyond redemption and no amount of refactoring and REPs (ROS enhancement proposals) will turn the sails. Tools like the highly rated [simple_launch](https://github.com/oKermorgant/simple_launch) exist, but still use ROS2 launch under the hood and so inherit much of its clunkiness. Rather than fixing an inherently broken solution, I decided to make a RAP - a ROS abandonment proposal :)
 
-Essentially, *better_launch* is what I wish ROS2 launch would be: intuitive to use, simple to understand, easy to remember. This is why *better_launch* is **not** yet another abstraction layer over ROS2 launch; it is a **full** replacement with no required dependencies on the existing launch system.
+Essentially, *better_launch* is what I wish ROS2 launch would be: intuitive to use, simple to understand, easy to remember. This is why *better_launch* is **not** yet another abstraction layer over ROS2 launch; it is a **full replacement** with no required dependencies on the existing launch system.
 
 
 # Okay, what can I do with it?
@@ -397,10 +397,6 @@ def main(turtlesim_ns = "turtlesim2", use_provided_red = True, new_background_r 
 ```
 
 Overall, ROS2 launch seems like a system architect's wet fever dream, and I don't enjoy it.
-
-
-# What doesn't work yet
-For the time being, *better_launch* is feature complete, is well documented and has no known bugs. The focus therefore currently lies on performance optimization and cleanup.
 
 
 # Contributors
