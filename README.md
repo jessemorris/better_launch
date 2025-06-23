@@ -406,3 +406,11 @@ For the time being, *better_launch* is feature complete, is well documented and 
 # Contributors
 - [Tom Creutz](https://github.com/tomcreutz)
 - Prithvi Sanghamreddy
+
+*better_launch* was initiated and is currently developed at the [Robotics Innovation Center](http://robotik.dfki-bremen.de/en/startpage.html) of the [German Research Center for Artificial Intelligence (DFKI)](http://www.dfki.de) in Bremen.
+
+---
+
+*Copyright 2025, [DFKI GmbH](http://www.dfki.de) / [Robotics Innovation Center](http://robotik.dfki-bremen.de/en/startpage.html)*
+
+![dfki-logo](media/dfki.png)
