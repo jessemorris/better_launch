@@ -267,7 +267,7 @@ def get_gazebo_axes_args(
     yaw: float = 0.0,
     pitch: float = 0.0,
     roll: float = 0.0,
-) -> dict[str, float]:
+) -> dict[str, str]:
     """Constructs a list of command-line arguments that can be used e.g. when spawning a new model.
 
     Parameters
@@ -287,16 +287,16 @@ def get_gazebo_axes_args(
 
     Returns
     -------
-    dict[str, float]
-        A dictionary containing the axes names and values. The axes names correspond to what Gazebo expects on the command line and so can be passed to e.g. :py:meth:`gazebo_spawn_model`.
+    dict[str, str]
+        A dictionary containing the axes names and values as strings. The axes names correspond to what Gazebo expects on the command line and so can be passed to e.g. :py:meth:`gazebo_spawn_model`.
     """
     return {
-        "x": x,
-        "y": y,
-        "z": z,
-        "Y": yaw,
-        "P": pitch,
-        "R": roll,
+        "x": str(x),
+        "y": str(y),
+        "z": str(z),
+        "Y": str(yaw),
+        "P": str(pitch),
+        "R": str(roll),
     }
 
 
