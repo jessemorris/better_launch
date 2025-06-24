@@ -93,7 +93,9 @@ def read_robot_description(
         with open(filepath) as f:
             return f.read()
 
-    cmd = ["xacro", filepath] + xacro_args
+    cmd = ["xacro", filepath]
+    if xacro_args:
+        cmd.extend(xacro_args)
 
     try:
         with subprocess.Popen(
@@ -242,7 +244,7 @@ def static_transform_publisher(
         elif len(pos) in (6, 7):
             rot = pos[3:]
         else:
-            raise ValueError("Received position has dubious length of %i", len(pos))
+            raise ValueError("Position has dubious length %d", len(pos))
 
     if rot is not None:
         if len(rot) == 3:
@@ -252,7 +254,7 @@ def static_transform_publisher(
                 ["--qx", rot[0], "--qy", rot[1], "--qz", rot[2], "--qw", rot[3]]
             )
         else:
-            raise ValueError("Received rotation has dubious length of %i", len(rot))
+            raise ValueError("Rotation has dubious length %d", len(rot))
 
     bl = BetterLaunch.instance()
     return bl.node(
