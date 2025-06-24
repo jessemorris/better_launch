@@ -261,7 +261,7 @@ def static_transform_publisher(
         "tf2_ros",
         "static_transform_publisher",
         "gazebo_world_tf",
-        cmd_args=[str(a) for a in args],
+        cmd_args=args,
         raw=True,
     )
 
