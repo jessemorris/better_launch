@@ -15,6 +15,7 @@ __all__ = [
 from typing import Any, Literal, get_args
 import os
 from tempfile import NamedTemporaryFile
+import shutil
 
 from ament_index_python.packages import (
     get_package_share_directory,
@@ -88,6 +89,9 @@ def gazebo_launch(
         launch_file = bl.find("ros_ign_gazebo", "ign_gazebo.launch.py")
         launch_arguments = {"ign_args": full_args}
 
+    # TODO It would be nice to avoid this include and launch gazebo without relying on an external
+    # launch file. However, the launch file does quite a bit, searching for packages that provide
+    # gazebo plugins and models
     bl.include(None, launch_file, **launch_arguments)
 
     if world_save_file:
@@ -434,17 +438,40 @@ class GazeboBridge:
 
     @classmethod
     def gz_exec(cls) -> str:
+        """Locates the gazebo executable.
+
+        Returns
+        -------
+        str
+            Full path to the gazebo executable.
+
+        Raises
+        ------
+        ValueError
+            If the executable cannot be located.
+        """
         if not cls._gz_exec:
             # On some systems ros_gz_sim was installed, but the executable was still ign
-            try:
-                cls._gz_exec = run_command("which", "gz")
-            except:
-                cls._gz_exec = run_command("which", "ign")
+            cmd = shutil.which("gz")
+            
+            if not cmd:
+                cmd = shutil.which("ign")
+
+            if not cmd:
+                raise ValueError("Could not locate gazebo executable")
+
+            cls._gz_exec = cmd
 
         return cls._gz_exec
 
     def yaml(self) -> str:
-        """Returns a YAML snippet that can be used to configure other bridges."""
+        """Returns a YAML snippet that can be used to configure other bridges. This will usually become (part of) a config file that is then passed to the actual bridge nodes. See :py:meth`spawn_topic_bridges` for details.
+        
+        Returns
+        -------
+        str
+            A yaml fromatted string to configure a Gazebo topic bridge.
+        """
         gz_exec = self.gz_exec()
 
         dir_string = "BIDIRECTIONAL"
@@ -466,9 +493,12 @@ class GazeboBridge:
 
     @classmethod
     def set_world_name(cls, name: str) -> None:
-        """
-        Overwrite world name in order to avoid communicating with Gazebo
-        Useful when Gazebo is launched in an included file, where the world name cannot be guessed
+        """Overwrites the name of the active world. Useful when Gazebo is launched from an include file where the world name cannot be guessed.
+
+        Parameters
+        ----------
+        name : str
+            The new name to use for the active world.
         """
         GazeboBridge._active_world_name = name
 

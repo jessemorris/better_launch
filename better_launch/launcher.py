@@ -584,7 +584,8 @@ Takeoff in 3... 2... 1...
         self,
         package: str = None,
         filename: str = None,
-        glob: str = None,
+        subdir: str = None,
+        *,
         substitutions: bool = True,
     ) -> str:
         """Resolve a path to a file or package.
@@ -593,11 +594,11 @@ Takeoff in 3... 2... 1...
 
         If `package` is provided, the corresponding ROS2 package path will be used as the base path. Else we attempt to locate the current launch file's package by searching its directory and parent directories for a `package.xml`. If the package cannot be determined the current working dir is used as the base path.
 
-        If neither `glob` nor `filename` is provided the base path will be returned.
+        If neither `subdir` nor `filename` is provided the base path will be returned.
 
-        If `filename` is provided but `glob` is not, the base path will be searched recursively for the given filename. Otherwise, `glob` will be used to locate valid candidate files and directories within the base path, allowing patterns like `**/lib/` (any lib folder) and `*.py` (any python file). See the `pathlib pattern language <https://docs.python.org/3/library/pathlib.html#pathlib-pattern-language>`_ for details.
+        If `filename` is provided but `subdir` is not, the base path will be searched recursively for the given filename. Otherwise, `subdir` will be used to locate valid candidate files and directories within the base path, allowing patterns like `**/lib/` (any lib folder) and `*.py` (any python file).
 
-        If only `glob` is provided but not `filename`, the first candidate is returned. Otherwise the discovered candidates will be searched for the given filename.
+        If only `subdir` is provided but not `filename`, the first candidate is returned. Otherwise the discovered candidates will be searched for the given filename.
 
         Parameters
         ----------
@@ -605,8 +606,8 @@ Takeoff in 3... 2... 1...
             Name of a ROS2 package to resolve.
         filename : str, optional
             Name of a file to look for.
-        glob : str, optional
-            A glob pattern to locate subdirectories and files.
+        subdir : str, optional
+            A glob pattern to locate subdirectories and files. See the `pathlib pattern language <https://docs.python.org/3/library/pathlib.html#pathlib-pattern-language>`_ for details.
         substitutions : bool, optional
             If True, text substitution strings within the package and base path will be resolved (see :py:meth:`resolve_strin​g`).
 
@@ -641,13 +642,13 @@ Takeoff in 3... 2... 1...
             base_path = os.getcwd()
 
         base_path = resolve(base_path)
-        if not filename and not glob:
+        if not filename and not subdir:
             return base_path
 
-        if not glob:
-            glob = "**"
+        if not subdir:
+            subdir = "**"
 
-        for candidate in Path(base_path).glob(glob):
+        for candidate in Path(base_path).glob(subdir):
             if not filename:
                 # Return the first candidate
                 return str(candidate.resolve().absolute())
@@ -663,7 +664,7 @@ Takeoff in 3... 2... 1...
                     return str(ret.resolve().absolute())
 
         raise ValueError(
-            f"Could not find file or directory (filename={filename}, package={package}, glob={glob})"
+            f"Could not find file or directory (filename={filename}, package={package}, glob={subdir})"
         )
 
     def resolve_string(self, s: str) -> str:
