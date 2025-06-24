@@ -41,7 +41,7 @@ def get_gazebo_version() -> str:
             return "ign" if version == "fortress" else "gz"
 
     try:
-        get_package_share_directory("ros_gz")
+        get_package_share_directory("ros_gz_sim")
         return "gz"
     except PackageNotFoundError:
         return "ign"

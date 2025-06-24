@@ -325,16 +325,38 @@ I use [py-spy](https://github.com/benfred/py-spy) to see where *better_launch* i
 # Installation
 *better_launch* is a regular ROS2 package, which means you can install it in your workspace and then use it in all launch files within that workspace.
 
-Unfortunately, the ROS foundation is adamant about maintaining their own python package list for `rosdep` instead of forwarding to e.g. `pip` to handle dependencies. Since *better_launch* uses a few python libraries that are not found in the official ROS package list, you will have to install them manually - a [requirements.txt](requirements.txt) file is provided of course. In case you have setup a *venv* or *conda* environment for your workspace you should activate it first. 
+Unfortunately, the ROS foundation is adamant about maintaining their own python package list for `rosdep` instead of forwarding to e.g. `pip` to handle dependencies. Since *better_launch* uses a few python libraries that are not found in the official ROS package list, you will have to install them manually - a [requirements.txt](requirements.txt) file is provided of course. In case you have setup a *venv* (see below) or *conda* environment for your workspace you should activate it first. 
 
 ```bash
 rosdep install --from-paths path/to/better_launch
 pip install -r requirements.txt
-colcon build --packages-select better_launch
+colcon build --packages-up-to better_launch
 ```
 
 In addition, *better_launch* will make use of the following optional python libraries:
 - *wonderwords*: if installed, wonderwords will be used to generate unique suffixes for anonymous nodes. Otherwise UUIDs will be used.
+
+
+## Python and ROS2
+Setting up a usable python environment for ROS2 is [surprisingly difficult](https://github.com/ros2/ros2/issues/1094). Here is a setup that works for us:
+
+```bash
+# Install some prerequisites (depends on your OS and distro)
+sudo apt install python3-pip python3-venv
+
+# Create a virtual environment for your workspace
+cd your/ros2/workspace/
+mkdir venv
+python3 -m venv ./venv --system-site-packages --symlinks
+touch venv/COLCON_IGNORE
+
+# Activate the venv
+source ./venv/bin/activate
+
+# Activate your ROS2 workspace
+source ./install/setup.bash
+```
+
 
 
 # What's so bad about ROS2 launch?
