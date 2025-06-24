@@ -437,7 +437,16 @@ class GazeboBridge:
     @classmethod
     def gz_exec(cls) -> str:
         if not cls._gz_exec:
-            cls._gz_exec = get_gazebo_version()
+            # On some systems ros_gz_sim was installed, but the executable was still ign
+            try:
+                cls._gz_exec = (
+                    check_output(["which", "gz"], stderr=STDOUT).decode().rstrip("\n")
+                )
+            except:
+                cls._gz_exec = (
+                    check_output(["which", "ign"], stderr=STDOUT).decode().rstrip("\n")
+                )
+
         return cls._gz_exec
 
     def yaml(self) -> str:
