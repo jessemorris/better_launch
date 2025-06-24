@@ -368,6 +368,8 @@ If you don't want to setup a *venv* you can install the dependencies as system p
 # The package names will likely be different on non-Ubuntu systems
 sudo apt update
 sudo apt install python3-pip python3-click python3-yaml python3-setproctitle python3-psutil python3-prompt-toolkit python3-osrf-pycommon
+
+# Install any dependencies not offered by your package manager via pip
 sudo pip install --break-system-packages docstring_parser
 
 # Optional, used for anonymous node names
