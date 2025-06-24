@@ -121,8 +121,8 @@ def save_world(filepath: str, after: float = 5.0) -> None:
 
 def spawn_model(
     model_name: str,
-    model_source: Literal["topic", "file", "string", "param"],
     model: str,
+    model_source: Literal["topic", "file", "string", "param", "auto"] = "auto",
     spawn_args: dict[str, Any] = None,
 ) -> Node:
     """
@@ -134,10 +134,10 @@ def spawn_model(
     ----------
     name : str
         The name of the model to spawn in the Gazebo environment.
-    model_source : str
-        Where to read the model from.
     model : str
         The model to spawn. The contents of this string depend on the model_source, but should ultimately lead to a full XML description.
+    model_source : str
+        Where to read the model from. Auto will try to guess the source based on the content of `model`: does it look like XML, is it a file, is it an existing topic? Otherwise assume it's a ROS2 parameter.
     spawn_args : dict[str, Any], optional
         Additional arguments for spawning the model, such as pose and other options. See :py:meth:`get_gazebo_axes_args` for defining the model's orientation.
 
@@ -150,6 +150,16 @@ def spawn_model(
 
     if spawn_args is None:
         spawn_args = {}
+
+    if model_source == "auto":
+        if "<model" in model:
+            model_source = "string"
+        elif os.path.isfile(model):
+            model_source = "file"
+        elif model in {t[0] for t in bl.shared_node.get_topic_names_and_types()}:
+            model_source = "topic"
+        else:
+            model_source = "param"
 
     cmd_args = ["-name", model_name, f"-{model_source}", model]
 
