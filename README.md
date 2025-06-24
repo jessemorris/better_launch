@@ -351,10 +351,7 @@ source ./install/setup.bash
 Then run the following commands to install the dependencies into your *venv*.
 
 ```bash
-# Install the dependencies
-rosdep install --from-paths path/to/better_launch
-
-# Rosdep will not forward to pip...
+# Can't use rosdep as it doesn't know most python packages
 pip install -r path/to/better_launch/requirements.txt
 
 # Optional, used for anonymous node names
@@ -363,7 +360,7 @@ pip install wonderwords
 </details>
 
 <details>
-    <summary>System-wide</summary>
+    <summary>System</summary>
 
 If you don't want to setup a *venv* you can install the dependencies as system packages. This can be done as follows:
 
@@ -373,7 +370,7 @@ sudo apt update
 sudo apt install python3-pip python3-click python3-yaml python3-setproctitle python3-psutil python3-prompt-toolkit python3-osrf-pycommon
 sudo pip install --break-system-packages docstring_parser
 
-# Optional
+# Optional, used for anonymous node names
 sudo pip install --break-system-packages wonderwords
 ```
 </details>
