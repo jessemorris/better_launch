@@ -133,7 +133,10 @@ class Node(AbstractNode, LiveParamsMixin):
             cmd = launcher.find(
                 self.package, self.executable, f"lib/**/{self.package}/"
             )
-            final_cmd = [cmd] + self.cmd_args
+            
+            final_cmd = [cmd]
+            if self.cmd_args:
+                final_cmd.extend(self.cmd_args)
 
             if not self.raw:
                 if self.node_log_level is not None:
@@ -161,6 +164,9 @@ class Node(AbstractNode, LiveParamsMixin):
                 final_env = dict(os.environ) | self.env
 
             env_str = indent(pformat(self.env), "")
+            # All args must be strings
+            final_cmd = [str(s) for s in final_cmd]
+
             self.logger.info(
                 f"Starting process '{' '.join(final_cmd)}'\n-> env ={env_str}"
             )

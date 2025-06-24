@@ -292,4 +292,4 @@ def run_command(cmd: str, args: str | list[str] = None) -> str:
             args = args.split(" ")
         run.extend(args)
 
-    return subprocess.check_output(args, stderr=subprocess.STDOUT).decode().rstrip("\n")
+    return subprocess.check_output(run, stderr=subprocess.STDOUT).decode().rstrip("\n")
