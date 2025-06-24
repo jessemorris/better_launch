@@ -14,8 +14,6 @@
   <depend>rcl_interfaces</depend>
   <depend>lifecycle_msgs</depend>
   <depend>composition_interfaces</depend>
-  <depend>ros2node</depend>
-  <depend>ros2param</depend>
   <depend>rclpy</depend>
 
   <export>
