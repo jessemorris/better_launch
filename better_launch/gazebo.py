@@ -14,7 +14,6 @@ __all__ = [
 
 from typing import Any, Literal, get_args
 import os
-from subprocess import check_output, STDOUT
 from tempfile import NamedTemporaryFile
 
 from ament_index_python.packages import (
@@ -24,6 +23,7 @@ from ament_index_python.packages import (
 
 from better_launch import BetterLaunch
 from better_launch.elements import Node
+from .convenience import static_transform_publisher, run_command
 
 
 def get_gazebo_version() -> str:
@@ -121,7 +121,8 @@ def save_world(filepath: str, after: float = 5.0) -> None:
 
 def spawn_model(
     model_name: str,
-    topic_or_file: str,
+    model_source: Literal["topic", "file", "string", "param"],
+    model: str,
     spawn_args: dict[str, Any] = None,
 ) -> Node:
     """
@@ -133,8 +134,10 @@ def spawn_model(
     ----------
     name : str
         The name of the model to spawn in the Gazebo environment.
-    topic_or_file : str
-        The topic or file to retrieve the model description from. Topic is tested first.
+    model_source : str
+        Where to read the model from.
+    model : str
+        The model to spawn. The contents of this string depend on the model_source, but should ultimately lead to a full XML description.
     spawn_args : dict[str, Any], optional
         Additional arguments for spawning the model, such as pose and other options. See :py:meth:`get_gazebo_axes_args` for defining the model's orientation.
 
@@ -148,15 +151,7 @@ def spawn_model(
     if spawn_args is None:
         spawn_args = {}
 
-    cmd_args = ["-name", model_name]
-
-    topics = {t[0] for t in bl.shared_node.get_topic_names_and_types()}
-    if topic_or_file in topics:
-        cmd_args.extend(["-topic", topic_or_file])
-    elif os.path.isfile(topic_or_file):
-        cmd_args.extend(["-file", topic_or_file])
-    else:
-        raise ValueError(f"{topic_or_file} is not an existing topic nor a file")
+    cmd_args = ["-name", model_name, f"-{model_source}", model]
 
     for key, val in spawn_args.items():
         cmd_args.extend([f"-{key}", val])
@@ -246,14 +241,7 @@ def spawn_world_transform(gazebo_world_frame: str = None) -> Node:
         gazebo_world_frame = GazeboBridge.world()
 
     if gazebo_world_frame != "world":
-        bl = BetterLaunch.instance()
-        return bl.node(
-            "tf2_ros",
-            "static_transform_publisher",
-            "gazebo_world_tf",
-            cmd_args=["--frame-id", "world", "--child-frame-id", gazebo_world_frame],
-            raw=True,
-        )
+        return static_transform_publisher("world", gazebo_world_frame)
 
     return None
 
@@ -439,13 +427,9 @@ class GazeboBridge:
         if not cls._gz_exec:
             # On some systems ros_gz_sim was installed, but the executable was still ign
             try:
-                cls._gz_exec = (
-                    check_output(["which", "gz"], stderr=STDOUT).decode().rstrip("\n")
-                )
+                cls._gz_exec = run_command("which", "gz")
             except:
-                cls._gz_exec = (
-                    check_output(["which", "ign"], stderr=STDOUT).decode().rstrip("\n")
-                )
+                cls._gz_exec = run_command("which", "ign")
 
         return cls._gz_exec
 
@@ -497,7 +481,7 @@ class GazeboBridge:
 
         try:
             cmd = [cls.gz_exec(), "model", "--list"]
-            output = check_output(cmd, stderr=STDOUT).decode()
+            output = run_command(cls.gz_exec(), ["model", "--list"])
         except Exception as e:
             raise ValueError(f"Failed to list loaded Gazebo models: {e}")
 

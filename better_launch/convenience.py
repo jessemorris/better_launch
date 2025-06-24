@@ -5,9 +5,12 @@ __all__ = [
     "read_robot_description",
     "joint_state_publisher",
     "robot_state_publisher",
+    "static_transform_publisher",
+    "run_command",
 ]
 
 
+from typing import Sequence
 import subprocess
 
 from better_launch import BetterLaunch
@@ -50,7 +53,9 @@ def rviz(
         args.extend(extra_args)
 
     # rviz2 doesn't support the --log-level argument nodes usually accept
-    return bl.node("rviz2", "rviz2", "rviz2", anonymous=True, cmd_args=args, log_level=None)
+    return bl.node(
+        "rviz2", "rviz2", "rviz2", anonymous=True, cmd_args=args, log_level=None
+    )
 
 
 def read_robot_description(
@@ -193,3 +198,96 @@ def robot_state_publisher(
         params=params,
         **kwargs,
     )
+
+
+def static_transform_publisher(
+    parent_frame: str,
+    child_frame: str,
+    pos: Sequence[float] = None,
+    rot: Sequence[float] = None,
+) -> Node:
+    """Publish a static transform between two frames.
+
+    Parameters
+    ----------
+    parent_frame : str
+        The parent or source frame.
+    child_frame : str
+        The child or target frame.
+    pos : Sequence[float], optional
+        The xyz-translation from parent to child frame. You may also pass a sequence of 6 or 7 floats in order to specify a full pose. In this case, `rot` will be ignored.
+    rot : Sequence[float], optional
+        The rotation between the parent and child frame. If length is 3, the values are interpreted as roll-pitch-yaw euler angles. If length is 4, an xyzw-quaternion is assumed.
+
+    Returns
+    -------
+    Node
+        The node running the publisher process.
+
+    Raises
+    ------
+    ValueError
+        If pos or rot have the wrong length.
+    """
+    args = ["--frame-id", parent_frame, "--child-frame-id", child_frame]
+
+    # Position may also hold the pose
+    if pos is not None:
+        args.extend(["--x", pos[0], "--y", pos[1], "--z", pos[2]])
+        if len(pos) == 3:
+            pass
+        elif len(pos) == 4 and pos[3] == 1.0:
+            # Homogenous translation vector, it's fine
+            pass
+        elif len(pos) in (6, 7):
+            rot = pos[3:]
+        else:
+            raise ValueError("Received position has dubious length of %i", len(pos))
+
+    if rot is not None:
+        if len(rot) == 3:
+            args.extend(["--roll", rot[0], "--pitch", rot[1], "--yaw", rot[2]])
+        elif len(rot) == 4:
+            args.extend(
+                ["--qx", rot[0], "--qy", rot[1], "--qz", rot[2], "--qw", rot[3]]
+            )
+        else:
+            raise ValueError("Received rotation has dubious length of %i", len(rot))
+
+    bl = BetterLaunch.instance()
+    return bl.node(
+        "tf2_ros",
+        "static_transform_publisher",
+        "gazebo_world_tf",
+        cmd_args=[str(a) for a in args],
+        raw=True,
+    )
+
+
+def run_command(cmd: str, args: str | list[str] = None) -> str:
+    """Run the specified command and return its output. 
+
+    Parameters
+    ----------
+    cmd : str
+        The command to run. Can either be an absolute path to an executable or any file found on `PATH`. 
+    args : str | list[str], optional
+        Additional arguments to pass to the command. If a string is passed it will be split on spaces. Pass a list instead to have more control over which arguments to treat as one.
+
+    Returns
+    -------
+    str
+        The output of the command without the trailing newline.
+
+    Raises
+    ------
+    subprocess.CalledProcessError
+        If the command had a non-zero exit code. See the raised error's `returncode` and `output` attributes for details.
+    """
+    run = [cmd]
+    if args:
+        if isinstance(args, str):
+            args = args.split(" ")
+        run.extend(args)
+
+    return subprocess.check_output(args, stderr=subprocess.STDOUT).decode().rstrip("\n")
