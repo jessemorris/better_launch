@@ -323,22 +323,13 @@ I use [py-spy](https://github.com/benfred/py-spy) to see where *better_launch* i
 
 
 # Installation
-*better_launch* is a regular ROS2 package, which means you can install it in your workspace and then use it in all launch files within that workspace.
-
-Unfortunately, the ROS foundation is adamant about maintaining their own python package list for `rosdep` instead of forwarding to e.g. `pip` to handle dependencies. Since *better_launch* uses a few python libraries that are not found in the official ROS package list, you will have to install them manually - a [requirements.txt](requirements.txt) file is provided of course. In case you have setup a *venv* (see below) or *conda* environment for your workspace you should activate it first. 
-
-```bash
-rosdep install --from-paths path/to/better_launch
-pip install -r requirements.txt
-colcon build --packages-up-to better_launch
-```
-
-In addition, *better_launch* will make use of the following optional python libraries:
-- *wonderwords*: if installed, wonderwords will be used to generate unique suffixes for anonymous nodes. Otherwise UUIDs will be used.
+*better_launch* is a regular ROS2 package, which means you can install it in your workspace and then use it in all launch files within that workspace. Since ROS2 has no good way of handling python depencies yet you'll have to do a few things by hand.
 
 
-## Python and ROS2
-Setting up a usable python environment for ROS2 is [surprisingly difficult](https://github.com/ros2/ros2/issues/1094). Here is a setup that works for us:
+<details>
+    <summary>Python venv</summary>
+
+A python *venv* or virtual environment is the preferred setup, as you have more control over its content, will not run into conflicts with other workspaces, and won't be influenced by e.g. OS updates. However, setting up a usable python environment for ROS2 is [surprisingly difficult](https://github.com/ros2/ros2/issues/1094). Here is a setup that works for us:
 
 ```bash
 # Install some prerequisites (depends on your OS and distro)
@@ -357,6 +348,47 @@ source ./venv/bin/activate
 source ./install/setup.bash
 ```
 
+Then run the following commands to install the dependencies into your *venv*.
+
+```bash
+# Install the dependencies
+rosdep install --from-paths path/to/better_launch
+
+# Rosdep will not forward to pip...
+pip install -r path/to/better_launch/requirements.txt
+
+# Optional, used for anonymous node names
+pip install wonderwords
+```
+</details>
+
+<details>
+    <summary>System-wide</summary>
+
+If you don't want to setup a *venv* you can install the dependencies as system packages. This can be done as follows:
+
+```bash
+# The package names will likely be different on non-Ubuntu systems
+sudo apt update
+sudo apt install python3-pip python3-click python3-yaml python3-setproctitle python3-psutil python3-prompt-toolkit python3-osrf-pycommon
+sudo pip install --break-system-packages docstring_parser
+
+# Optional
+sudo pip install --break-system-packages wonderwords
+```
+</details>
+
+---
+No matter which path you choose, once all the dependencies are installed you should build *better_launch* / your workspace.
+
+```bash
+cd your/ros2/workspace
+colcon build --packages-up-to better_launch
+source install/setup.bash
+
+# Verify installation
+bl --help
+```
 
 
 # What's so bad about ROS2 launch?
