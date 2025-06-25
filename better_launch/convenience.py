@@ -84,6 +84,11 @@ def read_robot_description(
     -------
     str | None
         The parsed URDF XML as a string if successful, `None` otherwise.
+
+    Raises
+    ------
+    ValueError
+        If the xacro command encountered an error while processing the file.
     """
     bl = BetterLaunch.instance()
 
@@ -93,23 +98,14 @@ def read_robot_description(
         with open(filepath) as f:
             return f.read()
 
-    cmd = ["xacro", filepath]
+    args = [filepath]
     if xacro_args:
-        cmd.extend(xacro_args)
+        args.extend(xacro_args)
 
     try:
-        with subprocess.Popen(
-            cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
-        ) as proc:
-            stdout, stderr = proc.communicate()
-            if proc.returncode == 0:
-                return stdout
-            else:
-                bl.logger.warning(f"Error processing xacro: {stderr}")
-                return None
-    except Exception as e:
-        bl.logger.warning(f"Failed to execute xacro command: {e}")
-        return None
+        return run_command("xacro", args)
+    except subprocess.CalledProcessError as e:
+        raise ValueError(f"Xacro failed ({e.returncode}): {e.output}") from e
 
 
 def joint_state_publisher(use_gui: bool, node_name: str = None, **kwargs) -> Node:
