@@ -290,6 +290,7 @@ def run_command(cmd: str, args: str | list[str] = None) -> str:
 
     return subprocess.check_output(run, stderr=subprocess.STDOUT).decode().rstrip("\n")
 
+
 def spawn_controller(controller: str, manager: str = "controller_manager") -> Node:
     """Spawn the specified controller. 
 
@@ -309,6 +310,6 @@ def spawn_controller(controller: str, manager: str = "controller_manager") -> No
     return bl.node(
         package="controller_manager",
         executable="spawner",
+        cmd_args=[controller, "--controller-manager", manager],
         raw=True,
-        cmd_args=[controller, "--controller-manager", manager]
     )

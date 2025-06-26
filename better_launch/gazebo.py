@@ -132,7 +132,9 @@ def spawn_model(
     """
     Spawns a model into Gazebo under the given name from the specified topic or file.
 
-    The spawn_args dictionary can include additional options, such as the initial pose of the model.
+    The `spawn_args` dictionary can include additional options, such as the initial pose of the model.
+
+    Note that when spawning robot models this way, they typically also need a :py:meth:`convenience.joint_state_publisher`.
 
     Parameters
     ----------
