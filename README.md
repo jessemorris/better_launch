@@ -200,7 +200,9 @@ def my_start(
 # How do I use it?
 The best way to get to know *better_launch* is to explore the included [examples](examples/). Unlike ROS2, all examples and functions come with proper [documentation](docs/build/html/index.html). If anything is left unclear, feel free to contact me.
 
-In addition, *better_launch* includes a couple of modules that make some common tasks easier:
+You will mainly interact with *better_launch* through the following classes and modules:
+- [@launch_this](better_launch/wrapper.py): decorator to create a launch file from a function.
+- [BetterLaunch](better_launch/launcher.py): to create and start nodes, include other launch files, find and load parameters, etc.
 - [convenience.py](better_launch/convenience.py): convenience functions to start rviz, robot state publishers, read urdf/xacro files, and more.
 - [gazebo.py](better_launch/gazebo.py): functions and helpers for starting and populating gazebo simulations as well as bridging topics.
 
