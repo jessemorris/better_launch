@@ -289,3 +289,26 @@ def run_command(cmd: str, args: str | list[str] = None) -> str:
         run.extend(args)
 
     return subprocess.check_output(run, stderr=subprocess.STDOUT).decode().rstrip("\n")
+
+def spawn_controller(controller: str, manager: str = "controller_manager") -> Node:
+    """Spawn the specified controller. 
+
+    Parameters
+    ----------
+    controller : str
+        The controller to spwawn.
+    manager : str
+        The name of the controller_manager node.
+
+    Returns
+    -------
+    Node
+        The node running the spawner process.
+    """
+    bl = BetterLaunch.instance()
+    return bl.node(
+        package="controller_manager",
+        executable="spawner",
+        raw=True,
+        cmd_args=[controller, "--controller-manager", manager]
+    )
