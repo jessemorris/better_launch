@@ -12,6 +12,8 @@ def first_steps():
     .. code:: bash
 
         bl better_launch 01_basic_example.py
+
+    NOTE: All functions come with proper documentation, which you can also find at `../docs/build/html/index.html`.
     """
     bl = BetterLaunch()
 

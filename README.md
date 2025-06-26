@@ -197,13 +197,13 @@ def my_start(
 
 
 # How do I use it?
-The best way to get to know *better_launch* is to explore the included [examples](examples/). Unlike ROS2, all examples and functions come with proper documentation. If anything is left unclear, feel free to contact me.
+The best way to get to know *better_launch* is to explore the included [examples](examples/). Unlike ROS2, all examples and functions come with proper [documentation](docs/build/html/index.html). If anything is left unclear, feel free to contact me.
 
 In addition, *better_launch* includes a couple of modules that make some common tasks easier:
 - [convenience.py](better_launch/convenience.py): convenience functions to start rviz, robot state publishers, read urdf/xacro files, and more.
 - [gazebo.py](better_launch/gazebo.py): functions and helpers for starting and populating gazebo simulations as well as bridging topics.
 
-Note that you are not forced to choose between *better_launch* and the ROS2 launch system. In fact, *better_launch* launch files can be run via `ros2 launch` and even be included from ROS2 launch files! However, this means running two launch systems on top of each other - not the best for performance. The auto completion of `ros2 launch` is also slow as hell, cluttering the terminal with useless command line options yet is unable to discover the arguments you have declared inside your launch files. For these reasons, *better_launch* comes with the `bl` script, which fixes all of the above and then some. Once you have sourced your workspace you can use it as follows:
+Note that you are not forced to choose between *better_launch* and the ROS2 launch system. In fact, *better_launch* launch files can be run via `ros2 launch` and even be included from ROS2 launch files! However, this means running two launch systems on top of each other, so there is some overhead. The auto completion of `ros2 launch` is also slow as hell, cluttering the terminal with useless command line options yet is unable to discover the arguments you have declared inside your launch files. For these reasons, *better_launch* comes with the `bl` script, which fixes all of the above and then some. Once you have sourced your workspace you can use it as follows:
 
 ```bash
 # Try <tab><tab> for autocomplete and check the example launch file for details!
