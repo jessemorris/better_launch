@@ -12,8 +12,9 @@ __all__ = [
 ]
 
 
-from typing import Any, Literal, get_args
+from typing import Any, Literal, Union
 import os
+import re
 from tempfile import NamedTemporaryFile
 import shutil
 
@@ -25,6 +26,10 @@ from ament_index_python.packages import (
 from better_launch import BetterLaunch
 from better_launch.elements import Node
 from .convenience import static_transform_publisher, run_command
+
+
+_gazebo_exec = None
+_active_world = None
 
 
 def get_gazebo_version() -> str:
@@ -46,6 +51,34 @@ def get_gazebo_version() -> str:
         return "gz"
     except PackageNotFoundError:
         return "ign"
+
+
+def get_gazebo_exec() -> str:
+    """Locates the gazebo executable.
+
+    Returns
+    -------
+    str
+        Full path to the gazebo executable.
+
+    Raises
+    ------
+    ValueError
+        If the executable cannot be located.
+    """
+    global _gazebo_exec
+    
+    if not _gazebo_exec:
+        # On some systems ros_gz_sim was installed, but the executable was still ign
+        _gazebo_exec = shutil.which("gz")
+
+        if not _gazebo_exec:
+            _gazebo_exec = shutil.which("ign")
+
+        if not _gazebo_exec:
+            raise ValueError("Could not locate gazebo executable")
+
+    return _gazebo_exec
 
 
 def gazebo_launch(
@@ -123,6 +156,125 @@ def save_world(filepath: str, after: float = 5.0) -> None:
         save()
 
 
+def get_active_world_name(force_query: bool = False) -> str:
+    """Return the name of the currently loaded world. If it was not loaded from better_launch, Gazebo will be asked directly.
+
+    Parameters
+    ----------
+    force_query : bool, optional
+        If True, don't use the cached value.
+
+    Returns
+    -------
+    str
+        The name of a Gazebo world.
+
+    Raises
+    ------
+    ValueError
+        If querying Gazebo for the world name failed.
+    """
+    global _active_world
+
+    if _active_world and not force_query:
+        return _active_world
+
+    try:
+        output = run_command(get_gazebo_exec(), ["model", "--list"])
+    except Exception as e:
+        raise ValueError(f"Failed to list loaded Gazebo models: {e}")
+
+    if not output or "timed out" in output:
+        raise ValueError("No loaded Gazebo models or request timed out")
+
+    world_name = output.replace("]", "[").split("[")[1]
+
+    if not world_name:
+        raise ValueError(
+            f"Gazebo did not return a parseable world name (output was '{output}')"
+        )
+
+    _active_world = world_name
+    return _active_world
+
+
+def get_model_prefix(model: str) -> str:
+    """
+    Construct the Gazebo prefix string for the given model name.
+
+    Parameters
+    ----------
+    model : str
+        The name of the model.
+
+    Returns
+    -------
+    str
+        A string representing the model's prefix in the Gazebo world.
+    """
+    return f"/world/{get_active_world_name()}/model/{model}"
+
+
+def get_model_topic(model: str, topic: str) -> str:
+    """
+    Constructs a string representing the model topic in Gazebo.
+
+    Parameters
+    ----------
+    model : str
+        The model name.
+    topic : str
+        The topic name related to the model.
+
+    Returns
+    -------
+    str
+        The path of the given model's specified topic.
+    """
+    # TODO verify: simple_launch only returns f"/model/{model}/{topic}", but that seems wrong
+    return f"{get_model_prefix(model)}/{topic}"
+
+
+def get_gazebo_axes_args(
+    x: float = 0.0,
+    y: float = 0.0,
+    z: float = 0.0,
+    yaw: float = 0.0,
+    pitch: float = 0.0,
+    roll: float = 0.0,
+) -> dict[str, float]:
+    """Constructs a list of command-line arguments that can be used e.g. when spawning a new model.
+
+    Parameters
+    ----------
+    x : float, optional
+        translation x component
+    y : float, optional
+        translation y component
+    z : float, optional
+        translation z component
+    yaw : float, optional
+        rotation yaw component
+    pitch : float, optional
+        rotation pitch component
+    roll : float, optional
+        rotation roll component
+
+    Returns
+    -------
+    dict[str, float]
+        A dictionary containing the axes names and values. The axes names correspond to what Gazebo expects on the command line and so can be passed to e.g. :py:meth:`gazebo_spawn_model`.
+    """
+    return {
+        "x": x,
+        "y": y,
+        "z": z,
+        "Y": yaw,
+        "P": pitch,
+        "R": roll,
+    }
+
+
 def spawn_model(
     model_name: str,
     model: str,
@@ -178,67 +330,6 @@ def spawn_model(
     )
 
 
-def spawn_topic_bridges(
-    *bridges: "GazeboBridge", node_name: str = "gz_bridge"
-) -> tuple[Node, Node]:
-    """Creates a `ros_gz_bridge::parameter_bridge` node with the specified `GazeboBridge` instances.
-
-    This function sets up ROS-Gazebo bridges for different topic types. Standard topic bridges (non-image) are configured via a YAML parameter file, while image topics are handled separately through remappings.
-
-    Parameters
-    ----------
-    *bridges : GazeboBridge
-        One or more `GazeboBridge` instances defining the Gazebo-ROS topic bridges.
-    node_name : str, optional
-        Name of the bridge node, by default `"gz_bridge"`.
-
-    Returns
-    -------
-    tuple[Node, Node]
-        The up to two nodes that will be started by this function. The first node will be the node handling all regular topic bridges, the second the one for the image topics. Either of these may be `None`.
-    """
-    if len(bridges) == 0:
-        return (None, None)
-
-    bl = BetterLaunch.instance()
-
-    ros_gz = "ros_" + get_gazebo_version()
-    image_bridges = [bridge for bridge in bridges if bridge.is_image]
-    std_config = "\n".join(bridge.yaml() for bridge in bridges if not bridge.is_image)
-
-    node_reg = None
-    node_img = None
-
-    if std_config:
-        dst = NamedTemporaryFile().name
-        with open(dst, "w") as file:
-            file.write(std_config)
-
-        node_reg = bl.node(
-            f"{ros_gz}_bridge",
-            "parameter_bridge",
-            node_name,
-            params={"config_file": dst},
-        )
-
-    if image_bridges:
-        img_remaps = {}
-        for bridge in image_bridges:
-            for ext in ("", "/compressed", "/compressedDepth", "/theora"):
-                remapped_gz_topic = f"{bridge.gz_topic}{ext}"
-                remapped_ros_topic = f"{bridge.ros_topic}{ext}"
-                img_remaps[remapped_gz_topic] = remapped_ros_topic
-
-        node_img = bl.node(
-            f"{ros_gz}_image",
-            "image_bridge",
-            f"{node_name}_image",
-            remaps=img_remaps,
-        )
-
-    return (node_reg, node_img)
-
-
 def spawn_world_transform(gazebo_world_frame: str = None) -> Node:
     """
     Runs a static_transform_publisher to connect the ROS `world` frame and a Gazebo world frame, if the Gazebo world frame is specified and different from 'world'.
@@ -254,7 +345,7 @@ def spawn_world_transform(gazebo_world_frame: str = None) -> Node:
         The spawned node instance.
     """
     if gazebo_world_frame is None:
-        gazebo_world_frame = GazeboBridge.world()
+        gazebo_world_frame = get_active_world_name()
 
     if gazebo_world_frame != "world":
         return static_transform_publisher("world", gazebo_world_frame)
@@ -262,65 +353,144 @@ def spawn_world_transform(gazebo_world_frame: str = None) -> Node:
     return None
 
 
-def get_gazebo_axes_args(
-    x: float = 0.0,
-    y: float = 0.0,
-    z: float = 0.0,
-    yaw: float = 0.0,
-    pitch: float = 0.0,
-    roll: float = 0.0,
-) -> dict[str, float]:
-    """Constructs a list of command-line arguments that can be used e.g. when spawning a new model.
+def spawn_topic_bridge(
+    *topics: Union[str, "GazeboBridge"],
+    node_name: str = "gz_bridge",
+    remaps: dict[str, str] = None,
+    cmd_args: list[str] = None,
+    **kwargs,
+) -> Node:
+    """Start a Gazebo topic bridge to relay messages between ROS2 and Gazebo.
+
+    Note that there is a separate function for bridging image topics more efficiently. See :py:meth:`spawn_image_bridge`.
 
     Parameters
     ----------
-    x : float, optional
-        translation x component
-    y : float, optional
-        translation y component
-    z : float, optional
-        translation z component
-    yaw : float, optional
-        rotation yaw component
-    pitch : float, optional
-        rotation pitch component
-    roll : float, optional
-        rotation roll component
+    bridges : list[str | GazeboBridge]
+        Definitions of topic bridges. This can be either a typical string (`<topic>@<ros2_type><direction><gazebo_type>`) or a :py:class:`GazeboBridge` instance. Note that in order to bridge services you will have to specify them as strings for now. 
+    node_name : str, optional
+        The name of the bridge node.
+    remaps : dict[str, str], optional
+        Any topic remaps you wish to apply to the bridge.
+    cmd_args : list[str], optional
+        Additional command line arguments to the gazebo bridge executable.
+    kwargs : dict[str, Any]
+        Additional node arguments.
 
     Returns
     -------
-    dict[str, float]
-        A dictionary containing the axes names and values. The axes names correspond to what Gazebo expects on the command line and so can be passed to e.g. :py:meth:`gazebo_spawn_model`.
+    Node
+        The node running the bridge process.
     """
-    return {
-        "x": x,
-        "y": y,
-        "z": z,
-        "Y": yaw,
-        "P": pitch,
-        "R": roll,
-    }
+    ros_gz = "ros_" + get_gazebo_version()
+    bl = BetterLaunch.instance()
+
+    all_remaps = {}
+
+    topics: list[str] = list(topics)
+    for i, t in enumerate(topics):
+        if isinstance(t, GazeboBridge):
+            if t.remaps:
+                all_remaps.update(t.remaps)
+
+            topics[i] = str(t)
+
+    if remaps:
+        all_remaps.update(remaps)
+
+    args = list(topics)
+    if cmd_args:
+        args.extend(cmd_args)
+
+    return bl.node(
+        f"{ros_gz}_bridge",
+        "parameter_bridge",
+        node_name,
+        cmd_args=args,
+        remaps=all_remaps,
+        raw=True,
+        **kwargs
+    )
+
+
+def spawn_image_bridge(
+    *topics: Union[str, "GazeboBridge"],
+    node_name: str = "img_bridge",
+    remaps: dict[str, str] = None,
+    cmd_args: list[str] = None, 
+    qos: str = "sensor_data",
+    **kwargs,
+) -> Node:
+    """Spawn a bridge to efficiently relay images from Gazebo to ROS2 (one direction only).
+
+    Parameters
+    ----------
+    topics : list[str]
+        The image topics to bridge. These can be specified as either Gazebo bridge definitions, :py:class:`GazeboBridge` instances, or regular topics.
+    node_name : str, optional
+        The name of the node running the bridge.
+    remaps : dict[str, str], optional
+        How topics should be remapped in ROS2.
+    cmd_args : list[str], optional
+        Additional commandline arguments to the bridge executable.
+    qos : str, optional
+        The `ROS2 quality of service <https://docs.ros.org/en/rolling/Concepts/Intermediate/About-Quality-of-Service-Settings.html>`_ definition to use. 
+
+    Returns
+    -------
+    Node
+        The node running the bridge process.
+
+    Raises
+    ------
+    ValueError
+        If a topic is passed which is not an image topic.
+    """
+    all_remaps = {}
+
+    topics: list[GazeboBridge] = list(topics)
+    for i, t in enumerate(topics):
+        if not isinstance(t, GazeboBridge):
+            try:
+                t = GazeboBridge.from_string(t)
+            except ValueError:
+                t = GazeboBridge.from_string(f"{t}@sensor_msgs/msg/Image]gz.msgs.Image")
+            
+            topics[i] = t
+
+        if not t.is_image_bridge:
+            raise ValueError("Cannot relay non-image bridges")
+
+        if t.remaps:
+            all_remaps.update(t.remaps)
+
+    if remaps:
+        all_remaps.update(remaps)
+
+    for src in topics:
+        dst = all_remaps.get(src.topic, src.topic)
+        for ext in ("/compressed", "/compressedDepth", "/theora"):
+            all_remaps.setdefault(src + ext, dst + ext)
+
+    args = cmd_args or []
+    if qos:
+        args.extend(["--ros-args", f"qos:={qos}"])
+
+    ros_gz = "ros_" + get_gazebo_version()
+    bl = BetterLaunch.instance()
+
+    return bl.node(
+        f"{ros_gz}_image",
+        "image_bridge",
+        f"{node_name}_image",
+        remaps=all_remaps,
+        cmd_args=args,
+        **kwargs
+    )
 
 
 class GazeboBridge:
-    Direction = Literal["gz2ros", "ros2gz", "bidirectional"]
-
-    _active_world_name = None
-    _gz_exec = None
-
-    # ros <-> gz mapping
-    # from https://github.com/gazebosim/ros_gz/tree/ros2/ros_gz_bridge
-    #
-    # def generate_msg_map(readme) -> None:
-    #     out = ["    msg_map = {"]
-    #
-    #     for line in readme.splitlines():
-    #         if "|" in line and "/msg/" in line and "gz.msgs" in line:
-    #             _, ros, gz, _ = line.split("|")
-    #             out.append(f"    '{ros.strip()}': '{gz.strip()}',")
-    #     print("\n".join(out)[:-1] + "}")
-
-    msg_map = {
+    gazebo_message_types = {
         "actuator_msgs/msg/Actuators": "gz.msgs.Actuators",
         "builtin_interfaces/msg/Time": "gz.msgs.Time",
         "geometry_msgs/msg/Point": "gz.msgs.Vector3d",
@@ -383,215 +553,50 @@ class GazeboBridge:
         "vision_msgs/msg/Detection2DArray": "gz.msgs.AnnotatedAxisAligned2DBox_V",
     }
 
-    def __init__(
-        self,
-        gz_topic: str,
-        ros_topic: str,
-        ros_msg: str,
-        direction: Direction,
-        gz_msg: str = None,
-    ) -> None:
-        """
-        Initializes a ROS-to-Gazebo bridge with the specified parameters.
-
-        This constructor sets up the bridge between a ROS topic and a Gazebo topic. It maps the ROS message type to a Gazebo message type and validates the direction of communication (i.e. ROS to Gazebo, Gazebo to ROS, or bidirectional).
+    @classmethod
+    def from_string(cls, bridge: str, remaps: dict[str, str] = None) -> "GazeboBridge":
+        """Extract the topic, ROS2 message type, direction, and gazebo message type from a bridge definition string.
 
         Parameters
         ----------
-        gz_topic : str
-            The Gazebo topic to be bridged.
-        ros_topic : str
-            The ROS topic to be bridged.
-        ros_msg : str
-            The message type used on the ROS topic.
-        direction : Direction
-            The direction of the bridge.
-        gz_msg : str, optional
-            The Gazebo message type. If not provided, it will be inferred from the ROS message type.
+        bridge : str
+            A bridge definition following the pattern `<topic>@<ros2_type><direction><gazebo_type>`.
+        remaps : str, optional
+            Topic remaps the bridge should use once it is started.
+
+        Returns
+        -------
+        GazeboBridge
+            An instance with the aforementionend parameters.
 
         Raises
         ------
         ValueError
-            If the provided message type or direction is invalid.
+            If the bridge string doesn't match the expected pattern.
         """
+        m = re.match(r"(.+)@(.+)[\[\]@](.+)", bridge)
 
-        if "/msg/" not in ros_msg:
-            ros_msg = ros_msg.replace("/", "/msg/")
+        if not m:
+            raise ValueError(bridge + " is not a valid bridge string")
 
-        if gz_msg is not None:
-            self.gz_msg = gz_msg
-        else:
-            if ros_msg not in self.msg_map:
-                raise ValueError(
-                    f"Unknown message type '{ros_msg}', try giving an explicit gz_msg"
-                )
-
-            self.gz_msg = self.msg_map[ros_msg]
-
-        if direction not in get_args(self.Direction):
-            raise ValueError(f"Invalid bridge direction '{direction}'")
-
-        self.gz_topic = gz_topic
-        self.ros_topic = ros_topic
-
-        self.is_image = ros_msg == "sensor_msgs/msg/Image"
-        self.direction = direction
-        self.ros_msg = ros_msg
+        return GazeboBridge(m.group(1), m.group(2), m.group(3), m.group(4))
 
     @classmethod
-    def gz_exec(cls) -> str:
-        """Locates the gazebo executable.
-
-        Returns
-        -------
-        str
-            Full path to the gazebo executable.
-
-        Raises
-        ------
-        ValueError
-            If the executable cannot be located.
+    def clock_bridge(cls) -> "GazeboBridge":
         """
-        if not cls._gz_exec:
-            # On some systems ros_gz_sim was installed, but the executable was still ign
-            cmd = shutil.which("gz")
-            
-            if not cmd:
-                cmd = shutil.which("ign")
-
-            if not cmd:
-                raise ValueError("Could not locate gazebo executable")
-
-            cls._gz_exec = cmd
-
-        return cls._gz_exec
-
-    def yaml(self) -> str:
-        """Returns a YAML snippet that can be used to configure other bridges. This will usually become (part of) a config file that is then passed to the actual bridge nodes. See :py:meth`spawn_topic_bridges` for details.
-        
-        Returns
-        -------
-        str
-            A yaml fromatted string to configure a Gazebo topic bridge.
-        """
-        gz_exec = self.gz_exec()
-
-        dir_string = "BIDIRECTIONAL"
-        if self.direction == "gz2ros":
-            dir_string = f"{gz_exec.upper()}_TO_ROS"
-        elif self.direction == "ros2gz":
-            dir_string = f"ROS_TO_{gz_exec.upper()}"
-
-        if gz_exec == "ign":
-            self.gz_msg = self.gz_msg.replace("gz.", "ignition.")
-
-        return f"""\
-- {gz_exec}_topic_name: {self.gz_topic}
-  {gz_exec}_type_name: {self.gz_msg}
-  ros_topic_name: {self.ros_topic}
-  ros_type_name: {self.ros_msg}
-  direction: {dir_string}
-"""
-
-    @classmethod
-    def set_world_name(cls, name: str) -> None:
-        """Overwrites the name of the active world. Useful when Gazebo is launched from an include file where the world name cannot be guessed.
-
-        Parameters
-        ----------
-        name : str
-            The new name to use for the active world.
-        """
-        GazeboBridge._active_world_name = name
-
-    @classmethod
-    def world(cls) -> str:
-        """Return the name of the currently loaded world. If it was not loaded from better_launch, Gazebo will be asked directly.
-
-        Returns
-        -------
-        str
-            The name of a Gazebo world.
-
-        Raises
-        ------
-        ValueError
-            If querying Gazebo for the world name failed.
-        """
-        if GazeboBridge._active_world_name is not None:
-            return GazeboBridge._active_world_name
-
-        try:
-            output = run_command(cls.gz_exec(), ["model", "--list"])
-        except Exception as e:
-            raise ValueError(f"Failed to list loaded Gazebo models: {e}")
-
-        if not output or "timed out" in output:
-            raise ValueError("No loaded Gazebo models or request timed out")
-
-        world_name = output.replace("]", "[").split("[")[1]
-
-        if not world_name:
-            raise ValueError(
-                f"Gazebo did not return a parseable world name (output was '{output}')"
-            )
-
-        GazeboBridge._active_world_name = world_name
-        return world_name
-
-    @classmethod
-    def get_model_path(cls, model: str) -> str:
-        """
-        Constructs a Gazebo model prefix string for the given model name.
-
-        Parameters
-        ----------
-        model : str
-            The name of the model.
-
-        Returns
-        -------
-        str
-            A string representing the model's prefix in the Gazebo world.
-        """
-        return f"/world/{cls.world()}/model/{model}"
-
-    @classmethod
-    def get_model_topic(cls, model: str, topic: str) -> str:
-        """
-        Constructs a tuple representing the model topic in Gazebo.
-
-        Parameters
-        ----------
-        model : str
-            The model name.
-        topic : str
-            The topic name related to the model.
-
-        Returns
-        -------
-        str
-            The path of the given model's specified topic.
-        """
-        # NOTE simple_launch only returns f"/model/{model}/{topic}", but that seems wrong
-        return f"{cls.get_model_path(model)}/{topic}"
-
-    @classmethod
-    def make_clock_bridge(cls) -> "GazeboBridge":
-        """
-        Creates a GazeboBridge instance for the /clock topic.
+        Creates a GazeboBridge instance for bridging the /clock topic from Gazebo to ROS.
 
         Returns
         -------
         GazeboBridge
             An instance of the GazeboBridge for the clock topic.
         """
-        return GazeboBridge("/clock", "/clock", "rosgraph_msgs/msg/Clock", "gz2ros")
+        return GazeboBridge("/clock", "rosgraph_msgs/msg/Clock", "gz2ros")
 
     @classmethod
-    def make_joint_state_bridge(cls, model: str) -> "GazeboBridge":
+    def joint_state_bridge(cls, model: str) -> "GazeboBridge":
         """
-        Creates a GazeboBridge instance for the joint states of a given model.
+        Creates a GazeboBridge instance for the bridging the joint states of a given model to ROS.
 
         Parameters
         ----------
@@ -603,7 +608,69 @@ class GazeboBridge:
         GazeboBridge
             An instance of the GazeboBridge for the joint state topic.
         """
-        js_gz_topic = f"/world/{GazeboBridge.world()}/model/{model}/joint_state"
+        topic = get_model_topic(model, "joint_state")
         return GazeboBridge(
-            js_gz_topic, "joint_states", "sensor_msgs/JointState", "gz2ros"
+            topic, "sensor_msgs/JointState", "gz2ros", remaps={topic: "joint_states"}
         )
+
+    def __init__(
+        self,
+        topic: str,
+        ros2_type: str = None,
+        direction: Literal["ros2gz", "gz2ros", "bidirectional", "[", "]", "@"] = "bidirectional",
+        gazebo_type: str = None,
+        *,
+        remaps: dict[str, str] = None,
+    ):
+        """Create a definition for a gazebo bridge. Convert to a string in order to get the canonical Gazebo bridge representation. To start a topic bridge see :py:meth:`spawn_topic_bridge`.
+
+        Parameters
+        ----------
+        topic : str
+            The ROS2 topic to bridge into Gazebo. Any remaps have to happen on the ROS2 side.
+        ros2_type : str, optional
+            The message type of the ROS2 topic. If not provided the type will be looked up in the currently published topics.
+        direction : str, optional
+            The direction in which messages will be passed,
+        gazebo_type : str, optional
+            The message type of the Gazebo topic. If not provided it will be looked up from the common :py:member:`gazebo_message_types`.
+        remaps : dict[str, str], optional
+            Additional topic remaps for the bridge node.
+
+        Raises
+        ------
+        ValueError
+            If an invalid direction is provided, or if the ROS2 message type was not specified and could not be looked up.
+        """
+        if direction == "ros2gz":
+            direction = "]"
+        elif direction == "gz2ros":
+            direction = "["
+        elif direction == "bidirectional":
+            direction = "@"
+
+        if not ros2_type:
+            bl = BetterLaunch.instance()
+            live_topics = bl.shared_node.get_topic_names_and_types()
+            
+            if topic not in live_topics:
+                raise ValueError(f"Message type not specified and topic {topic} does not exist yet")
+            
+            ros2_type = live_topics[topic][0]
+
+        if direction not in "[]@":
+            raise ValueError(f"Invalid direction {direction}")
+
+        if not gazebo_type:
+            gazebo_type = self.gazebo_message_types[ros2_type]
+
+        self.topic = topic
+        self.ros2_type = ros2_type
+        self.direction = direction
+        self.gazebo_type = gazebo_type
+        self.remaps = remaps
+        self.is_image_bridge = ros2_type == "sensor_msgs/msg/Image"
+
+    def __str__(self):
+        return f"{self.topic}@{self.ros2_type}{self.direction}{self.gazebo_type}"
+

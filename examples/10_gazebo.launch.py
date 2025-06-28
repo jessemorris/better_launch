@@ -15,6 +15,7 @@ def over_stimulation():
     # TODO test topic bridges
     gazebo.gazebo_launch("better_launch", "test.world")
     gazebo.spawn_model("cube", bl.find("better_launch", "cube.sdf"))
+    gazebo.spawn_topic_bridge(gazebo.GazeboBridge.clock_bridge())
     gazebo.spawn_world_transform()
 
-    bl.logger.info("The loaded gazebo world is %s", gazebo.GazeboBridge.world())
+    bl.logger.info("The loaded gazebo world is %s", gazebo.get_active_world_name())
