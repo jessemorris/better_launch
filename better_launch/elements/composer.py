@@ -477,7 +477,7 @@ class Composer(AbstractNode):
         req = UnloadNode.Request()
         req.unique_id = cid
 
-        self.logger.info(f"Unloading component {cid} ({cname})")
+        self.logger.warning(f"Unloading component {cid} ({cname})")
 
         from better_launch import BetterLaunch
 

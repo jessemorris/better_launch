@@ -5,6 +5,7 @@ import psutil
 import signal
 import re
 import json
+import threading
 from xml.etree import ElementTree
 
 from ament_index_python.packages import get_packages_with_prefixes
@@ -338,6 +339,9 @@ class ForeignNode(AbstractNode, LiveParamsMixin):
         self._process = process
         self._cmd_args = cmd_args
 
+        # Watch the process and notify user when it terminates
+        self._watch_process()
+
     @property
     def pid(self) -> int:
         """The process ID of the node process. Will be -1 if the process is not running."""
@@ -353,6 +357,29 @@ class ForeignNode(AbstractNode, LiveParamsMixin):
     @property
     def is_running(self) -> bool:
         return self._process and self._process.is_running()
+
+    def join(self, timeout: float = None) -> int:
+        """Wait for the underlying process to terminate and return its exit code.
+
+        Parameters
+        ----------
+        timeout : float, optional
+            How long to wait for the process to finish. Wait forever if None.
+
+        Returns
+        -------
+        int
+            The exit code of the process, or None if it is already terminated.
+
+        Raises
+        ------
+        TimeoutError
+            If a timeout was specified and the process is still running by the time the timeout expires.
+        """
+        try:
+            return self._process.wait(timeout)
+        except psutil.TimeoutExpired as e:
+            raise TimeoutError from e
 
     def start(self) -> None:
         from better_launch import BetterLaunch
@@ -393,6 +420,23 @@ class ForeignNode(AbstractNode, LiveParamsMixin):
             shell=False,
             text=True,
         )
+
+        # Watch the process and notify user when it terminates
+        self._watch_process()
+
+    def _watch_process(self) -> None:
+        def wait():
+            ret = self.join()
+
+            if ret is None:
+                self.logger.warning("Process has already finished")
+            elif ret == 0:
+                self.logger.warning("Process has finished cleanly")
+            else:
+                self.logger.critical(f"Process has died with exit code {ret}")
+        
+        # TODO this is probably a great use case for asyncio
+        threading.Thread(target=wait, daemon=True).start()
 
     def shutdown(
         self, reason: str, signum: int = signal.SIGTERM, timeout: float = 0.0

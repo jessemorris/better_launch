@@ -133,7 +133,7 @@ class Node(AbstractNode, LiveParamsMixin):
             cmd = launcher.find(
                 self.package, self.executable, f"lib/**/{self.package}/"
             )
-            
+
             final_cmd = [cmd]
             if self.cmd_args:
                 final_cmd.extend(self.cmd_args)
@@ -211,10 +211,11 @@ class Node(AbstractNode, LiveParamsMixin):
         sel.register(process.stderr, selectors.EVENT_READ, errbuf)
 
         try:
-            while True:
+            while process.poll() is None:
                 events = sel.select()
 
                 if not events:
+                    # events will be empty if the process received a signal
                     break
 
                 try:
@@ -233,11 +234,10 @@ class Node(AbstractNode, LiveParamsMixin):
             returncode = process.wait()
 
             if returncode == 0:
-                self.logger.info(f"Process has finished cleanly [pid {process.pid}]")
+                self.logger.warning("Process has finished cleanly")
             else:
-                self.logger.error(
-                    f"Process has died [pid {process.pid}, exit code {returncode}, cmd '{self.package}/{self.executable}']"
-                )
+                self.logger.critical(f"Process has died with exit code {returncode}")
+            
         finally:
             if self._on_exit_callback:
                 self._on_exit_callback()
@@ -284,9 +284,7 @@ class Node(AbstractNode, LiveParamsMixin):
         if bundle:
             self.logger.info(bundle)
 
-    def _collect_output_linewise(
-        self, source: io.IOBase, buffer: io.StringIO, logger: logging.Logger
-    ) -> None:
+    def _collect_output_linewise(self, source: io.IOBase, buffer: io.StringIO) -> None:
         buffer.write(source.read())
         buffer.seek(0)
         last_line = None
@@ -294,7 +292,7 @@ class Node(AbstractNode, LiveParamsMixin):
         # Log every line immediately
         for line in buffer:
             if line.endswith(os.linesep):
-                logger.info(line)
+                self.logger.info(line)
             else:
                 last_line = line
                 break
