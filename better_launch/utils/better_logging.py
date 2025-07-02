@@ -85,7 +85,7 @@ class PrettyLogFormatter(logging.Formatter):
         * {levelcolor_start}: colors subsequent characters based on the message's severity until a {levelcolor_end} is encountered.
 
         Colors can be specified in 3 ways:
-        * an ANSI/VT100 escape sequence, typically starting with `\e` or `\\x1b`.
+        * an ANSI/VT100 escape sequence, typically starting with `\\e` or `\\x1b`.
         * an integer, referring to a color from the *vte* 256 colors table.
         * a tuple of 3 integers representing an RGB value.
 
