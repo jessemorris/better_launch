@@ -7,7 +7,7 @@ install(DIRECTORY examples
         DESTINATION share/${PROJECT_NAME})
 
 # Install the bl script that should be used instead of "ros2 launch/run"
-install(PROGRAMS scripts/bl DESTINATION bin)
+install(PROGRAMS bin/bl DESTINATION bin)
 
 # Shell completion for the bl script
 ament_environment_hooks("${CMAKE_CURRENT_SOURCE_DIR}/hooks/bl_shell_completion.bash")
