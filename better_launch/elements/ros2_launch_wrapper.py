@@ -64,7 +64,11 @@ def _launchservice_worker(
     get_contrast_color.hue = 0.3
 
     def handle_record(record: logging.LogRecord) -> None:
-        log_queue.put(record)
+        try:
+            log_queue.put_nowait(record)
+        except:
+            # drop if parent not listening; prevents child spin
+            pass
 
     std_handler = RecordForwarder(
         # TODO should reflect the main process formatter configuration regarding colors and such
@@ -91,34 +95,30 @@ def _launchservice_worker(
         logger,
     )
 
-    # We want to keep an eye on the pipe for new LaunchDescriptions to load
-    async def forward_launch_descriptions():
-        while True:
-            try:
-                while not launch_action_queue.empty():
-                    ld = launch_action_queue.get()
-                    launch_service.include_launch_description(ld)
-                await asyncio.sleep(0.1)
-            except Exception as e:
-                logger.error(f"Failed to add actions to ROS launch service: {e}")
-                raise
-
-    async def wrapper():
-        try:
-            # Execute both our forwarder and the ros2 launch service
-            return asyncio.gather(
-                forward_launch_descriptions(),
-                launch_service.run_async(shutdown_when_idle=False),
-            )
-        except Exception as e:
-            logger.error(f"ROS2 launch service wrapper failed: {e}")
-            raise
-
-    logger.info("Starting ROS2 launch service")
-
-    # Basically the same as what LaunchService.run does
+    # Handle the queue through which we are receiving new launch actions
     loop = osrf_pycommon.process_utils.get_loop()
-    task = loop.create_task(wrapper())
+    
+    def queue_watcher():
+        while True:
+            # multiprocessing.Queue cannot be awaited, so instead we are using a thread to block 
+            # indefinitely until we either receive something or the queue is closed.
+            ld = launch_action_queue.get()
+
+            if ld is None:
+                loop.call_soon_threadsafe(loop.create_task, launch_service.shutdown())
+                break
+
+            loop.call_soon_threadsafe(launch_service.include_launch_description, ld)
+
+    threading.Thread(target=queue_watcher, daemon=True).start()
+
+    # Start the launch service
+    async def run():
+        logger.info("Starting ROS2 launch service")
+        await launch_service.run_async(shutdown_when_idle=False)
+
+    task = loop.create_task(run())
+
     while True:
         try:
             loop.run_until_complete(task)
@@ -243,9 +243,12 @@ class Ros2LaunchWrapper(AbstractNode):
 
         while self.is_running:
             try:
-                while not q.empty():
-                    record: logging.LogRecord = q.get()
-                    self.logger.handle(record)
+                # Blocking call, if we don't receive anything the queue was closed
+                record: logging.LogRecord = q.get()
+                if record is None:
+                    break
+
+                self.logger.handle(record)
             except Exception as e:
                 self.logger.error(f"Receiving log record failed: {e}")
 
@@ -266,7 +269,7 @@ class Ros2LaunchWrapper(AbstractNode):
         try:
             if self._terminate_requested or signum == signal.SIGKILL:
                 self.logger.warning(
-                    f"({reason}), but {self.name} was asked to terminate before -> escalating to SIGKILL. Killing ROS2 launch service may leave stale processes behind!"
+                    f"{reason} - {self.name} was asked to terminate with SIGKILL. Killing the ROS2 launch service may leave stale processes behind!"
                 )
                 # Set the child process and all its children on fire
                 self.send_signal(signal.SIGKILL)
