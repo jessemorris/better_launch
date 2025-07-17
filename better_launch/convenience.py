@@ -60,7 +60,7 @@ def rviz(
 
 def read_robot_description(
     package: str = None,
-    urdf_or_xacro: str = None,
+    description_file: str = None,
     subdir: str = None,
     *,
     xacro_args: list[str] = None,
@@ -73,7 +73,7 @@ def read_robot_description(
     ----------
     package : str, optional
         The package where the robot description file is located. May be `None` (see :py:meth:`BetterLaunch.find`)
-    urdf_or_xacro : str, optional
+    description_file : str, optional
         The name of the robot description file (URDF or XACRO).
     subdir : str, optional
         A path fragment the description file must be located in.
@@ -92,9 +92,9 @@ def read_robot_description(
     """
     bl = BetterLaunch.instance()
 
-    filepath = bl.find(package, urdf_or_xacro, subdir)
+    filepath = bl.find(package, description_file, subdir)
 
-    if filepath.endswith("urdf") and xacro_args is None:
+    if not filepath.endswith("xacro") and xacro_args is None:
         with open(filepath) as f:
             return f.read()
 
@@ -147,7 +147,7 @@ def joint_state_publisher(use_gui: bool, node_name: str = None, **kwargs) -> Nod
 
 def robot_state_publisher(
     package: str = None,
-    urdf_or_xacro: str = None,
+    description_file: str = None,
     subdir: str = None,
     *,
     xacro_args: list[str] = None,
@@ -160,8 +160,8 @@ def robot_state_publisher(
     ----------
     package : str, optional
         The name of the package containing the robot description file.
-    urdf_or_xacro : str, optional
-        The name of the URDF or Xacro file describing the robot model.
+    description_file : str, optional
+        The name of the robot description for the robot. Typically a .sdf, .urdf or .xacro file.
     subdir : str, optional
         A path fragment the description file must be located in.
     xacro_args : list of str, optional
@@ -178,16 +178,16 @@ def robot_state_publisher(
     """
     bl = BetterLaunch.instance()
 
-    urdf_xml = read_robot_description(
+    robot_description = read_robot_description(
         package,
-        urdf_or_xacro,
+        description_file,
         subdir,
         xacro_args=xacro_args,
     )
 
     kwargs.setdefault("anonymous", True)
     params = kwargs.pop("params", {})
-    params["robot_description"] = urdf_xml
+    params["robot_description"] = robot_description
 
     return bl.node(
         "robot_state_publisher",
