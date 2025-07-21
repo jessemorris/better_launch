@@ -456,6 +456,9 @@ Overall, ROS2 launch seems like a system architect's wet fever dream, and I don'
 
 
 # Contributors
+*Author:* [Nikolas Dahn](https://github.com/ndahn/)
+
+*Contributors:*
 - [Tom Creutz](https://github.com/tomcreutz)
 - Prithvi Sanghamreddy
 
