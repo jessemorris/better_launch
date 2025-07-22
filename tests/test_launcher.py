@@ -1,3 +1,4 @@
+import pytest
 import time
 from pathlib import Path
 from concurrent.futures import Future
@@ -12,13 +13,40 @@ from rclpy.qos import qos_profile_parameters
 # Run tests via `colcon test --packages-select better_launch`.
 # Examine results with `colcon test-result --all`
 
+
+@pytest.fixture(scope="session")
+def some_function_name():
+    # Do any setup stuff before the tests start
+    yield
+    
+    # Once we're done make sure to tear down everything
+    bl = BetterLaunch.instance()
+    if bl:
+        bl.shutdown()
+        nodes = bl.all_nodes(include_components=True)
+        still_alive = [not n.is_running for n in nodes]
+        assert all(still_alive), f"The following nodes refused to shutdown: {still_alive}"
+
+
 def _assert_talker_listener_running(talker: Node, listener: Node, topic: str) -> bool:
     """Verify the given talker and listener are running and using the given topic."""
-    time.sleep(2.0)
+    time.sleep(5.0)
 
-    assert talker.is_running == True
-    assert listener.is_running == True
+    bl = BetterLaunch()
 
+    # Verify talker and listener are alive
+    alive_nodes = bl.shared_node.get_node_names()
+    assert (
+        talker.name in alive_nodes
+    ), f"Talker {talker.name} not listed, alive nodes: {alive_nodes}"
+    assert (
+        listener.name in alive_nodes
+    ), f"Listener {listener.name} not listed, alive nodes: {alive_nodes}"
+
+    assert talker.is_running == True, f"Talker {talker.name} not running"
+    assert listener.is_running == True, f"Listener {listener.name} not running"
+
+    # Check correct topic is published/subscribed
     assert (
         topic in talker.get_published_topics()
     ), "Talker is not publishing on expected topic"
@@ -26,11 +54,20 @@ def _assert_talker_listener_running(talker: Node, listener: Node, topic: str) ->
         topic in listener.get_subscribed_topics()
     ), "Listener is not subscribed on expected topic"
 
-    talker.shutdown("Test successful", timeout=None)
+    # Shutdown talker and listener
+    talker.shutdown("Test successful", timeout=5.0)
     assert talker.is_running == False, "Talker failed to shutdown"
 
-    listener.shutdown("Test successful", timeout=None)
+    listener.shutdown("Test successful", timeout=5.0)
     assert listener.is_running == False, "Listener failed to shutdown"
+
+    alive_nodes = bl.shared_node.get_node_names()
+    assert (
+        talker.name not in alive_nodes
+    ), f"Talker {talker.name} is still alive"
+    assert (
+        listener.name not in alive_nodes
+    ), f"Listener {listener.name} is still alive"
 
 
 def test_bl_init():
@@ -124,7 +161,7 @@ def test_compose():
         talker, listener, "/test/better_launch/chatter_comp"
     )
 
-    composer.shutdown("Test successful", timeout=None)
+    composer.shutdown("Test successful", timeout=5.0)
     assert composer.is_running == False, "Composer failed to shutdown"
 
 
@@ -179,5 +216,5 @@ def test_ros2_actions():
         s.node_name for s in subscribers
     ], "Listener is not listening on expected topic"
 
-    ros2.shutdown("Test successful", timeout=None)
+    ros2.shutdown("Test successful", timeout=5.0)
     assert ros2.is_running == False, "ROS2LaunchWrapper failed to shutdown"

@@ -361,7 +361,7 @@ Takeoff in 3... 2... 1...
             include_launch_service=include_launch_service,
             include_foreign=include_foreign,
         ):
-            if reg.match(node.fullname):
+            if reg.fullmatch(node.fullname):
                 return node
 
         return None
@@ -1075,7 +1075,6 @@ Takeoff in 3... 2... 1...
             res.add_done_callback(lambda f: srv.destroy())
         else:
             res = srv.call(req)
-            srv.destroy()
 
         return res
 
