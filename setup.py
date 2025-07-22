@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='better_launch',
-    version='0.9.0',
+    version='1.0',
     packages=find_packages(),
     install_requires=[
         "click",
@@ -13,6 +13,7 @@ setup(
         "setproctitle",
         "prompt_toolkit",
     ],
+    tests_require=["pytest"],
     maintainer='Nikolas Dahn',
     maintainer_email='nikolas.dahn@gmail.com',
     description='A better replacement for the ROS2 launch system: intuitive, simple, memorable.',

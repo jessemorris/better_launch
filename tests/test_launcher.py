@@ -1,4 +1,3 @@
-import unittest
 import time
 from pathlib import Path
 from concurrent.futures import Future
@@ -10,179 +9,175 @@ from launch_ros.actions import Node as RosLaunchNode
 from rclpy.qos import qos_profile_parameters
 
 
-# TODO convert to pytest to become fully ROS2 compatible.
-# Run via `colcon test --packages-select better_launch`. 
+# Run tests via `colcon test --packages-select better_launch`.
 # Examine results with `colcon test-result --all`
-class TestBetterLaunchExamples(unittest.TestCase):
-    def __init__(self, methodName="runTest"):
-        super().__init__(methodName)
 
-    def assertTalkerListenerRunning(self, talker: Node, listener: Node, topic: str) -> bool:
-        """Verify the given talker and listener are running and using the given topic."""
-        time.sleep(2.0)
+def _assert_talker_listener_running(talker: Node, listener: Node, topic: str) -> bool:
+    """Verify the given talker and listener are running and using the given topic."""
+    time.sleep(2.0)
 
-        self.assertTrue(talker.is_running)
-        self.assertTrue(listener.is_running)
+    assert talker.is_running == True
+    assert listener.is_running == True
 
-        self.assertIn(
-            topic,
-            talker.get_published_topics(),
-            "Talker is not publishing on expected topic",
-        )
-        self.assertIn(
-            topic,
-            listener.get_subscribed_topics(),
-            "Listener is not subscribed on expected topic",
-        )
+    assert (
+        topic in talker.get_published_topics()
+    ), "Talker is not publishing on expected topic"
+    assert (
+        topic in listener.get_subscribed_topics()
+    ), "Listener is not subscribed on expected topic"
 
-        talker.shutdown("Test successful", timeout=None)
-        self.assertFalse(talker.is_running, "Talker failed to shutdown")
+    talker.shutdown("Test successful", timeout=None)
+    assert talker.is_running == False, "Talker failed to shutdown"
 
-        listener.shutdown("Test successful", timeout=None)
-        self.assertFalse(listener.is_running, "Listener failed to shutdown")
+    listener.shutdown("Test successful", timeout=None)
+    assert listener.is_running == False, "Listener failed to shutdown"
 
-    def test_bl_init(self):
-        """Test basic initialization"""
-        bl = BetterLaunch()
-        self.assertIsNotNone(bl, "BetterLaunch initialized")
 
-        this_file = bl.find(filename=Path(__file__).name, subdir="../**")
-        self.assertEqual(
-            Path(bl.launchfile), Path(this_file), "Could not locate test file"
-        )
+def test_bl_init():
+    """Test basic initialization"""
+    bl = BetterLaunch()
+    assert bl is not None, "BetterLaunch initialized"
 
-        self.assertGreaterEqual(
-            bl.shared_node.count_publishers("rosout"), 1, "Shared node not working"
-        )
+    this_file = bl.find(filename=Path(__file__).name, subdir="../**")
+    assert Path(bl.launchfile) == Path(this_file), "Could not locate test file"
 
-    def test_topic(self):
-        """Test the publish/subscribe helpers."""
-        bl = BetterLaunch()
-        message_future = Future()
+    assert bl.shared_node.count_publishers("rosout") >= 1, "Shared node not working"
 
-        def on_msg(msg):
-            message_future.set_result(msg)
 
-        msg_type = bl.get_ros_message_type("std_msgs/msg/String")
-        sub = bl.subscriber("/test/better_launch/topic_test", msg_type, callback=on_msg, qos_profile=qos_profile_parameters)
-        
-        time.sleep(1.0)
-        
-        bl.publish_message(
-            "/test/better_launch/topic_test", msg_type, {"data": "hello world"}, qos_profile=qos_profile_parameters
-        )
+def test_topic():
+    """Test the publish/subscribe helpers."""
+    bl = BetterLaunch()
+    message_future = Future()
 
-        result = message_future.result(2.0).data
-        self.assertEqual(
-            result, "hello world", "Failed to receive message"
-        )
-        sub.destroy()
+    def on_msg(msg):
+        message_future.set_result(msg)
 
-    def test_node(self):
-        """Verify running regular nodes works."""
-        bl = BetterLaunch()
+    msg_type = bl.get_ros_message_type("std_msgs/msg/String")
+    sub = bl.subscriber(
+        "/test/better_launch/topic_test",
+        msg_type,
+        callback=on_msg,
+        qos_profile=qos_profile_parameters,
+    )
 
-        talker = bl.node(
-            "examples_rclpy_minimal_publisher",
-            "publisher_local_function",
-            "my_talker_node",
-            remaps={"/topic": "/test/better_launch/chatter_node"},
-        )
-        listener = bl.node(
-            "examples_rclpy_minimal_subscriber",
-            "subscriber_member_function",
-            "my_listener_node",
-            remaps={"/topic": "/test/better_launch/chatter_node"},
-        )
+    time.sleep(1.0)
 
-        talker.start()
-        listener.start()
-        self.assertTalkerListenerRunning(talker, listener, "/test/better_launch/chatter_node")
+    bl.publish_message(
+        "/test/better_launch/topic_test",
+        msg_type,
+        {"data": "hello world"},
+        qos_profile=qos_profile_parameters,
+    )
 
-    def test_compose(self):
-        """Verify running composable nodes works."""
-        bl = BetterLaunch()
+    result = message_future.result(2.0).data
+    assert result == "hello world", "Failed to receive message"
+    sub.destroy()
 
-        with bl.compose("my_composer"):
-            talker = bl.component(
-                "composition",
-                "composition::Talker",
-                "my_talker_comp",
-                remaps={"/chatter": "/test/better_launch/chatter_comp"},
-            )
 
-        # bl.compose returns a Composer that we could reuse, but even without it's possible to reuse an
-        # already running composer node (even if it wasn't started with better_launch!)
-        with bl.compose("my_composer", reuse_existing=True) as composer:
-            listener = bl.component(
-                package="composition",
-                plugin="composition::Listener",
-                name="my_listener_comp",
-                remaps={"/chatter": "/test/better_launch/chatter_comp"},
-            )
+def test_node():
+    """Verify running regular nodes works."""
+    bl = BetterLaunch()
 
-        self.assertTalkerListenerRunning(talker, listener, "/test/better_launch/chatter_comp")
+    talker = bl.node(
+        "examples_rclpy_minimal_publisher",
+        "publisher_local_function",
+        "my_talker_node",
+        remaps={"/topic": "/test/better_launch/chatter_node"},
+    )
+    listener = bl.node(
+        "examples_rclpy_minimal_subscriber",
+        "subscriber_member_function",
+        "my_listener_node",
+        remaps={"/topic": "/test/better_launch/chatter_node"},
+    )
 
-        composer.shutdown("Test successful", timeout=None)
-        self.assertFalse(composer.is_running, "Composer failed to shutdown")
+    talker.start()
+    listener.start()
+    _assert_talker_listener_running(
+        talker, listener, "/test/better_launch/chatter_node"
+    )
 
-    def test_include(self):
-        """Verify including other launch files works (better_launch must be installed in the workspace)."""
-        bl = BetterLaunch()
 
-        bl.include("better_launch", "05_launch_arguments.launch.py", enable=True)
+def test_compose():
+    """Verify running composable nodes works."""
+    bl = BetterLaunch()
 
-        talker = bl.query_node("/my_talker")
-        self.assertIsNotNone(talker)
-
-        listener = bl.query_node("/my_listener")
-        self.assertIsNotNone(listener)
-
-        # Included example doesn't use remaps
-        self.assertTalkerListenerRunning(talker, listener, "/topic")
-
-    def test_ros2_actions(self):
-        """Verify running ROS2 actions works."""
-        bl = BetterLaunch()
-
-        ros2 = bl.ros2_actions(
-            RosLaunchNode(
-                package="examples_rclpy_minimal_publisher",
-                executable="publisher_local_function",
-                name="my_talker_ros2",
-                remappings=[("topic", "/test/better_launch/chatter_ros2")],
-            ),
-            RosLaunchNode(
-                package="examples_rclpy_minimal_subscriber",
-                executable="subscriber_member_function",
-                name="my_listener_ros2",
-                remappings=[("topic", "/test/better_launch/chatter_ros2")],
-            ),
+    with bl.compose("my_composer"):
+        talker = bl.component(
+            "composition",
+            "composition::Talker",
+            "my_talker_comp",
+            remaps={"/chatter": "/test/better_launch/chatter_comp"},
         )
 
-        time.sleep(5.0)
-
-        publishers = bl.shared_node.get_publishers_info_by_topic(
-            "/test/better_launch/chatter_ros2"
-        )
-        self.assertIn(
-            "my_talker_ros2",
-            [p.node_name for p in publishers],
-            "Talker is not publishing on expected topic",
-        )
-
-        subscribers = bl.shared_node.get_subscriptions_info_by_topic(
-            "/test/better_launch/chatter_ros2"
-        )
-        self.assertIn(
-            "my_listener_ros2",
-            [s.node_name for s in subscribers],
-            "Listener is not listening on expected topic",
+    # bl.compose returns a Composer that we could reuse, but even without it's possible to reuse an
+    # already running composer node (even if it wasn't started with better_launch!)
+    with bl.compose("my_composer", reuse_existing=True) as composer:
+        listener = bl.component(
+            package="composition",
+            plugin="composition::Listener",
+            name="my_listener_comp",
+            remaps={"/chatter": "/test/better_launch/chatter_comp"},
         )
 
-        ros2.shutdown("Test successful", timeout=None)
-        self.assertFalse(ros2.is_running, "ROS2LaunchWrapper failed to shutdown")
+    _assert_talker_listener_running(
+        talker, listener, "/test/better_launch/chatter_comp"
+    )
+
+    composer.shutdown("Test successful", timeout=None)
+    assert composer.is_running == False, "Composer failed to shutdown"
 
 
-if __name__ == "__main__":
-    unittest.main()
+def test_include():
+    """Verify including other launch files works (better_launch must be installed in the workspace)."""
+    bl = BetterLaunch()
+
+    bl.include("better_launch", "05_launch_arguments.launch.py", enable=True)
+
+    talker = bl.query_node("/my_talker")
+    assert talker is not None
+
+    listener = bl.query_node("/my_listener")
+    assert listener is not None
+
+    # Included example doesn't use remaps
+    _assert_talker_listener_running(talker, listener, "/topic")
+
+
+def test_ros2_actions():
+    """Verify running ROS2 actions works."""
+    bl = BetterLaunch()
+
+    ros2 = bl.ros2_actions(
+        RosLaunchNode(
+            package="examples_rclpy_minimal_publisher",
+            executable="publisher_local_function",
+            name="my_talker_ros2",
+            remappings=[("topic", "/test/better_launch/chatter_ros2")],
+        ),
+        RosLaunchNode(
+            package="examples_rclpy_minimal_subscriber",
+            executable="subscriber_member_function",
+            name="my_listener_ros2",
+            remappings=[("topic", "/test/better_launch/chatter_ros2")],
+        ),
+    )
+
+    time.sleep(5.0)
+
+    publishers = bl.shared_node.get_publishers_info_by_topic(
+        "/test/better_launch/chatter_ros2"
+    )
+    assert "my_talker_ros2" in [
+        p.node_name for p in publishers
+    ], "Talker is not publishing on expected topic"
+
+    subscribers = bl.shared_node.get_subscriptions_info_by_topic(
+        "/test/better_launch/chatter_ros2"
+    )
+    assert "my_listener_ros2" in [
+        s.node_name for s in subscribers
+    ], "Listener is not listening on expected topic"
+
+    ros2.shutdown("Test successful", timeout=None)
+    assert ros2.is_running == False, "ROS2LaunchWrapper failed to shutdown"
