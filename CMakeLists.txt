@@ -3,6 +3,24 @@ project(better_launch)
 
 find_package(ament_cmake REQUIRED)
 
+# Run via `colcon test --packages-select better_launch`. 
+# Examine results with `colcon test-result --all`
+if(BUILD_TESTING)
+  find_package(ament_cmake_pytest REQUIRED)
+  set(_pytest_tests
+    tests/test_launcher.py
+    # Add other test files here
+  )
+  foreach(_test_path ${_pytest_tests})
+    get_filename_component(_test_name ${_test_path} NAME_WE)
+    ament_add_pytest_test(${_test_name} ${_test_path}
+      APPEND_ENV PYTHONPATH=${CMAKE_CURRENT_BINARY_DIR}
+      TIMEOUT 60
+      WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+    )
+  endforeach()
+endif()
+
 install(DIRECTORY examples
         DESTINATION share/${PROJECT_NAME})
 

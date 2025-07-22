@@ -10,6 +10,9 @@ from launch_ros.actions import Node as RosLaunchNode
 from rclpy.qos import qos_profile_parameters
 
 
+# TODO convert to pytest to become fully ROS2 compatible.
+# Run via `colcon test --packages-select better_launch`. 
+# Examine results with `colcon test-result --all`
 class TestBetterLaunchExamples(unittest.TestCase):
     def __init__(self, methodName="runTest"):
         super().__init__(methodName)
