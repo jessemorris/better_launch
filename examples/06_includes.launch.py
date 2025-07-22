@@ -17,7 +17,7 @@ def tis_a_hungry_function():
     bl.include(None, "05_launch_arguments.launch.py", enable=True)
 
     # Since better_launch executes actions immediately, you can also interact with your nodes immediately!
-    talker = bl.query_node(".*my_publisher")
+    talker = bl.query_node(".*my_talker")
     bl.logger.info(f"""
 ======================
 TALKER IS ALIVE: {talker.check_ros2_connected()}

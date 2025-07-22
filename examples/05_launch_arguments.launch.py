@@ -27,7 +27,7 @@ def handle_with_care(enable: bool = False):
         bl.node(
             "examples_rclpy_minimal_publisher",
             "publisher_local_function",
-            "my_publisher",
+            "my_talker",
         )
 
         # Yay, no more clunky condition substitutions!

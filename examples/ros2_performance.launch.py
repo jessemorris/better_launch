@@ -10,7 +10,7 @@ def generate_launch_description():
         Node(
             package="examples_rclpy_minimal_publisher",
             executable="publisher_local_function",
-            name="my_publisher",
+            name="my_talker",
             namespace="basic",
         ),
         Node(

@@ -103,7 +103,7 @@ def read_robot_description(
         args.extend(xacro_args)
 
     try:
-        return run_command("xacro", args)
+        return bl.exec(["xacro", *args])
     except subprocess.CalledProcessError as e:
         raise ValueError(f"Xacro failed ({e.returncode}): {e.output}") from e
 
@@ -260,35 +260,6 @@ def static_transform_publisher(
         cmd_args=args,
         raw=True,
     )
-
-
-def run_command(cmd: str, args: str | list[str] = None) -> str:
-    """Run the specified command and return its output. 
-
-    Parameters
-    ----------
-    cmd : str
-        The command to run. Can either be an absolute path to an executable or any file found on `PATH`. 
-    args : str | list[str], optional
-        Additional arguments to pass to the command. If a string is passed it will be split on spaces. Pass a list instead to have more control over which arguments to treat as one.
-
-    Returns
-    -------
-    str
-        The output of the command without the trailing newline.
-
-    Raises
-    ------
-    subprocess.CalledProcessError
-        If the command had a non-zero exit code. See the raised error's `returncode` and `output` attributes for details.
-    """
-    run = [cmd]
-    if args:
-        if isinstance(args, str):
-            args = args.split(" ")
-        run.extend(args)
-
-    return subprocess.check_output(run, stderr=subprocess.STDOUT).decode().rstrip("\n")
 
 
 def spawn_controller(controller: str, manager: str = "controller_manager") -> Node:

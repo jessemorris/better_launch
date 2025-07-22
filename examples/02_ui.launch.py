@@ -14,7 +14,7 @@ def a_nice_ui():
         bl.node(
             "examples_rclpy_minimal_publisher",
             "publisher_local_function",
-            "my_publisher",
+            "my_talker",
         )
         bl.node(
             "examples_rclpy_minimal_subscriber",

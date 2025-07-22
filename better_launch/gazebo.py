@@ -25,7 +25,7 @@ from ament_index_python.packages import (
 
 from better_launch import BetterLaunch
 from better_launch.elements import Node
-from .convenience import static_transform_publisher, run_command
+from .convenience import static_transform_publisher
 
 
 _gazebo_exec = None
@@ -180,7 +180,7 @@ def get_active_world_name(force_query: bool = False) -> str:
         return _active_world
 
     try:
-        output = run_command(get_gazebo_exec(), ["model", "--list"])
+        output = BetterLaunch.exec([get_gazebo_exec(), "model", "--list"])
     except Exception as e:
         raise ValueError(f"Failed to list loaded Gazebo models: {e}")
 

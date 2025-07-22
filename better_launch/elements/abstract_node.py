@@ -58,9 +58,6 @@ class AbstractNode:
         if not namespace.startswith("/"):
             raise ValueError("namespace must start with a '/'")
 
-        if remaps is None:
-            remaps = {}
-
         global _node_counter
         self._node_id = _node_counter
         _node_counter += 1
@@ -69,7 +66,7 @@ class AbstractNode:
         self._exec = executable
         self._name = name
         self._namespace = namespace
-        self._remaps = remaps
+        self._remaps = remaps or {}
         self._params = params or {}
         self._lifecycle_manager: LifecycleManager = None
 
@@ -337,15 +334,25 @@ class AbstractNode:
         from better_launch import BetterLaunch
 
         bl = BetterLaunch.instance()
-        topics = bl.shared_node.get_topic_names_and_types()
-        fullname = self.fullname
-        res = {}
+        topics = bl.shared_node.get_publisher_names_and_types_by_node(self.name, self.namespace)
+        return dict(topics)
 
-        for topic_name, msg_types in topics:
-            if topic_name.startswith(fullname):
-                res[topic_name] = msg_types
+    def get_subscribed_topics(self) -> dict[str, list[str]]:
+        """Get the ROS2 topics this node is subscribed to.
 
-        return res
+        Returns
+        -------
+        dict[str, list[str]]
+            The topics and their message types. Will be empty if :py:meth:`check_ros2_connected` is False.
+        """
+        if not self.check_ros2_connected():
+            return {}
+
+        from better_launch import BetterLaunch
+
+        bl = BetterLaunch.instance()
+        topics = bl.shared_node.get_subscriber_names_and_types_by_node(self.name, self.namespace)
+        return dict(topics)
 
     def get_info_sheet(self) -> str:
         """Returns a summary of this node's information for display in a terminal.

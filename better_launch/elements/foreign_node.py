@@ -78,15 +78,19 @@ def find_process_for_node(namespace: str, name: str) -> list[psutil.Process]:
         pkg_match = False
         name_match = False
 
-        for arg in p.cmdline():
-            if r_pkg.match(arg):
-                pkg_match = True
-            elif r_name.match(arg):
-                name_match = True
+        try:
+            cmd = p.cmdline()
+            for arg in cmd:
+                if r_pkg.match(arg):
+                    pkg_match = True
+                elif r_name.match(arg):
+                    name_match = True
 
-            if pkg_match and name_match:
-                candidates.append(p)
-                break
+                if pkg_match and name_match:
+                    candidates.append(p)
+                    break
+        except psutil.ZombieProcess:
+            pass
 
     return candidates
 

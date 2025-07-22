@@ -7,6 +7,7 @@ import inspect
 import time
 import re
 import threading
+import subprocess
 from pathlib import Path
 from concurrent.futures import Future, CancelledError, TimeoutError
 from contextlib import contextmanager
@@ -228,7 +229,7 @@ Takeoff in 3... 2... 1...
         exit_with_last_node : bool, optional
             If True this function will return when all nodes have been stopped.
         """
-        # The ros_adapter takes up quite a bit of memory (around 6 MiB), however, killing it by 
+        # The ros_adapter takes up quite a bit of memory (around 6 MiB), however, killing it by
         # default once we spin is not a good option right now, as some types like composers will
         # create services needed for shutdown that would become invalid once we kill the adapter.
         if exit_with_last_node:
@@ -330,7 +331,7 @@ Takeoff in 3... 2... 1...
 
     def query_node(
         self,
-        name_regex: str,
+        fullname_regex: str,
         *,
         include_components: bool = True,
         include_launch_service: bool = False,
@@ -354,7 +355,7 @@ Takeoff in 3... 2... 1...
         AbstractNode
             The first node matching the provided regex, or None if none matched.
         """
-        reg = re.compile(name_regex)
+        reg = re.compile(fullname_regex)
         for node in self.all_nodes(
             include_components=include_components,
             include_launch_service=include_launch_service,
@@ -636,7 +637,9 @@ Takeoff in 3... 2... 1...
 
         if package:
             if "/" in package or os.pathsep in package:
-                raise ValueError(f"Package must be a single name, not a path ({package})")
+                raise ValueError(
+                    f"Package must be a single name, not a path ({package})"
+                )
             base_path = get_package_prefix(package)
         else:
             base_path = os.getcwd()
@@ -863,7 +866,7 @@ Takeoff in 3... 2... 1...
         if isinstance(message_type, str):
             message_type = self.get_ros_message_type(message_type)
 
-        return self.shared_node.create_subscriber(
+        return self.shared_node.create_subscription(
             message_type,
             topic,
             callback,
@@ -904,6 +907,8 @@ Takeoff in 3... 2... 1...
         message_type: str | type,
         message_args: dict[str, Any],
         qos_profile: QoSProfile | int = 10,
+        *,
+        time_to_publish: float = 1.0,
     ) -> None:
         """Convenience method to publish a single message. The publisher will be destroyed once the message has been published. If you plan to publish additional messages, use :py:meth:`publisher` instead and use the instance.
 
@@ -917,6 +922,8 @@ Takeoff in 3... 2... 1...
             The keyword arguments from which the message will be constructed.
         qos_profile : QoSProfile | int, optional
             A quality of service profile that changes how the publisher handles connections and retains data.
+        time_to_publish: float, optional
+            How long to give the publisher to submit the message. Expect the message to get lost if you set this to 0.
         """
         if isinstance(message_type, str):
             message_type: type = self.get_ros_message_type(message_type)
@@ -924,6 +931,10 @@ Takeoff in 3... 2... 1...
         pub = self.publisher(topic, message_type, qos_profile)
         msg = message_type(**message_args)
         pub.publish(msg)
+
+        if time_to_publish is not None and time_to_publish > 0.0:
+            time.sleep(time_to_publish)
+
         pub.destroy()
 
     def service(
@@ -1065,7 +1076,7 @@ Takeoff in 3... 2... 1...
         else:
             res = srv.call(req)
             srv.destroy()
-        
+
         return res
 
     def action_server(
@@ -1234,6 +1245,34 @@ Takeoff in 3... 2... 1...
             # Since it is possible to start a new root branch or open up multiple/namespaces/at/
             # once we replace the entire stack rather than only removing elements from the end
             self._group_stack = old_stack
+
+    # There's no real need to have this as a member of BetterLaunch, but it's kind of expected to
+    # be there. By making it a class method it can still be used without a BL instance.
+    @classmethod
+    def exec(cls, cmd: str | list[str]) -> str:
+        """Run the specified command and return its output. The command can either be an absolute path to an executable or any file found on `PATH`.
+
+        Parameters
+        ----------
+        cmd : str | list[str]
+            The command to run. If a string is passed it will be split on spaces to separate the command from its arguments. Pass a list instead to have more control over which arguments to treat as a single argument.
+
+        Returns
+        -------
+        str
+            The output of the command without the trailing newline.
+
+        Raises
+        ------
+        subprocess.CalledProcessError
+            If the command had a non-zero exit code. See the raised error's `returncode` and `output` attributes for details.
+        """
+        if isinstance(cmd, str):
+            cmd = cmd.split(" ")
+
+        return (
+            subprocess.check_output(cmd, stderr=subprocess.STDOUT).decode().rstrip("\n")
+        )
 
     def node(
         self,
@@ -1662,7 +1701,9 @@ Takeoff in 3... 2... 1...
 
         if find_launchthis_function(file_path):
             try:
-                source = open(file_path).read()
+                with open(file_path) as f:
+                    source = f.read()
+                    
                 code = compile(source, launchfile, "exec")
 
                 # Make sure the included launch file reuses our BetterLaunch instance

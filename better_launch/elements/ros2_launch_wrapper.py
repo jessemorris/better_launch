@@ -3,7 +3,6 @@ import os
 import platform
 import signal
 import logging
-import asyncio
 import threading
 from multiprocessing import Process, Queue
 import subprocess
