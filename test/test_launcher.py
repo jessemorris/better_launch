@@ -11,16 +11,11 @@ from rclpy.qos import qos_profile_parameters
 
 
 class TestBetterLaunchExamples(unittest.TestCase):
-    # @classmethod
-    # def tearDownClass(cls):
-    #     bl = BetterLaunch.instance()
-    #     if bl:
-    #         bl.shutdown("Tests concluded")
-
     def __init__(self, methodName="runTest"):
         super().__init__(methodName)
 
     def assertTalkerListenerRunning(self, talker: Node, listener: Node, topic: str) -> bool:
+        """Verify the given talker and listener are running and using the given topic."""
         time.sleep(2.0)
 
         self.assertTrue(talker.is_running)
@@ -44,6 +39,7 @@ class TestBetterLaunchExamples(unittest.TestCase):
         self.assertFalse(listener.is_running, "Listener failed to shutdown")
 
     def test_bl_init(self):
+        """Test basic initialization"""
         bl = BetterLaunch()
         self.assertIsNotNone(bl, "BetterLaunch initialized")
 
@@ -57,6 +53,7 @@ class TestBetterLaunchExamples(unittest.TestCase):
         )
 
     def test_topic(self):
+        """Test the publish/subscribe helpers."""
         bl = BetterLaunch()
         message_future = Future()
 
@@ -79,6 +76,7 @@ class TestBetterLaunchExamples(unittest.TestCase):
         sub.destroy()
 
     def test_node(self):
+        """Verify running regular nodes works."""
         bl = BetterLaunch()
 
         talker = bl.node(
@@ -99,6 +97,7 @@ class TestBetterLaunchExamples(unittest.TestCase):
         self.assertTalkerListenerRunning(talker, listener, "/test/better_launch/chatter_node")
 
     def test_compose(self):
+        """Verify running composable nodes works."""
         bl = BetterLaunch()
 
         with bl.compose("my_composer"):
@@ -125,6 +124,7 @@ class TestBetterLaunchExamples(unittest.TestCase):
         self.assertFalse(composer.is_running, "Composer failed to shutdown")
 
     def test_include(self):
+        """Verify including other launch files works (better_launch must be installed in the workspace)."""
         bl = BetterLaunch()
 
         bl.include("better_launch", "05_launch_arguments.launch.py", enable=True)
@@ -139,6 +139,7 @@ class TestBetterLaunchExamples(unittest.TestCase):
         self.assertTalkerListenerRunning(talker, listener, "/topic")
 
     def test_ros2_actions(self):
+        """Verify running ROS2 actions works."""
         bl = BetterLaunch()
 
         ros2 = bl.ros2_actions(
