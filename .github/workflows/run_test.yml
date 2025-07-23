@@ -24,5 +24,6 @@ jobs:
           pip install pytest
           if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
       - name: Run pytest
+        # TODO we will need a proper ros2 environment to run the tests....
         run: |
           pytest tests/test_launcher.py --doctest-modules 

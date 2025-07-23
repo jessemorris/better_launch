@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 import pytest
 import time
 from pathlib import Path
@@ -218,3 +219,7 @@ def test_ros2_actions():
 
     ros2.shutdown("Test successful", timeout=5.0)
     assert not ros2.is_running, "ROS2LaunchWrapper failed to shutdown"
+
+
+if __name__ == "__main__":
+    pytest.main(["-v"])
