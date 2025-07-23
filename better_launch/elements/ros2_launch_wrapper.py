@@ -65,7 +65,7 @@ def _launchservice_worker(
     def handle_record(record: logging.LogRecord) -> None:
         try:
             log_queue.put_nowait(record)
-        except:
+        except Exception:
             # drop if parent not listening; prevents child spin
             pass
 
@@ -258,7 +258,7 @@ class Ros2LaunchWrapper(AbstractNode):
             # Give the process a little bit of time to terminate
             try:
                 self._process.join(0.5)
-            except:
+            except Exception:
                 # Might fail during shutdown
                 pass
         
@@ -286,7 +286,7 @@ class Ros2LaunchWrapper(AbstractNode):
                 )
                 # Gently suggest to the child process and all its children that they could exit now
                 self.send_signal(signal.SIGINT)
-        except:
+        except Exception:
             pass
 
         if timeout == 0.0:

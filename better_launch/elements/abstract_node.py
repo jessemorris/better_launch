@@ -244,7 +244,7 @@ class AbstractNode:
                     return False
 
                 time.sleep(0.1)
-        except:
+        except Exception:
             # Cannot check if the shared node was shut down
             return None
 

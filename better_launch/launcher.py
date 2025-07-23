@@ -35,13 +35,16 @@ try:
     # For anonymous nodes
     import wonderwords
 
-    _uuid_generator = lambda g=wonderwords.RandomWord(
-        exclude_with_spaces=True
-    ): g.word()
+    _uuid_source = wonderwords.RandomWord(exclude_with_spaces=True)
+
+    def _generate_uuid() -> str:
+        return _uuid_source.word()
+
 except ImportError:
     import uuid
 
-    _uuid_generator = lambda: uuid.uuid4().hex
+    def _generate_uuid() -> str:
+        return uuid.uuid4().hex
 
 from better_launch.elements import (
     Group,
@@ -267,7 +270,7 @@ Takeoff in 3... 2... 1...
         str
             The passed in string with a unique suffix.
         """
-        return name + "_" + _uuid_generator()
+        return name + "_" + _generate_uuid()
 
     def all_groups(self) -> list[Group]:
         """Returns a list of all in the order they were created.
@@ -476,11 +479,11 @@ Takeoff in 3... 2... 1...
 
     def _on_sigint(self, sig: int, frame: inspect.FrameInfo) -> None:
         if not self._sigint_received:
-            self.logger.warning(f"Received (SIGINT), forwarding to child processes...")
+            self.logger.warning("Received (SIGINT), forwarding to child processes...")
             self._sigint_received = True
             self.shutdown("user interrupt", signal.SIGINT)
         else:
-            self.logger.warning(f"Received (SIGINT) again, escalating to sigterm")
+            self.logger.warning("Received (SIGINT) again, escalating to sigterm")
             self._on_sigterm(sig, frame)
 
     def _on_sigterm(self, sig: int, frame: inspect.FrameInfo) -> None:
@@ -491,10 +494,10 @@ Takeoff in 3... 2... 1...
                 sys.exit(-1)
 
         self._sigterm_received = True
-        self.logger.error(f"Using (SIGTERM) can result in orphaned processes!")
+        self.logger.error("Using (SIGTERM) can result in orphaned processes!")
 
         # Final chance for the processes to shut down, but we will no longer wait
-        self.shutdown(f"received (SIGTERM)", signal.SIGTERM)
+        self.shutdown("received (SIGTERM)", signal.SIGTERM)
 
         if not self.is_shutdown:
             self._shutdown_future.cancel()
@@ -530,9 +533,9 @@ Takeoff in 3... 2... 1...
                 self.logger.warning(
                     f"Shutdown was called from {frame.function}, but no reason was given"
                 )
-            except:
+            except Exception:
                 self.logger.warning(
-                    f"Shutdown was called without providing a reason and the calling frame could not be determined"
+                    "Shutdown was called without providing a reason and the calling frame could not be determined"
                 )
         else:
             self.logger.info(f"Shutdown: {reason}")
@@ -568,7 +571,7 @@ Takeoff in 3... 2... 1...
 
         try:
             self._shutdown_future.set_result(None)
-        except:
+        except Exception:
             pass
 
         # Call any callbacks, but only once
@@ -622,13 +625,14 @@ Takeoff in 3... 2... 1...
         ValueError
             If `package` contains path separators, or if a `filename` is provided but could not be found within base path.
         """
+        resolve = None
         if substitutions:
             resolve = self.resolve_string
-        else:
-            resolve = lambda s: s
 
         if filename:
-            filename = resolve(filename)
+            if resolve:
+                filename = resolve(filename)
+                
             if os.path.isabs(filename):
                 return filename
 
@@ -644,7 +648,9 @@ Takeoff in 3... 2... 1...
         else:
             base_path = os.getcwd()
 
-        base_path = resolve(base_path)
+        if resolve:
+            base_path = resolve(base_path)
+
         if not filename and not subdir:
             return base_path
 

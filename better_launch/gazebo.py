@@ -5,7 +5,8 @@ __all__ = [
     "gazebo_launch",
     "save_world",
     "spawn_model",
-    "spawn_topic_bridges",
+    "spawn_topic_bridge",
+    "spawn_image_bridge",
     "spawn_world_transform",
     "get_gazebo_axes_args",
     "GazeboBridge",
@@ -15,7 +16,6 @@ __all__ = [
 from typing import Any, Literal, Union
 import os
 import re
-from tempfile import NamedTemporaryFile
 import shutil
 
 from ament_index_python.packages import (

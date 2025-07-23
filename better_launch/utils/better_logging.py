@@ -173,7 +173,7 @@ class PrettyLogFormatter(logging.Formatter):
             if datefmt:
                 return dt.strftime(datefmt)
             return dt.strftime(self.default_time_format)
-        except:
+        except Exception:
             return record.created
 
     def format(self, record):

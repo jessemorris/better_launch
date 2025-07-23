@@ -74,7 +74,7 @@ def default_substitution_handlers(
 
         try:
             value = yaml.safe_load(res.values[0])
-        except:
+        except Exception:
             # Treat it as a string
             value = str(res.values[0])
 

@@ -6,7 +6,6 @@ __all__ = [
     "joint_state_publisher",
     "robot_state_publisher",
     "static_transform_publisher",
-    "run_command",
 ]
 
 

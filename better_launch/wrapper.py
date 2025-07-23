@@ -101,7 +101,7 @@ def _launch_this_wrapper(
 
     # Get the filename of the original launchfile
     # NOTE be careful not to instantiate BetterLaunch before launch_func has run
-    if not _bl_singleton_instance in glob:
+    if _bl_singleton_instance not in glob:
         BetterLaunch._launchfile = find_calling_frame(_launch_this_wrapper).filename
         print(f"Starting launch file:\n{BetterLaunch._launchfile}\n")
         print(f"Log files will be saved at\n{roslog.launch_config.log_dir}\n")
@@ -301,7 +301,7 @@ def _launch_this_wrapper(
                     val = ctx.args[i + 1]
                     try:
                         val = literal_eval(val)
-                    except:
+                    except Exception:
                         # Keep val as a string
                         pass
 
@@ -310,7 +310,14 @@ def _launch_this_wrapper(
                 kwargs[launch_func_kwarg] = extra_kwargs
 
             # Execute the launch function!
-            launch_func(*args, **kwargs)
+            try:
+                launch_func(*args, **kwargs)
+            except Exception as e:
+                bl = BetterLaunch.instance()
+                if bl and not bl.is_shutdown:
+                    bl.shutdown(f"Exception in launch file: {e}")
+                
+                raise
 
             # Retrieve the BetterLaunch singleton
             bl = BetterLaunch()

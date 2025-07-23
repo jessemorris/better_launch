@@ -9,7 +9,9 @@ except ImportError:
     # Humble
     from ros2param.api import get_value as get_value_humble
 
-    parameter_value_to_python = lambda p: get_value_humble(parameter_value=p)
+    def parameter_value_to_python(p: Parameter):
+        # keyword args only
+        return get_value_humble(parameter_value=p)
 
 
 class LiveParamsMixin:

@@ -59,29 +59,29 @@ class FooterMenu(FormattedTextControl):
         budget = cols - 2 * len(ell[1])
         shown = [segments[self.selected]]
         used = len(segments[self.selected][1])
-        l, r = self.selected - 1, self.selected + 1
+        left, right = self.selected - 1, self.selected + 1
 
         while True:
             added = False
-            if l >= 0 and used + len(segments[l][1]) <= budget:
-                shown.insert(0, segments[l])
-                used += len(segments[l][1])
-                l -= 1
+            if left >= 0 and used + len(segments[left][1]) <= budget:
+                shown.insert(0, segments[left])
+                used += len(segments[left][1])
+                left -= 1
                 added = True
 
-            if r < len(segments) and used + len(segments[r][1]) <= budget:
-                shown.append(segments[r])
-                used += len(segments[r][1])
-                r += 1
+            if right < len(segments) and used + len(segments[right][1]) <= budget:
+                shown.append(segments[right])
+                used += len(segments[right][1])
+                right += 1
                 added = True
 
             if not added:
                 break
 
-        if l >= 0:
+        if left >= 0:
             shown.insert(0, ell)
 
-        if r < len(segments):
+        if right < len(segments):
             shown.append(ell)
 
         return shown

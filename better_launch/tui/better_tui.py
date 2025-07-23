@@ -169,7 +169,7 @@ class BetterTui:
 
         try:
             get_app().exit()
-        except Exception as e:
+        except Exception:
             # Might already have exited
             pass
 
@@ -282,13 +282,12 @@ class BetterTui:
             self.footer_menu.select_prev()
 
         for i in range(10):
-            has_item = lambda k=i: k < len(self.footer_menu.items)
 
             @bind(
                 str(i),
                 filter=menu_visible
                 & ~Condition(self._is_search_visible)
-                & Condition(has_item),
+                & Condition(lambda k=i: k < len(self.footer_menu.items)),
             )
             def _(event: KeyPressEvent):
                 self.footer_menu.select((i - 1) % 10)
@@ -382,7 +381,7 @@ class BetterTui:
         elif mode == AppMode.LOG_LEVEL:
             self.footer_text = "Select log level"
             levels = list(_log_levels.values())
-            items = [(l.style, l.name) for l in levels]
+            items = [(lev.style, lev.name) for lev in levels]
             active = levels.index(self.log_level)
             self.footer_menu.set_items(items, active)
 

@@ -228,7 +228,7 @@ class Node(AbstractNode, LiveParamsMixin):
                 except IOError:
                     # No data available despite the selector notifying us
                     self.logger.error(
-                        f"Failed to read process pipe, this should not happen",
+                        "Failed to read process pipe, this should not happen",
                     )
 
             returncode = process.wait()

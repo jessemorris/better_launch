@@ -147,7 +147,7 @@ def find_launchthis_function(filepath: str) -> ast.FunctionDef:
             source = f.read()
 
         tree = ast.parse(source)
-    except:
+    except Exception:
         return None
 
     for node in ast.walk(tree):
