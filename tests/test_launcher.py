@@ -43,8 +43,8 @@ def _assert_talker_listener_running(talker: Node, listener: Node, topic: str) ->
         listener.name in alive_nodes
     ), f"Listener {listener.name} not listed, alive nodes: {alive_nodes}"
 
-    assert talker.is_running == True, f"Talker {talker.name} not running"
-    assert listener.is_running == True, f"Listener {listener.name} not running"
+    assert talker.is_running, f"Talker {talker.name} not running"
+    assert listener.is_running, f"Listener {listener.name} not running"
 
     # Check correct topic is published/subscribed
     assert (
@@ -56,10 +56,10 @@ def _assert_talker_listener_running(talker: Node, listener: Node, topic: str) ->
 
     # Shutdown talker and listener
     talker.shutdown("Test successful", timeout=5.0)
-    assert talker.is_running == False, "Talker failed to shutdown"
+    assert not talker.is_running, "Talker failed to shutdown"
 
     listener.shutdown("Test successful", timeout=5.0)
-    assert listener.is_running == False, "Listener failed to shutdown"
+    assert not listener.is_running, "Listener failed to shutdown"
 
     alive_nodes = bl.shared_node.get_node_names()
     assert (
@@ -162,7 +162,7 @@ def test_compose():
     )
 
     composer.shutdown("Test successful", timeout=5.0)
-    assert composer.is_running == False, "Composer failed to shutdown"
+    assert not composer.is_running, "Composer failed to shutdown"
 
 
 def test_include():
@@ -217,4 +217,4 @@ def test_ros2_actions():
     ], "Listener is not listening on expected topic"
 
     ros2.shutdown("Test successful", timeout=5.0)
-    assert ros2.is_running == False, "ROS2LaunchWrapper failed to shutdown"
+    assert not ros2.is_running, "ROS2LaunchWrapper failed to shutdown"
