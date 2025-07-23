@@ -2,6 +2,7 @@ from typing import Any
 import signal
 import time
 import re
+from threading import Event
 from rclpy import Parameter
 # NOTE messages are imported late because the composer is not always used
 
@@ -65,6 +66,9 @@ class Component(AbstractNode, LiveParamsMixin):
         self._component_id: int = None
         self._composer = composer
 
+        self._terminated_event = Event()
+        self._terminated_event.set()
+
     @property
     def composer(self) -> "Composer":
         """The composer this component is associated with."""
@@ -92,6 +96,9 @@ class Component(AbstractNode, LiveParamsMixin):
 
         return self.check_ros2_connected()
 
+    def join(self, timeout: float = None) -> None:
+        self._terminated_event.wait(timeout)
+
     def start(
         self,
         use_intra_process_comms: bool = True,
@@ -111,6 +118,7 @@ class Component(AbstractNode, LiveParamsMixin):
             use_intra_process_comms=use_intra_process_comms,
             **composer_extra_params,
         )
+        self._terminated_event.clear()
 
     def shutdown(self, reason: str, signum: int = signal.SIGTERM, timeout: float = 0.0) -> None:
         """Unload this component if it was loaded.
@@ -128,6 +136,7 @@ class Component(AbstractNode, LiveParamsMixin):
         self.logger.warning(f"Unloading component {self.name}: {reason}")
         self.composer.unload_component(self, timeout=timeout)
         self._component_id = None
+        self._terminated_event.set()
 
     def __repr__(self) -> str:
         return f"{self.__class__.__name__} {self.package}/{self.plugin}"
@@ -263,6 +272,9 @@ class Composer(AbstractNode):
         )
 
         return [(uid, name) for uid, name in zip(res.unique_ids, res.full_node_names)]
+
+    def join(self, timeout: float = None) -> None:
+        self._wrapped_node.join(timeout)
 
     def start(self, service_timeout: float = 5.0) -> None:
         """Start this node. Once this succeeds, :py:meth:`is_running` will return True.
@@ -426,6 +438,7 @@ class Composer(AbstractNode):
             # Component.start() takes care of this, but the user can call load_component directly
             cid = res.unique_id
             component._component_id = cid
+            component._terminated_event.clear()
 
             self._managed_components[cid] = component
             return cid
@@ -512,6 +525,8 @@ class Composer(AbstractNode):
             # unload_component() directly
             if isinstance(component, Component):
                 component._component_id = None
+                component._terminated_event.set()
+
             self._managed_components.pop(cid, None)
             return True
 

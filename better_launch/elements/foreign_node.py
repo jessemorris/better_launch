@@ -363,7 +363,7 @@ class ForeignNode(AbstractNode, LiveParamsMixin):
         return self._process and self._process.is_running()
 
     def join(self, timeout: float = None) -> int:
-        """Wait for the underlying process to terminate and return its exit code.
+        """Wait for the underlying process to terminate and return its exit code. Returns immediately if the process is not running.
 
         Parameters
         ----------
@@ -380,10 +380,12 @@ class ForeignNode(AbstractNode, LiveParamsMixin):
         TimeoutError
             If a timeout was specified and the process is still running by the time the timeout expires.
         """
-        try:
-            return self._process.wait(timeout)
-        except psutil.TimeoutExpired as e:
-            raise TimeoutError from e
+        proc = self._process
+        if proc:
+            try:
+                return proc.wait(timeout)
+            except psutil.TimeoutExpired as e:
+                raise TimeoutError from e
 
     def start(self) -> None:
         from better_launch import BetterLaunch

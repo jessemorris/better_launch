@@ -232,25 +232,21 @@ Takeoff in 3... 2... 1...
         exit_with_last_node : bool, optional
             If True this function will return when all nodes have been stopped.
         """
-        # The ros_adapter takes up quite a bit of memory (around 6 MiB), however, killing it by
-        # default once we spin is not a good option right now, as some types like composers will
-        # create services needed for shutdown that would become invalid once we kill the adapter.
         if exit_with_last_node:
             while not self._shutdown_future.done():
-                # TODO not a nice solution, find something smarter
-                try:
-                    self._shutdown_future.result(0.1)
-                except TimeoutError:
-                    nodes = self.all_nodes(
+                nodes = self.all_nodes(
                         include_components=True,
                         include_launch_service=True,
-                        include_foreign=False,
-                    )
+                        include_foreign=False
+                )
 
-                    if all(not n.is_running for n in nodes):
-                        self.shutdown("all nodes have stopped")
-                        break
+                if all(not n.is_running for n in nodes):
+                    self.shutdown("all nodes have stopped")
+                    break
 
+                # Sleep until every node has terminated, then check again
+                for n in nodes:
+                    n.join()
         else:
             try:
                 self._shutdown_future.result()
@@ -632,7 +628,7 @@ Takeoff in 3... 2... 1...
         if filename:
             if resolve:
                 filename = resolve(filename)
-                
+
             if os.path.isabs(filename):
                 return filename
 

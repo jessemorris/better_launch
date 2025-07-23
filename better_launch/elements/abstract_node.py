@@ -184,6 +184,21 @@ class AbstractNode:
         delve(self.params, "")
         return ret
 
+    def join(self, timeout: float = None) -> None:
+        """Join this node and return once it is shut down. Return immediately if it is not running.
+
+        Parameters
+        ----------
+        timeout : float, optional
+            How long to wait in seconds. Wait forever if None.
+
+        Raises
+        ------
+        TimeoutError
+            If a timeout was set and the node is still running by the time it expires.
+        """
+        raise NotImplementedError()
+
     def start(self) -> None:
         """Start this node. Once this succeeds, :py:meth:`is_running` will return True."""
         raise NotImplementedError()

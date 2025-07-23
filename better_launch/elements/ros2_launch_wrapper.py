@@ -212,6 +212,31 @@ class Ros2LaunchWrapper(AbstractNode):
         self._launch_action_queue.put(ld)
         self._loaded_launch_descriptions.append(ld)
 
+    def join(self, timeout: float = None) -> None:
+        """Wait for the underlying process to terminate and return its exit code. Returns immediately if the process is not running.
+
+        Parameters
+        ----------
+        timeout : float, optional
+            How long to wait for the process to finish. Wait forever if None.
+
+        Returns
+        -------
+        int
+            The exit code of the process, or None if it is already terminated.
+
+        Raises
+        ------
+        TimeoutError
+            If a timeout was specified and the process is still running by the time the timeout expires.
+        """
+        proc = self._process
+        if proc:
+            try:
+                proc.join(timeout)
+            except subprocess.TimeoutExpired as e:
+                raise TimeoutError from e
+
     def start(self) -> None:
         if self.is_running:
             self.logger.warning(f"LaunchService {self.name} is alrady running")
