@@ -19,8 +19,8 @@ class LiveParamsMixin:
 
     def __init__(self):
         super().__init__()
-        
-        # NOTE: we should avoid storing services as they rely on the ros_adapter staying alive, as 
+
+        # NOTE: we should avoid storing services as they rely on the ros_adapter staying alive, as
         # it can be terminated for performance reasons. Better to use call_service instead.
         self._list_params_req_type = None
         self._get_params_req_type = None
@@ -106,7 +106,7 @@ class LiveParamsMixin:
         res = bl.call_service(
             f"{self.fullname}/get_parameters",
             self._get_params_req_type,
-            names=params,
+            request_args={"names": params},
             timeout=timeout,
         )
 

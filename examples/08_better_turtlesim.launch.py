@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 from better_launch import BetterLaunch, launch_this
+import time
 
 @launch_this
 def great_atuin(
@@ -36,15 +37,11 @@ def great_atuin(
         )
 
         if use_provided_red:
-            def update_background():
-                try:
-                    bl.logger.info("Updating background_r")
-                    turtle_node.set_live_params({"background_r": new_background_r})
-                except Exception as e:
-                    bl.logger.info(str(e))
+            turtle_node.check_ros2_connected(timeout=None)
 
-            # Note: rclpy.Timer runs on the main asyncio loop all background ROS tasks use. This 
-            # means that any synchronous interactions with ROS (e.g. service.call) will block
-            # the event queue and cause problems if run from a timer. See the documentation of 
-            # run_later for details.
-            bl.run_later(2.0, update_background)
+            # Not needed, but this way it's noticable when we change the color
+            time.sleep(1.0)
+
+            turtle_node.set_live_params({"background_r": new_background_r})
+            new_r = turtle_node.get_live_params('background_r')
+            print(f"turtle node's new background_r is now: {new_r}")
