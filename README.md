@@ -454,9 +454,10 @@ Overall, ROS2 launch seems like a system architect's wet fever dream, and I don'
 # Contributors
 *Author:* [Nikolas Dahn](https://github.com/ndahn/)
 
-*Contributors:*
+*Testing & Feedback:*
 - [Tom Creutz](https://github.com/tomcreutz)
 - [Prithvi Sanghamreddy](https://github.com/Prithvi-Sanghamreddy)
+- [Sebastian Kasperski](https://github.com/skasperski)
 
 *better_launch* was initiated and is currently developed at the [Robotics Innovation Center](http://robotik.dfki-bremen.de/en/startpage.html) of the [German Research Center for Artificial Intelligence (DFKI)](http://www.dfki.de) in Bremen.
 
