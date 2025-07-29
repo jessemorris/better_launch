@@ -30,5 +30,13 @@ jobs:
           pip install pytest
           pip install --break-system-packages -r workspace/requirements.txt
 
-      - name: Test workspace
-        uses: ichiro-its/ros2-ws-action/test@v1.0.0
+      - name: Run tests
+        shell: bash
+        run: |
+          # Explicitly source the ROS2 environment so common packages can be found
+          source /opt/ros/jazzy/setup.bash
+          source install/setup.bash
+          colcon test --event-handlers console_cohesion+ \
+                      --pytest-with-coverage \
+                      --return-code-on-test-failure \
+                      --packages-select better_launch
