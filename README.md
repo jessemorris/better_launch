@@ -3,7 +3,7 @@
 
 [About](#about) | [Why?](#why-not-improve-the-existing-ros2-launch) | [Features](#okay-what-can-i-do-with-it) | [Usage](#how-do-i-use-it) | [TUI](#the-tui) | [Differences](#what-are-the-differences) | [Performance](#performance) | [Installation](#installation) | [ROS2](#whats-so-bad-about-ros2-launch) | [Contributors](#contributors)
 
--> [Just looking for the documentation?](docs/build/html/index.html)
+-> [Just looking for the documentation?](https://dfki-ric.github.io/better_launch/)
 
 # About
 Let's face it: ROS2 has been a severe downgrade in terms of usability compared to ROS1. While there are many considerable improvements, the current launch system is borderline unusable. I've listed my personal gripes below, but if you're here you likely feel the same. This is why I wrote ***better_launch***.
@@ -39,7 +39,7 @@ $> bl my_package my_launch_file.py --enable_x True
 
 
 # Why not improve the existing ROS2 launch?
-Because I think it is beyond redemption and no amount of refactoring and REPs (ROS enhancement proposals) will turn the sails. Tools like the highly rated [simple_launch](https://github.com/oKermorgant/simple_launch) exist, but still use ROS2 launch under the hood and so inherit much of its clunkiness. Rather than fixing an inherently broken solution, I decided to make a RAP - a ROS abandonment proposal :)
+Because I think it is beyond redemption and no amount of refactoring and REPs (ROS enhancement proposals) will turn the sails. Tools like the highly rated [simple_launch](https://github.com/oKermorgant/simple_launch) or [launch-generator](https://github.com/Tacha-S/launch_generator/) exist, but still use ROS2 launch under the hood and so inherit much of its clunkiness. Rather than fixing an inherently broken solution, I decided to make a RAP - a ROS abandonment proposal :)
 
 Essentially, *better_launch* is what I wish ROS2 launch would be: intuitive to use, simple to understand, easy to remember. This is why *better_launch* is **not** yet another abstraction layer over ROS2 launch; it is a **full replacement** with no required dependencies on the existing launch system.
 
@@ -187,18 +187,14 @@ def my_start(
         )
 
         if new_background_r == 200 and use_provided_red:
-            def update_background():
-                # Directly interact with your nodes
-                turtle_node.set_params({"background_r": 200})
-                timer.cancel()
-
-            timer = bl.shared_node.create_timer(2.0, update_background)
+            turtle_node.is_ros2_connected(timeout=None)
+            turtle_node.set_live_params({"background_r": new_background_r})
 ```
 </details>
 
 
 # How do I use it?
-The best way to get to know *better_launch* is to explore the included [examples](examples/). Unlike ROS2, all examples and functions come with proper [documentation](docs/build/html/index.html). If anything is left unclear, feel free to contact me.
+The best way to get to know *better_launch* is to explore the included [examples](examples/). Unlike ROS2, all examples and functions come with proper [documentation](https://dfki-ric.github.io/better_launch/). If anything is left unclear, feel free to contact me.
 
 You will mainly interact with *better_launch* through the following classes and modules:
 - [@launch_this](better_launch/wrapper.py): decorator to create a launch file from a function.
@@ -394,7 +390,7 @@ bl --help
 
 
 # What's so bad about ROS2 launch?
-Here is a "simple" launch file from the [official documentation](https://docs.ros.org/en/foxy/Tutorials/Intermediate/Launch/Using-Substitutions.html) that does nothing but include another launch file:
+Here is a "simple" launch file from the [official documentation](https://docs.ros.org/en/jazzy/Tutorials/Intermediate/Launch/Using-Substitutions.html) that does nothing but include another launch file:
 
 ```python
 from launch_ros.substitutions import FindPackageShare
