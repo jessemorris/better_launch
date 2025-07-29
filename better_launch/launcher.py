@@ -1400,11 +1400,11 @@ Takeoff in 3... 2... 1...
         if autostart_process:
             node.start()
 
-            if ros_waittime is not None and node.check_ros2_connected(ros_waittime):
+            if ros_waittime is not None and node.is_ros2_connected(ros_waittime):
                 if (
                     lifecycle_target not in (None, LifecycleStage.PRISTINE)
                     and lifecycle_waittime is not None
-                    and node.check_lifecycle_node(lifecycle_waittime)
+                    and node.is_lifecycle_node(lifecycle_waittime)
                 ):
                     node.lifecycle.transition(lifecycle_target)
 
@@ -1651,11 +1651,11 @@ Takeoff in 3... 2... 1...
             **extra_composer_args,
         )
 
-        if ros_waittime is not None and comp.check_ros2_connected(ros_waittime):
+        if ros_waittime is not None and comp.is_ros2_connected(ros_waittime):
             if (
                 lifecycle_target not in (None, LifecycleStage.PRISTINE)
                 and lifecycle_waittime is not None
-                and comp.check_lifecycle_node(lifecycle_waittime)
+                and comp.is_lifecycle_node(lifecycle_waittime)
             ):
                 comp.lifecycle.transition(lifecycle_target)
 

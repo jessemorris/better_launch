@@ -193,12 +193,12 @@ class Ros2LaunchWrapper(AbstractNode):
             # For some reason we can't call is_alive when the process was closed
             return False
 
-    def check_ros2_connected(self, timeout: float = None) -> bool:
+    def is_ros2_connected(self, timeout: float = None) -> bool:
         """Equal to :py:meth:`is_running` for this class.
         """
         return self.is_running
 
-    def check_lifecycle_node(self, timeout: float = None) -> bool:
+    def is_lifecycle_node(self, timeout: float = None) -> bool:
         """This is never a lifecycle node.
         """
         return False

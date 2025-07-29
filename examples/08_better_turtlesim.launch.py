@@ -37,7 +37,7 @@ def great_atuin(
         )
 
         if use_provided_red:
-            turtle_node.check_ros2_connected(timeout=None)
+            turtle_node.is_ros2_connected(timeout=None)
 
             # Not needed, but this way it's noticable when we change the color
             time.sleep(1.0)

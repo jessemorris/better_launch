@@ -31,5 +31,5 @@ def from_the_cradle_to_the_grave():
 
     # The only way to see from the outside if a node supports lifecycle management is to check 
     # whether it has initialized the required topics and services
-    if listener.check_lifecycle_node(timeout=5.0):
+    if listener.is_lifecycle_node(timeout=5.0):
         listener.lifecycle.transition(LifecycleStage.ACTIVE)

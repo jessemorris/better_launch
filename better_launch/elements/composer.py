@@ -94,7 +94,7 @@ class Component(AbstractNode, LiveParamsMixin):
         if not self.is_loaded:
             return False
 
-        return self.check_ros2_connected()
+        return self.is_ros2_connected()
 
     def join(self, timeout: float = None) -> None:
         self._terminated_event.wait(timeout)

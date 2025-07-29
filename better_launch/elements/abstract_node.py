@@ -222,7 +222,7 @@ class AbstractNode:
         """
         raise NotImplementedError()
 
-    def check_ros2_connected(self, timeout: float = 0.0) -> bool:
+    def is_ros2_connected(self, timeout: float = 0.0) -> bool:
         """Check whether this node is registered within ROS.
 
         Parameters
@@ -235,7 +235,7 @@ class AbstractNode:
         bool
             True if the node can be discovered by ROS, False otherwise.
         """
-        # Don't check is_running here as some implementations might use check_ros2_connected to
+        # Don't check is_running here as some implementations might use is_ros2_connected to
         # determine if the node is running
         from better_launch import BetterLaunch
 
@@ -263,7 +263,7 @@ class AbstractNode:
             # Cannot check if the shared node was shut down
             return None
 
-    def check_lifecycle_node(self, timeout: float = 0.0) -> bool:
+    def is_lifecycle_node(self, timeout: float = 0.0) -> bool:
         """Checks if this is a lifecycle node and initializes a : py:class:`LifecycleManager` if supported and not done so before.
 
         Note that if you simply want to check whether this node supports lifecycle management right now, check whether :py:meth:`lifecycle` is None will be considerably cheaper.
@@ -276,9 +276,9 @@ class AbstractNode:
 
             node = Node(...)
             # Wait until the node is registered in ROS
-            if node.check_ros2_connected(timeout=5.0):
+            if node.is_ros2_connected(timeout=5.0):
                 # Give the node some additional time to create its lifecycle topics
-                if node.check_lifecycle_node(timeout=0.1):
+                if node.is_lifecycle_node(timeout=0.1):
                     # Now the node can be managed
                     node.lifecycle.transition(...)
 
@@ -302,12 +302,12 @@ class AbstractNode:
     def lifecycle(self) -> LifecycleManager:
         """Returns this node's :py:class:`LifecyceManager`.
 
-        **Note:** make sure to call :py:meth:`check_lifecycle_node` before retrieving this object!
+        **Note:** make sure to call :py:meth:`is_lifecycle_node` before retrieving this object!
 
         Returns
         -------
         LifecycleManager
-            The object used for managing this node's lifecycle. Will be None if lifecycle management is not supported or `check_lifecycle_node` has not been called before.
+            The object used for managing this node's lifecycle. Will be None if lifecycle management is not supported or `is_lifecycle_node` has not been called before.
         """
         return self._lifecycle_manager
 
@@ -317,9 +317,9 @@ class AbstractNode:
         Returns
         -------
         dict[str, list[str]]
-            The service topics and message types. Will be empty if :py:meth:`check_ros2_connected` is False.
+            The service topics and message types. Will be empty if :py:meth:`is_ros2_connected` is False.
         """
-        if not self.check_ros2_connected():
+        if not self.is_ros2_connected():
             return {}
 
         from better_launch import BetterLaunch
@@ -341,9 +341,9 @@ class AbstractNode:
         Returns
         -------
         dict[str, list[str]]
-            The topics and their message types. Will be empty if :py:meth:`check_ros2_connected` is False.
+            The topics and their message types. Will be empty if :py:meth:`is_ros2_connected` is False.
         """
-        if not self.check_ros2_connected():
+        if not self.is_ros2_connected():
             return {}
 
         from better_launch import BetterLaunch
@@ -358,9 +358,9 @@ class AbstractNode:
         Returns
         -------
         dict[str, list[str]]
-            The topics and their message types. Will be empty if :py:meth:`check_ros2_connected` is False.
+            The topics and their message types. Will be empty if :py:meth:`is_ros2_connected` is False.
         """
-        if not self.check_ros2_connected():
+        if not self.is_ros2_connected():
             return {}
 
         from better_launch import BetterLaunch
@@ -405,7 +405,7 @@ class AbstractNode:
 """
 
     def _get_info_section_ros(self) -> str:
-        if self.check_ros2_connected():
+        if self.is_ros2_connected():
             from better_launch import BetterLaunch
 
             shared_node = BetterLaunch.instance().shared_node

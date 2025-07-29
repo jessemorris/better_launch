@@ -335,7 +335,7 @@ class BetterTui:
 
             choices = ["info"]
             if node.is_running:
-                if node.check_lifecycle_node():
+                if node.is_lifecycle_node():
                     choices.append("lifecycle")
 
                 if isinstance(node, ForeignNode):

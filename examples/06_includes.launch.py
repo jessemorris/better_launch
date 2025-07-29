@@ -20,6 +20,6 @@ def tis_a_hungry_function():
     talker = bl.query_node(".*my_talker")
     bl.logger.info(f"""
 ======================
-TALKER IS ALIVE: {talker.check_ros2_connected()}
+TALKER IS ALIVE: {talker.is_ros2_connected()}
 ======================
 """)
