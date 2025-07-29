@@ -5,7 +5,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>better_launch.elements.abstract_node &mdash; better_launch 0.9.1 documentation</title>
+  <title>better_launch.elements.abstract_node &mdash; better_launch 1.0.0 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=e59714d7" />
 
@@ -13,7 +13,7 @@
     <link rel="shortcut icon" href="../../../_static/logo.svg"/>
       <script src="../../../_static/jquery.js?v=5d32c60e"></script>
       <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../../../_static/documentation_options.js?v=9dc39874"></script>
+      <script src="../../../_static/documentation_options.js?v=8d563738"></script>
       <script src="../../../_static/doctools.js?v=9bcbadda"></script>
       <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../../../_static/js/theme.js"></script>
@@ -135,9 +135,6 @@
         <span class="k">if</span> <span class="ow">not</span> <span class="n">namespace</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;/&quot;</span><span class="p">):</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;namespace must start with a &#39;/&#39;&quot;</span><span class="p">)</span>
 
-        <span class="k">if</span> <span class="n">remaps</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="n">remaps</span> <span class="o">=</span> <span class="p">{}</span>
-
         <span class="k">global</span> <span class="n">_node_counter</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_node_id</span> <span class="o">=</span> <span class="n">_node_counter</span>
         <span class="n">_node_counter</span> <span class="o">+=</span> <span class="mi">1</span>
@@ -146,7 +143,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">_exec</span> <span class="o">=</span> <span class="n">executable</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_name</span> <span class="o">=</span> <span class="n">name</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_namespace</span> <span class="o">=</span> <span class="n">namespace</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_remaps</span> <span class="o">=</span> <span class="n">remaps</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_remaps</span> <span class="o">=</span> <span class="n">remaps</span> <span class="ow">or</span> <span class="p">{}</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_params</span> <span class="o">=</span> <span class="n">params</span> <span class="ow">or</span> <span class="p">{}</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_lifecycle_manager</span><span class="p">:</span> <span class="n">LifecycleManager</span> <span class="o">=</span> <span class="kc">None</span>
 
@@ -265,6 +262,24 @@
         <span class="n">delve</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">ret</span>
 
+<div class="viewcode-block" id="AbstractNode.join">
+<a class="viewcode-back" href="../../../better_launch.elements.html#better_launch.elements.abstract_node.AbstractNode.join">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">join</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">timeout</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Join this node and return once it is shut down. Return immediately if it is not running.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        timeout : float, optional</span>
+<span class="sd">            How long to wait in seconds. Wait forever if None.</span>
+
+<span class="sd">        Raises</span>
+<span class="sd">        ------</span>
+<span class="sd">        TimeoutError</span>
+<span class="sd">            If a timeout was set and the node is still running by the time it expires.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">()</span></div>
+
+
 <div class="viewcode-block" id="AbstractNode.start">
 <a class="viewcode-back" href="../../../better_launch.elements.html#better_launch.elements.abstract_node.AbstractNode.start">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">start</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
@@ -294,22 +309,22 @@
         <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">()</span></div>
 
 
-<div class="viewcode-block" id="AbstractNode.check_ros2_connected">
-<a class="viewcode-back" href="../../../better_launch.elements.html#better_launch.elements.abstract_node.AbstractNode.check_ros2_connected">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">check_ros2_connected</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">timeout</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<div class="viewcode-block" id="AbstractNode.is_ros2_connected">
+<a class="viewcode-back" href="../../../better_launch.elements.html#better_launch.elements.abstract_node.AbstractNode.is_ros2_connected">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">is_ros2_connected</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">timeout</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Check whether this node is registered within ROS.</span>
 
 <span class="sd">        Parameters</span>
 <span class="sd">        ----------</span>
 <span class="sd">        timeout : float, optional</span>
-<span class="sd">            How long to wait for the node to sign up with ROS. Wait forever if negative.</span>
+<span class="sd">            How long to wait for the node to sign up with ROS. Wait forever if None.</span>
 
 <span class="sd">        Returns</span>
 <span class="sd">        -------</span>
 <span class="sd">        bool</span>
 <span class="sd">            True if the node can be discovered by ROS, False otherwise.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="c1"># Don&#39;t check is_running here as some implementations might use check_ros2_connected to</span>
+        <span class="c1"># Don&#39;t check is_running here as some implementations might use is_ros2_connected to</span>
         <span class="c1"># determine if the node is running</span>
         <span class="kn">from</span><span class="w"> </span><span class="nn">better_launch</span><span class="w"> </span><span class="kn">import</span> <span class="n">BetterLaunch</span>
 
@@ -329,18 +344,18 @@
                 <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">fullname</span> <span class="ow">in</span> <span class="n">living_nodes</span><span class="p">:</span>
                     <span class="k">return</span> <span class="kc">True</span>
 
-                <span class="k">if</span> <span class="n">timeout</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="p">(</span><span class="n">timeout</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="o">&gt;=</span> <span class="n">now</span> <span class="o">+</span> <span class="n">timeout</span><span class="p">):</span>
+                <span class="k">if</span> <span class="n">timeout</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="o">&gt;=</span> <span class="n">now</span> <span class="o">+</span> <span class="n">timeout</span><span class="p">:</span>
                     <span class="k">return</span> <span class="kc">False</span>
 
                 <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mf">0.1</span><span class="p">)</span>
-        <span class="k">except</span><span class="p">:</span>
+        <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
             <span class="c1"># Cannot check if the shared node was shut down</span>
             <span class="k">return</span> <span class="kc">None</span></div>
 
 
-<div class="viewcode-block" id="AbstractNode.check_lifecycle_node">
-<a class="viewcode-back" href="../../../better_launch.elements.html#better_launch.elements.abstract_node.AbstractNode.check_lifecycle_node">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">check_lifecycle_node</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">timeout</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<div class="viewcode-block" id="AbstractNode.is_lifecycle_node">
+<a class="viewcode-back" href="../../../better_launch.elements.html#better_launch.elements.abstract_node.AbstractNode.is_lifecycle_node">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">is_lifecycle_node</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">timeout</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Checks if this is a lifecycle node and initializes a : py:class:`LifecycleManager` if supported and not done so before.</span>
 
 <span class="sd">        Note that if you simply want to check whether this node supports lifecycle management right now, check whether :py:meth:`lifecycle` is None will be considerably cheaper.</span>
@@ -353,16 +368,16 @@
 
 <span class="sd">            node = Node(...)</span>
 <span class="sd">            # Wait until the node is registered in ROS</span>
-<span class="sd">            if node.check_ros2_connected(timeout=5.0):</span>
+<span class="sd">            if node.is_ros2_connected(timeout=5.0):</span>
 <span class="sd">                # Give the node some additional time to create its lifecycle topics</span>
-<span class="sd">                if node.check_lifecycle_node(timeout=0.1):</span>
+<span class="sd">                if node.is_lifecycle_node(timeout=0.1):</span>
 <span class="sd">                    # Now the node can be managed</span>
 <span class="sd">                    node.lifecycle.transition(...)</span>
 
 <span class="sd">        Parameters</span>
 <span class="sd">        ----------</span>
 <span class="sd">        timeout : float, optional</span>
-<span class="sd">            How long to wait for the node to reveal its lifecycle capabilities. Wait forever if negative.</span>
+<span class="sd">            How long to wait for the node to reveal its lifecycle capabilities. Wait forever if None.</span>
 
 <span class="sd">        Returns</span>
 <span class="sd">        -------</span>
@@ -380,12 +395,12 @@
     <span class="k">def</span><span class="w"> </span><span class="nf">lifecycle</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">LifecycleManager</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Returns this node&#39;s :py:class:`LifecyceManager`.</span>
 
-<span class="sd">        **Note:** make sure to call :py:meth:`check_lifecycle_node` before retrieving this object!</span>
+<span class="sd">        **Note:** make sure to call :py:meth:`is_lifecycle_node` before retrieving this object!</span>
 
 <span class="sd">        Returns</span>
 <span class="sd">        -------</span>
 <span class="sd">        LifecycleManager</span>
-<span class="sd">            The object used for managing this node&#39;s lifecycle. Will be None if lifecycle management is not supported or `check_lifecycle_node` has not been called before.</span>
+<span class="sd">            The object used for managing this node&#39;s lifecycle. Will be None if lifecycle management is not supported or `is_lifecycle_node` has not been called before.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_lifecycle_manager</span>
 
@@ -397,9 +412,9 @@
 <span class="sd">        Returns</span>
 <span class="sd">        -------</span>
 <span class="sd">        dict[str, list[str]]</span>
-<span class="sd">            The service topics and message types. Will be empty if :py:meth:`check_ros2_connected` is False.</span>
+<span class="sd">            The service topics and message types. Will be empty if :py:meth:`is_ros2_connected` is False.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">check_ros2_connected</span><span class="p">():</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_ros2_connected</span><span class="p">():</span>
             <span class="k">return</span> <span class="p">{}</span>
 
         <span class="kn">from</span><span class="w"> </span><span class="nn">better_launch</span><span class="w"> </span><span class="kn">import</span> <span class="n">BetterLaunch</span>
@@ -424,23 +439,36 @@
 <span class="sd">        Returns</span>
 <span class="sd">        -------</span>
 <span class="sd">        dict[str, list[str]]</span>
-<span class="sd">            The topics and their message types. Will be empty if :py:meth:`check_ros2_connected` is False.</span>
+<span class="sd">            The topics and their message types. Will be empty if :py:meth:`is_ros2_connected` is False.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">check_ros2_connected</span><span class="p">():</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_ros2_connected</span><span class="p">():</span>
             <span class="k">return</span> <span class="p">{}</span>
 
         <span class="kn">from</span><span class="w"> </span><span class="nn">better_launch</span><span class="w"> </span><span class="kn">import</span> <span class="n">BetterLaunch</span>
 
         <span class="n">bl</span> <span class="o">=</span> <span class="n">BetterLaunch</span><span class="o">.</span><span class="n">instance</span><span class="p">()</span>
-        <span class="n">topics</span> <span class="o">=</span> <span class="n">bl</span><span class="o">.</span><span class="n">shared_node</span><span class="o">.</span><span class="n">get_topic_names_and_types</span><span class="p">()</span>
-        <span class="n">fullname</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fullname</span>
-        <span class="n">res</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="n">topics</span> <span class="o">=</span> <span class="n">bl</span><span class="o">.</span><span class="n">shared_node</span><span class="o">.</span><span class="n">get_publisher_names_and_types_by_node</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">namespace</span><span class="p">)</span>
+        <span class="k">return</span> <span class="nb">dict</span><span class="p">(</span><span class="n">topics</span><span class="p">)</span></div>
 
-        <span class="k">for</span> <span class="n">topic_name</span><span class="p">,</span> <span class="n">msg_types</span> <span class="ow">in</span> <span class="n">topics</span><span class="p">:</span>
-            <span class="k">if</span> <span class="n">topic_name</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="n">fullname</span><span class="p">):</span>
-                <span class="n">res</span><span class="p">[</span><span class="n">topic_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">msg_types</span>
 
-        <span class="k">return</span> <span class="n">res</span></div>
+<div class="viewcode-block" id="AbstractNode.get_subscribed_topics">
+<a class="viewcode-back" href="../../../better_launch.elements.html#better_launch.elements.abstract_node.AbstractNode.get_subscribed_topics">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_subscribed_topics</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get the ROS2 topics this node is subscribed to.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        dict[str, list[str]]</span>
+<span class="sd">            The topics and their message types. Will be empty if :py:meth:`is_ros2_connected` is False.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_ros2_connected</span><span class="p">():</span>
+            <span class="k">return</span> <span class="p">{}</span>
+
+        <span class="kn">from</span><span class="w"> </span><span class="nn">better_launch</span><span class="w"> </span><span class="kn">import</span> <span class="n">BetterLaunch</span>
+
+        <span class="n">bl</span> <span class="o">=</span> <span class="n">BetterLaunch</span><span class="o">.</span><span class="n">instance</span><span class="p">()</span>
+        <span class="n">topics</span> <span class="o">=</span> <span class="n">bl</span><span class="o">.</span><span class="n">shared_node</span><span class="o">.</span><span class="n">get_subscriber_names_and_types_by_node</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">namespace</span><span class="p">)</span>
+        <span class="k">return</span> <span class="nb">dict</span><span class="p">(</span><span class="n">topics</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="AbstractNode.get_info_sheet">
@@ -482,7 +510,7 @@
 <span class="s2">&quot;&quot;&quot;</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">_get_info_section_ros</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">check_ros2_connected</span><span class="p">():</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_ros2_connected</span><span class="p">():</span>
             <span class="kn">from</span><span class="w"> </span><span class="nn">better_launch</span><span class="w"> </span><span class="kn">import</span> <span class="n">BetterLaunch</span>
 
             <span class="n">shared_node</span> <span class="o">=</span> <span class="n">BetterLaunch</span><span class="o">.</span><span class="n">instance</span><span class="p">()</span><span class="o">.</span><span class="n">shared_node</span>

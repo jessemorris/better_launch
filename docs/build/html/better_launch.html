@@ -6,7 +6,7 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>better_launch package &mdash; better_launch 0.9.1 documentation</title>
+  <title>better_launch package &mdash; better_launch 1.0.0 documentation</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
 
@@ -14,7 +14,7 @@
     <link rel="shortcut icon" href="_static/logo.svg"/>
       <script src="_static/jquery.js?v=5d32c60e"></script>
       <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="_static/documentation_options.js?v=9dc39874"></script>
+      <script src="_static/documentation_options.js?v=8d563738"></script>
       <script src="_static/doctools.js?v=9bcbadda"></script>
       <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="_static/js/theme.js"></script>
@@ -91,13 +91,15 @@
 <li class="toctree-l4"><a class="reference internal" href="better_launch.elements.html#better_launch.elements.abstract_node.AbstractNode.params"><code class="docutils literal notranslate"><span class="pre">params</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="better_launch.elements.html#better_launch.elements.abstract_node.AbstractNode.remaps"><code class="docutils literal notranslate"><span class="pre">remaps</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="better_launch.elements.html#better_launch.elements.abstract_node.AbstractNode.is_running"><code class="docutils literal notranslate"><span class="pre">is_running</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="better_launch.elements.html#better_launch.elements.abstract_node.AbstractNode.join"><code class="docutils literal notranslate"><span class="pre">join()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="better_launch.elements.html#better_launch.elements.abstract_node.AbstractNode.start"><code class="docutils literal notranslate"><span class="pre">start()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="better_launch.elements.html#better_launch.elements.abstract_node.AbstractNode.shutdown"><code class="docutils literal notranslate"><span class="pre">shutdown()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="better_launch.elements.html#better_launch.elements.abstract_node.AbstractNode.check_ros2_connected"><code class="docutils literal notranslate"><span class="pre">check_ros2_connected()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="better_launch.elements.html#better_launch.elements.abstract_node.AbstractNode.check_lifecycle_node"><code class="docutils literal notranslate"><span class="pre">check_lifecycle_node()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="better_launch.elements.html#better_launch.elements.abstract_node.AbstractNode.is_ros2_connected"><code class="docutils literal notranslate"><span class="pre">is_ros2_connected()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="better_launch.elements.html#better_launch.elements.abstract_node.AbstractNode.is_lifecycle_node"><code class="docutils literal notranslate"><span class="pre">is_lifecycle_node()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="better_launch.elements.html#better_launch.elements.abstract_node.AbstractNode.lifecycle"><code class="docutils literal notranslate"><span class="pre">lifecycle</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="better_launch.elements.html#better_launch.elements.abstract_node.AbstractNode.get_published_services"><code class="docutils literal notranslate"><span class="pre">get_published_services()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="better_launch.elements.html#better_launch.elements.abstract_node.AbstractNode.get_published_topics"><code class="docutils literal notranslate"><span class="pre">get_published_topics()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="better_launch.elements.html#better_launch.elements.abstract_node.AbstractNode.get_subscribed_topics"><code class="docutils literal notranslate"><span class="pre">get_subscribed_topics()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="better_launch.elements.html#better_launch.elements.abstract_node.AbstractNode.get_info_sheet"><code class="docutils literal notranslate"><span class="pre">get_info_sheet()</span></code></a></li>
 </ul>
 </li>
@@ -111,6 +113,7 @@
 <li class="toctree-l4"><a class="reference internal" href="better_launch.elements.html#better_launch.elements.composer.Component.is_loaded"><code class="docutils literal notranslate"><span class="pre">is_loaded</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="better_launch.elements.html#better_launch.elements.composer.Component.plugin"><code class="docutils literal notranslate"><span class="pre">plugin</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="better_launch.elements.html#better_launch.elements.composer.Component.is_running"><code class="docutils literal notranslate"><span class="pre">is_running</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="better_launch.elements.html#better_launch.elements.composer.Component.join"><code class="docutils literal notranslate"><span class="pre">join()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="better_launch.elements.html#better_launch.elements.composer.Component.start"><code class="docutils literal notranslate"><span class="pre">start()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="better_launch.elements.html#better_launch.elements.composer.Component.shutdown"><code class="docutils literal notranslate"><span class="pre">shutdown()</span></code></a></li>
 </ul>
@@ -123,6 +126,7 @@
 <li class="toctree-l4"><a class="reference internal" href="better_launch.elements.html#better_launch.elements.composer.Composer.language"><code class="docutils literal notranslate"><span class="pre">language</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="better_launch.elements.html#better_launch.elements.composer.Composer.managed_components"><code class="docutils literal notranslate"><span class="pre">managed_components</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="better_launch.elements.html#better_launch.elements.composer.Composer.get_live_components"><code class="docutils literal notranslate"><span class="pre">get_live_components()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="better_launch.elements.html#better_launch.elements.composer.Composer.join"><code class="docutils literal notranslate"><span class="pre">join()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="better_launch.elements.html#better_launch.elements.composer.Composer.start"><code class="docutils literal notranslate"><span class="pre">start()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="better_launch.elements.html#better_launch.elements.composer.Composer.shutdown"><code class="docutils literal notranslate"><span class="pre">shutdown()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="better_launch.elements.html#better_launch.elements.composer.Composer.load_component"><code class="docutils literal notranslate"><span class="pre">load_component()</span></code></a></li>
@@ -143,6 +147,7 @@
 <li class="toctree-l4"><a class="reference internal" href="better_launch.elements.html#better_launch.elements.foreign_node.ForeignNode.pid"><code class="docutils literal notranslate"><span class="pre">pid</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="better_launch.elements.html#better_launch.elements.foreign_node.ForeignNode.cmd_args"><code class="docutils literal notranslate"><span class="pre">cmd_args</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="better_launch.elements.html#better_launch.elements.foreign_node.ForeignNode.is_running"><code class="docutils literal notranslate"><span class="pre">is_running</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="better_launch.elements.html#better_launch.elements.foreign_node.ForeignNode.join"><code class="docutils literal notranslate"><span class="pre">join()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="better_launch.elements.html#better_launch.elements.foreign_node.ForeignNode.start"><code class="docutils literal notranslate"><span class="pre">start()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="better_launch.elements.html#better_launch.elements.foreign_node.ForeignNode.shutdown"><code class="docutils literal notranslate"><span class="pre">shutdown()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="better_launch.elements.html#better_launch.elements.foreign_node.ForeignNode.takeover"><code class="docutils literal notranslate"><span class="pre">takeover()</span></code></a></li>
@@ -195,6 +200,7 @@
 <li class="toctree-l4"><a class="reference internal" href="better_launch.elements.html#better_launch.elements.node.Node.__init__"><code class="docutils literal notranslate"><span class="pre">__init__()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="better_launch.elements.html#better_launch.elements.node.Node.pid"><code class="docutils literal notranslate"><span class="pre">pid</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="better_launch.elements.html#better_launch.elements.node.Node.is_running"><code class="docutils literal notranslate"><span class="pre">is_running</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="better_launch.elements.html#better_launch.elements.node.Node.join"><code class="docutils literal notranslate"><span class="pre">join()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="better_launch.elements.html#better_launch.elements.node.Node.start"><code class="docutils literal notranslate"><span class="pre">start()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="better_launch.elements.html#better_launch.elements.node.Node.shutdown"><code class="docutils literal notranslate"><span class="pre">shutdown()</span></code></a></li>
 </ul>
@@ -207,9 +213,10 @@
 <li class="toctree-l4"><a class="reference internal" href="better_launch.elements.html#better_launch.elements.ros2_launch_wrapper.Ros2LaunchWrapper.pid"><code class="docutils literal notranslate"><span class="pre">pid</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="better_launch.elements.html#better_launch.elements.ros2_launch_wrapper.Ros2LaunchWrapper.launchservice_args"><code class="docutils literal notranslate"><span class="pre">launchservice_args</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="better_launch.elements.html#better_launch.elements.ros2_launch_wrapper.Ros2LaunchWrapper.is_running"><code class="docutils literal notranslate"><span class="pre">is_running</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="better_launch.elements.html#better_launch.elements.ros2_launch_wrapper.Ros2LaunchWrapper.check_ros2_connected"><code class="docutils literal notranslate"><span class="pre">check_ros2_connected()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="better_launch.elements.html#better_launch.elements.ros2_launch_wrapper.Ros2LaunchWrapper.check_lifecycle_node"><code class="docutils literal notranslate"><span class="pre">check_lifecycle_node()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="better_launch.elements.html#better_launch.elements.ros2_launch_wrapper.Ros2LaunchWrapper.is_ros2_connected"><code class="docutils literal notranslate"><span class="pre">is_ros2_connected()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="better_launch.elements.html#better_launch.elements.ros2_launch_wrapper.Ros2LaunchWrapper.is_lifecycle_node"><code class="docutils literal notranslate"><span class="pre">is_lifecycle_node()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="better_launch.elements.html#better_launch.elements.ros2_launch_wrapper.Ros2LaunchWrapper.queue_ros2_actions"><code class="docutils literal notranslate"><span class="pre">queue_ros2_actions()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="better_launch.elements.html#better_launch.elements.ros2_launch_wrapper.Ros2LaunchWrapper.join"><code class="docutils literal notranslate"><span class="pre">join()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="better_launch.elements.html#better_launch.elements.ros2_launch_wrapper.Ros2LaunchWrapper.start"><code class="docutils literal notranslate"><span class="pre">start()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="better_launch.elements.html#better_launch.elements.ros2_launch_wrapper.Ros2LaunchWrapper.shutdown"><code class="docutils literal notranslate"><span class="pre">shutdown()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="better_launch.elements.html#better_launch.elements.ros2_launch_wrapper.Ros2LaunchWrapper.send_signal"><code class="docutils literal notranslate"><span class="pre">send_signal()</span></code></a></li>
@@ -230,6 +237,7 @@
 <li class="toctree-l4"><a class="reference internal" href="better_launch.elements.html#better_launch.elements.Node.__init__"><code class="docutils literal notranslate"><span class="pre">__init__()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="better_launch.elements.html#better_launch.elements.Node.pid"><code class="docutils literal notranslate"><span class="pre">pid</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="better_launch.elements.html#better_launch.elements.Node.is_running"><code class="docutils literal notranslate"><span class="pre">is_running</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="better_launch.elements.html#better_launch.elements.Node.join"><code class="docutils literal notranslate"><span class="pre">join()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="better_launch.elements.html#better_launch.elements.Node.start"><code class="docutils literal notranslate"><span class="pre">start()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="better_launch.elements.html#better_launch.elements.Node.shutdown"><code class="docutils literal notranslate"><span class="pre">shutdown()</span></code></a></li>
 </ul>
@@ -258,6 +266,7 @@
 <li class="toctree-l4"><a class="reference internal" href="better_launch.elements.html#better_launch.elements.Composer.language"><code class="docutils literal notranslate"><span class="pre">language</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="better_launch.elements.html#better_launch.elements.Composer.managed_components"><code class="docutils literal notranslate"><span class="pre">managed_components</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="better_launch.elements.html#better_launch.elements.Composer.get_live_components"><code class="docutils literal notranslate"><span class="pre">get_live_components()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="better_launch.elements.html#better_launch.elements.Composer.join"><code class="docutils literal notranslate"><span class="pre">join()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="better_launch.elements.html#better_launch.elements.Composer.start"><code class="docutils literal notranslate"><span class="pre">start()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="better_launch.elements.html#better_launch.elements.Composer.shutdown"><code class="docutils literal notranslate"><span class="pre">shutdown()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="better_launch.elements.html#better_launch.elements.Composer.load_component"><code class="docutils literal notranslate"><span class="pre">load_component()</span></code></a></li>
@@ -271,6 +280,7 @@
 <li class="toctree-l4"><a class="reference internal" href="better_launch.elements.html#better_launch.elements.Component.is_loaded"><code class="docutils literal notranslate"><span class="pre">is_loaded</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="better_launch.elements.html#better_launch.elements.Component.plugin"><code class="docutils literal notranslate"><span class="pre">plugin</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="better_launch.elements.html#better_launch.elements.Component.is_running"><code class="docutils literal notranslate"><span class="pre">is_running</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="better_launch.elements.html#better_launch.elements.Component.join"><code class="docutils literal notranslate"><span class="pre">join()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="better_launch.elements.html#better_launch.elements.Component.start"><code class="docutils literal notranslate"><span class="pre">start()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="better_launch.elements.html#better_launch.elements.Component.shutdown"><code class="docutils literal notranslate"><span class="pre">shutdown()</span></code></a></li>
 </ul>
@@ -281,6 +291,7 @@
 <li class="toctree-l4"><a class="reference internal" href="better_launch.elements.html#better_launch.elements.ForeignNode.pid"><code class="docutils literal notranslate"><span class="pre">pid</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="better_launch.elements.html#better_launch.elements.ForeignNode.cmd_args"><code class="docutils literal notranslate"><span class="pre">cmd_args</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="better_launch.elements.html#better_launch.elements.ForeignNode.is_running"><code class="docutils literal notranslate"><span class="pre">is_running</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="better_launch.elements.html#better_launch.elements.ForeignNode.join"><code class="docutils literal notranslate"><span class="pre">join()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="better_launch.elements.html#better_launch.elements.ForeignNode.start"><code class="docutils literal notranslate"><span class="pre">start()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="better_launch.elements.html#better_launch.elements.ForeignNode.shutdown"><code class="docutils literal notranslate"><span class="pre">shutdown()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="better_launch.elements.html#better_launch.elements.ForeignNode.takeover"><code class="docutils literal notranslate"><span class="pre">takeover()</span></code></a></li>
@@ -446,14 +457,14 @@
 
 <dl class="py function">
 <dt class="sig sig-object py" id="better_launch.convenience.read_robot_description">
-<span class="sig-prename descclassname"><span class="pre">better_launch.convenience.</span></span><span class="sig-name descname"><span class="pre">read_robot_description</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">package</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">urdf_or_xacro</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">subdir</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">xacro_args</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/better_launch/convenience.html#read_robot_description"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#better_launch.convenience.read_robot_description" title="Link to this definition"></a></dt>
+<span class="sig-prename descclassname"><span class="pre">better_launch.convenience.</span></span><span class="sig-name descname"><span class="pre">read_robot_description</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">package</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">description_file</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">subdir</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">xacro_args</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/better_launch/convenience.html#read_robot_description"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#better_launch.convenience.read_robot_description" title="Link to this definition"></a></dt>
 <dd><p>Returns the contents of a robot description after a potential xacro parse.</p>
 <p>The file is resolved using <code class="xref py py-meth docutils literal notranslate"><span class="pre">BetterLaunch.find()</span></code>. If the description file ends with <cite>.urdf</cite> and <cite>xacro_args</cite> is not provided, it reads the URDF file directly. Otherwise it runs <cite>xacro</cite> to generate the URDF from a <cite>.xacro</cite> file.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>package</strong> (<em>str</em><em>, </em><em>optional</em>) – The package where the robot description file is located. May be <cite>None</cite> (see <code class="xref py py-meth docutils literal notranslate"><span class="pre">BetterLaunch.find()</span></code>)</p></li>
-<li><p><strong>urdf_or_xacro</strong> (<em>str</em><em>, </em><em>optional</em>) – The name of the robot description file (URDF or XACRO).</p></li>
+<li><p><strong>description_file</strong> (<em>str</em><em>, </em><em>optional</em>) – The name of the robot description file (URDF or XACRO).</p></li>
 <li><p><strong>subdir</strong> (<em>str</em><em>, </em><em>optional</em>) – A path fragment the description file must be located in.</p></li>
 <li><p><strong>xacro_args</strong> (<em>list</em><em> of </em><em>str</em><em>, </em><em>optional</em>) – Additional arguments to pass to <cite>xacro</cite> when processing <cite>.xacro</cite> files.</p></li>
 </ul>
@@ -463,6 +474,9 @@
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>str | None</p>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>ValueError</strong> – If the xacro command encountered an error while processing the file.</p>
 </dd>
 </dl>
 </dd></dl>
@@ -490,13 +504,13 @@
 
 <dl class="py function">
 <dt class="sig sig-object py" id="better_launch.convenience.robot_state_publisher">
-<span class="sig-prename descclassname"><span class="pre">better_launch.convenience.</span></span><span class="sig-name descname"><span class="pre">robot_state_publisher</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">package</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">urdf_or_xacro</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">subdir</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">xacro_args</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">node_name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/better_launch/convenience.html#robot_state_publisher"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#better_launch.convenience.robot_state_publisher" title="Link to this definition"></a></dt>
+<span class="sig-prename descclassname"><span class="pre">better_launch.convenience.</span></span><span class="sig-name descname"><span class="pre">robot_state_publisher</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">package</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">description_file</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">subdir</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">xacro_args</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">node_name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/better_launch/convenience.html#robot_state_publisher"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#better_launch.convenience.robot_state_publisher" title="Link to this definition"></a></dt>
 <dd><p>Start a Robot State Publisher node using the given URDF/Xacro file. The file is resolved using <code class="xref py py-meth docutils literal notranslate"><span class="pre">BetterLaunch.find()</span></code>.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>package</strong> (<em>str</em><em>, </em><em>optional</em>) – The name of the package containing the robot description file.</p></li>
-<li><p><strong>urdf_or_xacro</strong> (<em>str</em><em>, </em><em>optional</em>) – The name of the URDF or Xacro file describing the robot model.</p></li>
+<li><p><strong>description_file</strong> (<em>str</em><em>, </em><em>optional</em>) – The name of the robot description for the robot. Typically a .sdf, .urdf or .xacro file.</p></li>
 <li><p><strong>subdir</strong> (<em>str</em><em>, </em><em>optional</em>) – A path fragment the description file must be located in.</p></li>
 <li><p><strong>xacro_args</strong> (<em>list</em><em> of </em><em>str</em><em>, </em><em>optional</em>) – Additional arguments to pass to the Xacro processor when processing <cite>.xacro</cite> files.</p></li>
 <li><p><strong>node_name</strong> (<em>str</em><em>, </em><em>optional</em>) – The name of the node. If not provided the name of the executable will be used. Will be anonymized unless <cite>anonymous=False</cite> is passed.</p></li>
@@ -508,6 +522,31 @@
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p><a class="reference internal" href="better_launch.elements.html#better_launch.elements.node.Node" title="better_launch.elements.node.Node">Node</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="better_launch.convenience.static_transform_publisher">
+<span class="sig-prename descclassname"><span class="pre">better_launch.convenience.</span></span><span class="sig-name descname"><span class="pre">static_transform_publisher</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">parent_frame</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">child_frame</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pos</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rot</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/better_launch/convenience.html#static_transform_publisher"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#better_launch.convenience.static_transform_publisher" title="Link to this definition"></a></dt>
+<dd><p>Publish a static transform between two frames.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>parent_frame</strong> (<em>str</em>) – The parent or source frame.</p></li>
+<li><p><strong>child_frame</strong> (<em>str</em>) – The child or target frame.</p></li>
+<li><p><strong>pos</strong> (<em>Sequence</em><em>[</em><em>float</em><em>]</em><em>, </em><em>optional</em>) – The xyz-translation from parent to child frame. You may also pass a sequence of 6 or 7 floats in order to specify a full pose. In this case, <cite>rot</cite> will be ignored.</p></li>
+<li><p><strong>rot</strong> (<em>Sequence</em><em>[</em><em>float</em><em>]</em><em>, </em><em>optional</em>) – The rotation between the parent and child frame. If length is 3, the values are interpreted as roll-pitch-yaw euler angles. If length is 4, an xyzw-quaternion is assumed.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The node running the publisher process.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="better_launch.elements.html#better_launch.elements.node.Node" title="better_launch.elements.node.Node">Node</a></p>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>ValueError</strong> – If pos or rot have the wrong length.</p>
 </dd>
 </dl>
 </dd></dl>
@@ -569,14 +608,16 @@
 
 <dl class="py function">
 <dt class="sig sig-object py" id="better_launch.gazebo.spawn_model">
-<span class="sig-prename descclassname"><span class="pre">better_launch.gazebo.</span></span><span class="sig-name descname"><span class="pre">spawn_model</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">topic_or_file</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">spawn_args</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/better_launch/gazebo.html#spawn_model"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#better_launch.gazebo.spawn_model" title="Link to this definition"></a></dt>
+<span class="sig-prename descclassname"><span class="pre">better_launch.gazebo.</span></span><span class="sig-name descname"><span class="pre">spawn_model</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">model</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">model_source</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'auto'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">spawn_args</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/better_launch/gazebo.html#spawn_model"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#better_launch.gazebo.spawn_model" title="Link to this definition"></a></dt>
 <dd><p>Spawns a model into Gazebo under the given name from the specified topic or file.</p>
-<p>The spawn_args dictionary can include additional options, such as the initial pose of the model.</p>
+<p>The <cite>spawn_args</cite> dictionary can include additional options, such as the initial pose of the model.</p>
+<p>Note that when spawning robot models this way, they typically also need a <code class="xref py py-meth docutils literal notranslate"><span class="pre">convenience.joint_state_publisher()</span></code>.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>name</strong> (<em>str</em>) – The name of the model to spawn in the Gazebo environment.</p></li>
-<li><p><strong>topic_or_file</strong> (<em>str</em>) – The topic or file to retrieve the model description from. Topic is tested first.</p></li>
+<li><p><strong>model</strong> (<em>str</em>) – The model to spawn. The contents of this string depend on the model_source, but should ultimately lead to a full XML description.</p></li>
+<li><p><strong>model_source</strong> (<em>str</em>) – Where to read the model from. Auto will try to guess the source based on the content of <cite>model</cite>: does it look like XML, is it a file, is it an existing topic? Otherwise assume it’s a ROS2 parameter.</p></li>
 <li><p><strong>spawn_args</strong> (<em>dict</em><em>[</em><em>str</em><em>, </em><em>Any</em><em>]</em><em>, </em><em>optional</em>) – Additional arguments for spawning the model, such as pose and other options. See <a class="reference internal" href="#better_launch.gazebo.get_gazebo_axes_args" title="better_launch.gazebo.get_gazebo_axes_args"><code class="xref py py-meth docutils literal notranslate"><span class="pre">get_gazebo_axes_args()</span></code></a> for defining the model’s orientation.</p></li>
 </ul>
 </dd>
@@ -590,22 +631,51 @@
 </dd></dl>
 
 <dl class="py function">
-<dt class="sig sig-object py" id="better_launch.gazebo.spawn_topic_bridges">
-<span class="sig-prename descclassname"><span class="pre">better_launch.gazebo.</span></span><span class="sig-name descname"><span class="pre">spawn_topic_bridges</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">bridges</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">node_name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'gz_bridge'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/better_launch/gazebo.html#spawn_topic_bridges"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#better_launch.gazebo.spawn_topic_bridges" title="Link to this definition"></a></dt>
-<dd><p>Creates a <cite>ros_gz_bridge::parameter_bridge</cite> node with the specified <cite>GazeboBridge</cite> instances.</p>
-<p>This function sets up ROS-Gazebo bridges for different topic types. Standard topic bridges (non-image) are configured via a YAML parameter file, while image topics are handled separately through remappings.</p>
+<dt class="sig sig-object py" id="better_launch.gazebo.spawn_topic_bridge">
+<span class="sig-prename descclassname"><span class="pre">better_launch.gazebo.</span></span><span class="sig-name descname"><span class="pre">spawn_topic_bridge</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">topics</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">node_name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'gz_bridge'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">remaps</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cmd_args</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/better_launch/gazebo.html#spawn_topic_bridge"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#better_launch.gazebo.spawn_topic_bridge" title="Link to this definition"></a></dt>
+<dd><p>Start a Gazebo topic bridge to relay messages between ROS2 and Gazebo.</p>
+<p>Note that there is a separate function for bridging image topics more efficiently. See <a class="reference internal" href="#better_launch.gazebo.spawn_image_bridge" title="better_launch.gazebo.spawn_image_bridge"><code class="xref py py-meth docutils literal notranslate"><span class="pre">spawn_image_bridge()</span></code></a>.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>*bridges</strong> (<a class="reference internal" href="#better_launch.gazebo.GazeboBridge" title="better_launch.gazebo.GazeboBridge"><em>GazeboBridge</em></a>) – One or more <cite>GazeboBridge</cite> instances defining the Gazebo-ROS topic bridges.</p></li>
-<li><p><strong>node_name</strong> (<em>str</em><em>, </em><em>optional</em>) – Name of the bridge node, by default <cite>“gz_bridge”</cite>.</p></li>
+<li><p><strong>bridges</strong> (<em>list</em><em>[</em><em>str</em><em> | </em><a class="reference internal" href="#better_launch.gazebo.GazeboBridge" title="better_launch.gazebo.GazeboBridge"><em>GazeboBridge</em></a><em>]</em>) – Definitions of topic bridges. This can be either a typical string (<cite>&lt;topic&gt;&#64;&lt;ros2_type&gt;&lt;direction&gt;&lt;gazebo_type&gt;</cite>) or a <a class="reference internal" href="#better_launch.gazebo.GazeboBridge" title="better_launch.gazebo.GazeboBridge"><code class="xref py py-class docutils literal notranslate"><span class="pre">GazeboBridge</span></code></a> instance. Note that in order to bridge services you will have to specify them as strings for now.</p></li>
+<li><p><strong>node_name</strong> (<em>str</em><em>, </em><em>optional</em>) – The name of the bridge node.</p></li>
+<li><p><strong>remaps</strong> (<em>dict</em><em>[</em><em>str</em><em>, </em><em>str</em><em>]</em><em>, </em><em>optional</em>) – Any topic remaps you wish to apply to the bridge.</p></li>
+<li><p><strong>cmd_args</strong> (<em>list</em><em>[</em><em>str</em><em>]</em><em>, </em><em>optional</em>) – Additional command line arguments to the gazebo bridge executable.</p></li>
+<li><p><strong>kwargs</strong> (<em>dict</em><em>[</em><em>str</em><em>, </em><em>Any</em><em>]</em>) – Additional node arguments.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>The up to two nodes that will be started by this function. The first node will be the node handling all regular topic bridges, the second the one for the image topics. Either of these may be <cite>None</cite>.</p>
+<dd class="field-even"><p>The node running the bridge process.</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>tuple[<a class="reference internal" href="better_launch.elements.html#better_launch.elements.node.Node" title="better_launch.elements.node.Node">Node</a>, <a class="reference internal" href="better_launch.elements.html#better_launch.elements.node.Node" title="better_launch.elements.node.Node">Node</a>]</p>
+<dd class="field-odd"><p><a class="reference internal" href="better_launch.elements.html#better_launch.elements.node.Node" title="better_launch.elements.node.Node">Node</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="better_launch.gazebo.spawn_image_bridge">
+<span class="sig-prename descclassname"><span class="pre">better_launch.gazebo.</span></span><span class="sig-name descname"><span class="pre">spawn_image_bridge</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">topics</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">node_name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'img_bridge'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">remaps</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cmd_args</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">qos</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'sensor_data'</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/better_launch/gazebo.html#spawn_image_bridge"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#better_launch.gazebo.spawn_image_bridge" title="Link to this definition"></a></dt>
+<dd><p>Spawn a bridge to efficiently relay images from Gazebo to ROS2 (one direction only).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>topics</strong> (<em>list</em><em>[</em><em>str</em><em>]</em>) – The image topics to bridge. These can be specified as either Gazebo bridge definitions, <a class="reference internal" href="#better_launch.gazebo.GazeboBridge" title="better_launch.gazebo.GazeboBridge"><code class="xref py py-class docutils literal notranslate"><span class="pre">GazeboBridge</span></code></a> instances, or regular topics.</p></li>
+<li><p><strong>node_name</strong> (<em>str</em><em>, </em><em>optional</em>) – The name of the node running the bridge.</p></li>
+<li><p><strong>remaps</strong> (<em>dict</em><em>[</em><em>str</em><em>, </em><em>str</em><em>]</em><em>, </em><em>optional</em>) – How topics should be remapped in ROS2.</p></li>
+<li><p><strong>cmd_args</strong> (<em>list</em><em>[</em><em>str</em><em>]</em><em>, </em><em>optional</em>) – Additional commandline arguments to the bridge executable.</p></li>
+<li><p><strong>qos</strong> (<em>str</em><em>, </em><em>optional</em>) – The <a class="reference external" href="https://docs.ros.org/en/rolling/Concepts/Intermediate/About-Quality-of-Service-Settings.html">ROS2 quality of service</a> definition to use.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The node running the bridge process.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="better_launch.elements.html#better_launch.elements.node.Node" title="better_launch.elements.node.Node">Node</a></p>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>ValueError</strong> – If a topic is passed which is not an image topic.</p>
 </dd>
 </dl>
 </dd></dl>
@@ -616,7 +686,7 @@
 <dd><p>Runs a static_transform_publisher to connect the ROS <cite>world</cite> frame and a Gazebo world frame, if the Gazebo world frame is specified and different from ‘world’.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>gazebo_world_frame</strong> (<em>str</em><em>, </em><em>optional</em>) – The name of the Gazebo world frame. If None, retrieves the default from <a class="reference internal" href="#better_launch.gazebo.GazeboBridge.world" title="better_launch.gazebo.GazeboBridge.world"><code class="xref py py-meth docutils literal notranslate"><span class="pre">GazeboBridge.world()</span></code></a>.</p>
+<dd class="field-odd"><p><strong>gazebo_world_frame</strong> (<em>str</em><em>, </em><em>optional</em>) – The name of the Gazebo world frame. If None, retrieves the default from <code class="xref py py-meth docutils literal notranslate"><span class="pre">GazeboBridge.world()</span></code>.</p>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>The spawned node instance.</p>
@@ -653,131 +723,40 @@
 
 <dl class="py class">
 <dt class="sig sig-object py" id="better_launch.gazebo.GazeboBridge">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">better_launch.gazebo.</span></span><span class="sig-name descname"><span class="pre">GazeboBridge</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">gz_topic</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ros_topic</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ros_msg</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">direction</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">gz_msg</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/better_launch/gazebo.html#GazeboBridge"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#better_launch.gazebo.GazeboBridge" title="Link to this definition"></a></dt>
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">better_launch.gazebo.</span></span><span class="sig-name descname"><span class="pre">GazeboBridge</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">topic</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ros2_type</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">direction</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'bidirectional'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">gazebo_type</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">remaps</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/better_launch/gazebo.html#GazeboBridge"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#better_launch.gazebo.GazeboBridge" title="Link to this definition"></a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
 <dl class="py attribute">
-<dt class="sig sig-object py" id="better_launch.gazebo.GazeboBridge.Direction">
-<span class="sig-name descname"><span class="pre">Direction</span></span><a class="headerlink" href="#better_launch.gazebo.GazeboBridge.Direction" title="Link to this definition"></a></dt>
-<dd><p>alias of <code class="xref py py-obj docutils literal notranslate"><span class="pre">Literal</span></code>[‘gz2ros’, ‘ros2gz’, ‘bidirectional’]</p>
-</dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="better_launch.gazebo.GazeboBridge.msg_map">
-<span class="sig-name descname"><span class="pre">msg_map</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">{'actuator_msgs/msg/Actuators':</span> <span class="pre">'gz.msgs.Actuators',</span> <span class="pre">'builtin_interfaces/msg/Time':</span> <span class="pre">'gz.msgs.Time',</span> <span class="pre">'geometry_msgs/msg/Point':</span> <span class="pre">'gz.msgs.Vector3d',</span> <span class="pre">'geometry_msgs/msg/Pose':</span> <span class="pre">'gz.msgs.Pose',</span> <span class="pre">'geometry_msgs/msg/PoseArray':</span> <span class="pre">'gz.msgs.Pose_V',</span> <span class="pre">'geometry_msgs/msg/PoseStamped':</span> <span class="pre">'gz.msgs.Pose',</span> <span class="pre">'geometry_msgs/msg/PoseWithCovariance':</span> <span class="pre">'gz.msgs.PoseWithCovariance',</span> <span class="pre">'geometry_msgs/msg/PoseWithCovarianceStamped':</span> <span class="pre">'gz.msgs.PoseWithCovariance',</span> <span class="pre">'geometry_msgs/msg/Quaternion':</span> <span class="pre">'gz.msgs.Quaternion',</span> <span class="pre">'geometry_msgs/msg/Transform':</span> <span class="pre">'gz.msgs.Pose',</span> <span class="pre">'geometry_msgs/msg/TransformStamped':</span> <span class="pre">'gz.msgs.Pose',</span> <span class="pre">'geometry_msgs/msg/Twist':</span> <span class="pre">'gz.msgs.Twist',</span> <span class="pre">'geometry_msgs/msg/TwistStamped':</span> <span class="pre">'gz.msgs.Twist',</span> <span class="pre">'geometry_msgs/msg/TwistWithCovariance':</span> <span class="pre">'gz.msgs.TwistWithCovariance',</span> <span class="pre">'geometry_msgs/msg/TwistWithCovarianceStamped':</span> <span class="pre">'gz.msgs.TwistWithCovariance',</span> <span class="pre">'geometry_msgs/msg/Vector3':</span> <span class="pre">'gz.msgs.Vector3d',</span> <span class="pre">'geometry_msgs/msg/Wrench':</span> <span class="pre">'gz.msgs.Wrench',</span> <span class="pre">'geometry_msgs/msg/WrenchStamped':</span> <span class="pre">'gz.msgs.Wrench',</span> <span class="pre">'gps_msgs/msg/GPSFix':</span> <span class="pre">'gz.msgs.NavSat',</span> <span class="pre">'nav_msgs/msg/Odometry':</span> <span class="pre">'gz.msgs.OdometryWithCovariance',</span> <span class="pre">'rcl_interfaces/msg/ParameterValue':</span> <span class="pre">'gz.msgs.Any',</span> <span class="pre">'ros_gz_interfaces/msg/Altimeter':</span> <span class="pre">'gz.msgs.Altimeter',</span> <span class="pre">'ros_gz_interfaces/msg/Contact':</span> <span class="pre">'gz.msgs.Contact',</span> <span class="pre">'ros_gz_interfaces/msg/Contacts':</span> <span class="pre">'gz.msgs.Contacts',</span> <span class="pre">'ros_gz_interfaces/msg/Dataframe':</span> <span class="pre">'gz.msgs.Dataframe',</span> <span class="pre">'ros_gz_interfaces/msg/Entity':</span> <span class="pre">'gz.msgs.Entity',</span> <span class="pre">'ros_gz_interfaces/msg/Float32Array':</span> <span class="pre">'gz.msgs.Float_V',</span> <span class="pre">'ros_gz_interfaces/msg/GuiCamera':</span> <span class="pre">'gz.msgs.GUICamera',</span> <span class="pre">'ros_gz_interfaces/msg/JointWrench':</span> <span class="pre">'gz.msgs.JointWrench',</span> <span class="pre">'ros_gz_interfaces/msg/Light':</span> <span class="pre">'gz.msgs.Light',</span> <span class="pre">'ros_gz_interfaces/msg/ParamVec':</span> <span class="pre">'gz.msgs.Param',</span> <span class="pre">'ros_gz_interfaces/msg/SensorNoise':</span> <span class="pre">'gz.msgs.SensorNoise',</span> <span class="pre">'ros_gz_interfaces/msg/StringVec':</span> <span class="pre">'gz.msgs.StringMsg_V',</span> <span class="pre">'ros_gz_interfaces/msg/TrackVisual':</span> <span class="pre">'gz.msgs.TrackVisual',</span> <span class="pre">'ros_gz_interfaces/msg/VideoRecord':</span> <span class="pre">'gz.msgs.VideoRecord',</span> <span class="pre">'rosgraph_msgs/msg/Clock':</span> <span class="pre">'gz.msgs.Clock',</span> <span class="pre">'sensor_msgs/msg/BatteryState':</span> <span class="pre">'gz.msgs.BatteryState',</span> <span class="pre">'sensor_msgs/msg/CameraInfo':</span> <span class="pre">'gz.msgs.CameraInfo',</span> <span class="pre">'sensor_msgs/msg/FluidPressure':</span> <span class="pre">'gz.msgs.FluidPressure',</span> <span class="pre">'sensor_msgs/msg/Image':</span> <span class="pre">'gz.msgs.Image',</span> <span class="pre">'sensor_msgs/msg/Imu':</span> <span class="pre">'gz.msgs.IMU',</span> <span class="pre">'sensor_msgs/msg/JointState':</span> <span class="pre">'gz.msgs.Model',</span> <span class="pre">'sensor_msgs/msg/Joy':</span> <span class="pre">'gz.msgs.Joy',</span> <span class="pre">'sensor_msgs/msg/LaserScan':</span> <span class="pre">'gz.msgs.LaserScan',</span> <span class="pre">'sensor_msgs/msg/MagneticField':</span> <span class="pre">'gz.msgs.Magnetometer',</span> <span class="pre">'sensor_msgs/msg/NavSatFix':</span> <span class="pre">'gz.msgs.NavSat',</span> <span class="pre">'sensor_msgs/msg/PointCloud2':</span> <span class="pre">'gz.msgs.PointCloudPacked',</span> <span class="pre">'std_msgs/msg/Bool':</span> <span class="pre">'gz.msgs.Boolean',</span> <span class="pre">'std_msgs/msg/ColorRGBA':</span> <span class="pre">'gz.msgs.Color',</span> <span class="pre">'std_msgs/msg/Empty':</span> <span class="pre">'gz.msgs.Empty',</span> <span class="pre">'std_msgs/msg/Float32':</span> <span class="pre">'gz.msgs.Float',</span> <span class="pre">'std_msgs/msg/Float64':</span> <span class="pre">'gz.msgs.Double',</span> <span class="pre">'std_msgs/msg/Header':</span> <span class="pre">'gz.msgs.Header',</span> <span class="pre">'std_msgs/msg/Int32':</span> <span class="pre">'gz.msgs.Int32',</span> <span class="pre">'std_msgs/msg/String':</span> <span class="pre">'gz.msgs.StringMsg',</span> <span class="pre">'std_msgs/msg/UInt32':</span> <span class="pre">'gz.msgs.UInt32',</span> <span class="pre">'tf2_msgs/msg/TFMessage':</span> <span class="pre">'gz.msgs.Pose_V',</span> <span class="pre">'trajectory_msgs/msg/JointTrajectory':</span> <span class="pre">'gz.msgs.JointTrajectory',</span> <span class="pre">'vision_msgs/msg/Detection2D':</span> <span class="pre">'gz.msgs.AnnotatedAxisAligned2DBox',</span> <span class="pre">'vision_msgs/msg/Detection2DArray':</span> <span class="pre">'gz.msgs.AnnotatedAxisAligned2DBox_V'}</span></em><a class="headerlink" href="#better_launch.gazebo.GazeboBridge.msg_map" title="Link to this definition"></a></dt>
+<dt class="sig sig-object py" id="better_launch.gazebo.GazeboBridge.gazebo_message_types">
+<span class="sig-name descname"><span class="pre">gazebo_message_types</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">{'actuator_msgs/msg/Actuators':</span> <span class="pre">'gz.msgs.Actuators',</span> <span class="pre">'builtin_interfaces/msg/Time':</span> <span class="pre">'gz.msgs.Time',</span> <span class="pre">'geometry_msgs/msg/Point':</span> <span class="pre">'gz.msgs.Vector3d',</span> <span class="pre">'geometry_msgs/msg/Pose':</span> <span class="pre">'gz.msgs.Pose',</span> <span class="pre">'geometry_msgs/msg/PoseArray':</span> <span class="pre">'gz.msgs.Pose_V',</span> <span class="pre">'geometry_msgs/msg/PoseStamped':</span> <span class="pre">'gz.msgs.Pose',</span> <span class="pre">'geometry_msgs/msg/PoseWithCovariance':</span> <span class="pre">'gz.msgs.PoseWithCovariance',</span> <span class="pre">'geometry_msgs/msg/PoseWithCovarianceStamped':</span> <span class="pre">'gz.msgs.PoseWithCovariance',</span> <span class="pre">'geometry_msgs/msg/Quaternion':</span> <span class="pre">'gz.msgs.Quaternion',</span> <span class="pre">'geometry_msgs/msg/Transform':</span> <span class="pre">'gz.msgs.Pose',</span> <span class="pre">'geometry_msgs/msg/TransformStamped':</span> <span class="pre">'gz.msgs.Pose',</span> <span class="pre">'geometry_msgs/msg/Twist':</span> <span class="pre">'gz.msgs.Twist',</span> <span class="pre">'geometry_msgs/msg/TwistStamped':</span> <span class="pre">'gz.msgs.Twist',</span> <span class="pre">'geometry_msgs/msg/TwistWithCovariance':</span> <span class="pre">'gz.msgs.TwistWithCovariance',</span> <span class="pre">'geometry_msgs/msg/TwistWithCovarianceStamped':</span> <span class="pre">'gz.msgs.TwistWithCovariance',</span> <span class="pre">'geometry_msgs/msg/Vector3':</span> <span class="pre">'gz.msgs.Vector3d',</span> <span class="pre">'geometry_msgs/msg/Wrench':</span> <span class="pre">'gz.msgs.Wrench',</span> <span class="pre">'geometry_msgs/msg/WrenchStamped':</span> <span class="pre">'gz.msgs.Wrench',</span> <span class="pre">'gps_msgs/msg/GPSFix':</span> <span class="pre">'gz.msgs.NavSat',</span> <span class="pre">'nav_msgs/msg/Odometry':</span> <span class="pre">'gz.msgs.OdometryWithCovariance',</span> <span class="pre">'rcl_interfaces/msg/ParameterValue':</span> <span class="pre">'gz.msgs.Any',</span> <span class="pre">'ros_gz_interfaces/msg/Altimeter':</span> <span class="pre">'gz.msgs.Altimeter',</span> <span class="pre">'ros_gz_interfaces/msg/Contact':</span> <span class="pre">'gz.msgs.Contact',</span> <span class="pre">'ros_gz_interfaces/msg/Contacts':</span> <span class="pre">'gz.msgs.Contacts',</span> <span class="pre">'ros_gz_interfaces/msg/Dataframe':</span> <span class="pre">'gz.msgs.Dataframe',</span> <span class="pre">'ros_gz_interfaces/msg/Entity':</span> <span class="pre">'gz.msgs.Entity',</span> <span class="pre">'ros_gz_interfaces/msg/Float32Array':</span> <span class="pre">'gz.msgs.Float_V',</span> <span class="pre">'ros_gz_interfaces/msg/GuiCamera':</span> <span class="pre">'gz.msgs.GUICamera',</span> <span class="pre">'ros_gz_interfaces/msg/JointWrench':</span> <span class="pre">'gz.msgs.JointWrench',</span> <span class="pre">'ros_gz_interfaces/msg/Light':</span> <span class="pre">'gz.msgs.Light',</span> <span class="pre">'ros_gz_interfaces/msg/ParamVec':</span> <span class="pre">'gz.msgs.Param',</span> <span class="pre">'ros_gz_interfaces/msg/SensorNoise':</span> <span class="pre">'gz.msgs.SensorNoise',</span> <span class="pre">'ros_gz_interfaces/msg/StringVec':</span> <span class="pre">'gz.msgs.StringMsg_V',</span> <span class="pre">'ros_gz_interfaces/msg/TrackVisual':</span> <span class="pre">'gz.msgs.TrackVisual',</span> <span class="pre">'ros_gz_interfaces/msg/VideoRecord':</span> <span class="pre">'gz.msgs.VideoRecord',</span> <span class="pre">'rosgraph_msgs/msg/Clock':</span> <span class="pre">'gz.msgs.Clock',</span> <span class="pre">'sensor_msgs/msg/BatteryState':</span> <span class="pre">'gz.msgs.BatteryState',</span> <span class="pre">'sensor_msgs/msg/CameraInfo':</span> <span class="pre">'gz.msgs.CameraInfo',</span> <span class="pre">'sensor_msgs/msg/FluidPressure':</span> <span class="pre">'gz.msgs.FluidPressure',</span> <span class="pre">'sensor_msgs/msg/Image':</span> <span class="pre">'gz.msgs.Image',</span> <span class="pre">'sensor_msgs/msg/Imu':</span> <span class="pre">'gz.msgs.IMU',</span> <span class="pre">'sensor_msgs/msg/JointState':</span> <span class="pre">'gz.msgs.Model',</span> <span class="pre">'sensor_msgs/msg/Joy':</span> <span class="pre">'gz.msgs.Joy',</span> <span class="pre">'sensor_msgs/msg/LaserScan':</span> <span class="pre">'gz.msgs.LaserScan',</span> <span class="pre">'sensor_msgs/msg/MagneticField':</span> <span class="pre">'gz.msgs.Magnetometer',</span> <span class="pre">'sensor_msgs/msg/NavSatFix':</span> <span class="pre">'gz.msgs.NavSat',</span> <span class="pre">'sensor_msgs/msg/PointCloud2':</span> <span class="pre">'gz.msgs.PointCloudPacked',</span> <span class="pre">'std_msgs/msg/Bool':</span> <span class="pre">'gz.msgs.Boolean',</span> <span class="pre">'std_msgs/msg/ColorRGBA':</span> <span class="pre">'gz.msgs.Color',</span> <span class="pre">'std_msgs/msg/Empty':</span> <span class="pre">'gz.msgs.Empty',</span> <span class="pre">'std_msgs/msg/Float32':</span> <span class="pre">'gz.msgs.Float',</span> <span class="pre">'std_msgs/msg/Float64':</span> <span class="pre">'gz.msgs.Double',</span> <span class="pre">'std_msgs/msg/Header':</span> <span class="pre">'gz.msgs.Header',</span> <span class="pre">'std_msgs/msg/Int32':</span> <span class="pre">'gz.msgs.Int32',</span> <span class="pre">'std_msgs/msg/String':</span> <span class="pre">'gz.msgs.StringMsg',</span> <span class="pre">'std_msgs/msg/UInt32':</span> <span class="pre">'gz.msgs.UInt32',</span> <span class="pre">'tf2_msgs/msg/TFMessage':</span> <span class="pre">'gz.msgs.Pose_V',</span> <span class="pre">'trajectory_msgs/msg/JointTrajectory':</span> <span class="pre">'gz.msgs.JointTrajectory',</span> <span class="pre">'vision_msgs/msg/Detection2D':</span> <span class="pre">'gz.msgs.AnnotatedAxisAligned2DBox',</span> <span class="pre">'vision_msgs/msg/Detection2DArray':</span> <span class="pre">'gz.msgs.AnnotatedAxisAligned2DBox_V'}</span></em><a class="headerlink" href="#better_launch.gazebo.GazeboBridge.gazebo_message_types" title="Link to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
-<dt class="sig sig-object py" id="better_launch.gazebo.GazeboBridge.__init__">
-<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">gz_topic</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ros_topic</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ros_msg</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">direction</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">gz_msg</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/better_launch/gazebo.html#GazeboBridge.__init__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#better_launch.gazebo.GazeboBridge.__init__" title="Link to this definition"></a></dt>
-<dd><p>Initializes a ROS-to-Gazebo bridge with the specified parameters.</p>
-<p>This constructor sets up the bridge between a ROS topic and a Gazebo topic. It maps the ROS message type to a Gazebo message type and validates the direction of communication (i.e. ROS to Gazebo, Gazebo to ROS, or bidirectional).</p>
+<dt class="sig sig-object py" id="better_launch.gazebo.GazeboBridge.from_string">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">from_string</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">bridge</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">remaps</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/better_launch/gazebo.html#GazeboBridge.from_string"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#better_launch.gazebo.GazeboBridge.from_string" title="Link to this definition"></a></dt>
+<dd><p>Extract the topic, ROS2 message type, direction, and gazebo message type from a bridge definition string.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>gz_topic</strong> (<em>str</em>) – The Gazebo topic to be bridged.</p></li>
-<li><p><strong>ros_topic</strong> (<em>str</em>) – The ROS topic to be bridged.</p></li>
-<li><p><strong>ros_msg</strong> (<em>str</em>) – The message type used on the ROS topic.</p></li>
-<li><p><strong>direction</strong> (<em>Direction</em>) – The direction of the bridge.</p></li>
-<li><p><strong>gz_msg</strong> (<em>str</em><em>, </em><em>optional</em>) – The Gazebo message type. If not provided, it will be inferred from the ROS message type.</p></li>
+<li><p><strong>bridge</strong> (<em>str</em>) – A bridge definition following the pattern <cite>&lt;topic&gt;&#64;&lt;ros2_type&gt;&lt;direction&gt;&lt;gazebo_type&gt;</cite>.</p></li>
+<li><p><strong>remaps</strong> (<em>str</em><em>, </em><em>optional</em>) – Topic remaps the bridge should use once it is started.</p></li>
 </ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>An instance with the aforementionend parameters.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="#better_launch.gazebo.GazeboBridge" title="better_launch.gazebo.GazeboBridge">GazeboBridge</a></p>
 </dd>
 <dt class="field-even">Raises<span class="colon">:</span></dt>
-<dd class="field-even"><p><strong>ValueError</strong> – If the provided message type or direction is invalid.</p>
+<dd class="field-even"><p><strong>ValueError</strong> – If the bridge string doesn’t match the expected pattern.</p>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="py method">
-<dt class="sig sig-object py" id="better_launch.gazebo.GazeboBridge.gz_exec">
-<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">gz_exec</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/better_launch/gazebo.html#GazeboBridge.gz_exec"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#better_launch.gazebo.GazeboBridge.gz_exec" title="Link to this definition"></a></dt>
-<dd><dl class="field-list simple">
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span></p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="better_launch.gazebo.GazeboBridge.yaml">
-<span class="sig-name descname"><span class="pre">yaml</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/better_launch/gazebo.html#GazeboBridge.yaml"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#better_launch.gazebo.GazeboBridge.yaml" title="Link to this definition"></a></dt>
-<dd><p>Returns a YAML snippet that can be used to configure other bridges.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span></p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="better_launch.gazebo.GazeboBridge.set_world_name">
-<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">set_world_name</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/better_launch/gazebo.html#GazeboBridge.set_world_name"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#better_launch.gazebo.GazeboBridge.set_world_name" title="Link to this definition"></a></dt>
-<dd><p>Overwrite world name in order to avoid communicating with Gazebo
-Useful when Gazebo is launched in an included file, where the world name cannot be guessed</p>
-<dl class="field-list simple">
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span></p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="better_launch.gazebo.GazeboBridge.world">
-<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">world</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/better_launch/gazebo.html#GazeboBridge.world"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#better_launch.gazebo.GazeboBridge.world" title="Link to this definition"></a></dt>
-<dd><p>Return the name of the currently loaded world. If it was not loaded from better_launch, Gazebo will be asked directly.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Returns<span class="colon">:</span></dt>
-<dd class="field-odd"><p>The name of a Gazebo world.</p>
-</dd>
-<dt class="field-even">Return type<span class="colon">:</span></dt>
-<dd class="field-even"><p>str</p>
-</dd>
-<dt class="field-odd">Raises<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>ValueError</strong> – If querying Gazebo for the world name failed.</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="better_launch.gazebo.GazeboBridge.get_model_path">
-<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">get_model_path</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/better_launch/gazebo.html#GazeboBridge.get_model_path"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#better_launch.gazebo.GazeboBridge.get_model_path" title="Link to this definition"></a></dt>
-<dd><p>Constructs a Gazebo model prefix string for the given model name.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>model</strong> (<em>str</em>) – The name of the model.</p>
-</dd>
-<dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>A string representing the model’s prefix in the Gazebo world.</p>
-</dd>
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>str</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="better_launch.gazebo.GazeboBridge.get_model_topic">
-<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">get_model_topic</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">topic</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/better_launch/gazebo.html#GazeboBridge.get_model_topic"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#better_launch.gazebo.GazeboBridge.get_model_topic" title="Link to this definition"></a></dt>
-<dd><p>Constructs a tuple representing the model topic in Gazebo.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>model</strong> (<em>str</em>) – The model name.</p></li>
-<li><p><strong>topic</strong> (<em>str</em>) – The topic name related to the model.</p></li>
-</ul>
-</dd>
-<dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>The path of the given model’s specified topic.</p>
-</dd>
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>str</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="better_launch.gazebo.GazeboBridge.make_clock_bridge">
-<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">make_clock_bridge</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/better_launch/gazebo.html#GazeboBridge.make_clock_bridge"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#better_launch.gazebo.GazeboBridge.make_clock_bridge" title="Link to this definition"></a></dt>
-<dd><p>Creates a GazeboBridge instance for the /clock topic.</p>
+<dt class="sig sig-object py" id="better_launch.gazebo.GazeboBridge.clock_bridge">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">clock_bridge</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/better_launch/gazebo.html#GazeboBridge.clock_bridge"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#better_launch.gazebo.GazeboBridge.clock_bridge" title="Link to this definition"></a></dt>
+<dd><p>Creates a GazeboBridge instance for bridging the /clock topic from Gazebo to ROS.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Returns<span class="colon">:</span></dt>
 <dd class="field-odd"><p>An instance of the GazeboBridge for the clock topic.</p>
@@ -789,9 +768,9 @@ Useful when Gazebo is launched in an included file, where the world name cannot 
 </dd></dl>
 
 <dl class="py method">
-<dt class="sig sig-object py" id="better_launch.gazebo.GazeboBridge.make_joint_state_bridge">
-<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">make_joint_state_bridge</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/better_launch/gazebo.html#GazeboBridge.make_joint_state_bridge"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#better_launch.gazebo.GazeboBridge.make_joint_state_bridge" title="Link to this definition"></a></dt>
-<dd><p>Creates a GazeboBridge instance for the joint states of a given model.</p>
+<dt class="sig sig-object py" id="better_launch.gazebo.GazeboBridge.joint_state_bridge">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">joint_state_bridge</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/better_launch/gazebo.html#GazeboBridge.joint_state_bridge"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#better_launch.gazebo.GazeboBridge.joint_state_bridge" title="Link to this definition"></a></dt>
+<dd><p>Creates a GazeboBridge instance for the bridging the joint states of a given model to ROS.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><p><strong>model</strong> (<em>str</em>) – The model name to associate with the joint state topic.</p>
@@ -801,6 +780,26 @@ Useful when Gazebo is launched in an included file, where the world name cannot 
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p><a class="reference internal" href="#better_launch.gazebo.GazeboBridge" title="better_launch.gazebo.GazeboBridge">GazeboBridge</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="better_launch.gazebo.GazeboBridge.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">topic</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ros2_type</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">direction</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'bidirectional'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">gazebo_type</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">remaps</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/better_launch/gazebo.html#GazeboBridge.__init__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#better_launch.gazebo.GazeboBridge.__init__" title="Link to this definition"></a></dt>
+<dd><p>Create a definition for a gazebo bridge. Convert to a string in order to get the canonical Gazebo bridge representation. To start a topic bridge see <a class="reference internal" href="#better_launch.gazebo.spawn_topic_bridge" title="better_launch.gazebo.spawn_topic_bridge"><code class="xref py py-meth docutils literal notranslate"><span class="pre">spawn_topic_bridge()</span></code></a>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>topic</strong> (<em>str</em>) – The ROS2 topic to bridge into Gazebo. Any remaps have to happen on the ROS2 side.</p></li>
+<li><p><strong>ros2_type</strong> (<em>str</em><em>, </em><em>optional</em>) – The message type of the ROS2 topic. If not provided the type will be looked up in the currently published topics.</p></li>
+<li><p><strong>direction</strong> (<em>str</em><em>, </em><em>optional</em>) – The direction in which messages will be passed,</p></li>
+<li><p><strong>gazebo_type</strong> (<em>str</em><em>, </em><em>optional</em>) – The message type of the Gazebo topic. If not provided it will be looked up from the common <a href="#id1"><span class="problematic" id="id2">:py:member:`gazebo_message_types`</span></a>.</p></li>
+<li><p><strong>remaps</strong> (<em>dict</em><em>[</em><em>str</em><em>, </em><em>str</em><em>]</em><em>, </em><em>optional</em>) – Additional topic remaps for the bridge node.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>ValueError</strong> – If an invalid direction is provided, or if the ROS2 message type was not specified and could not be looked up.</p>
 </dd>
 </dl>
 </dd></dl>
@@ -912,7 +911,7 @@ Note that this will not appear in the logs!</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="better_launch.launcher.BetterLaunch.query_node">
-<span class="sig-name descname"><span class="pre">query_node</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name_regex</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">include_components</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">include_launch_service</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">include_foreign</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/better_launch/launcher.html#BetterLaunch.query_node"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#better_launch.launcher.BetterLaunch.query_node" title="Link to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">query_node</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fullname_regex</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">include_components</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">include_launch_service</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">include_foreign</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/better_launch/launcher.html#BetterLaunch.query_node"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#better_launch.launcher.BetterLaunch.query_node" title="Link to this definition"></a></dt>
 <dd><p>Retrieve the first node whos <code class="xref py py-meth docutils literal notranslate"><span class="pre">AbstractNode.fullname()</span></code> matches the provided regex.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -1060,20 +1059,20 @@ Note that this will not appear in the logs!</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="better_launch.launcher.BetterLaunch.find">
-<span class="sig-name descname"><span class="pre">find</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">package</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">filename</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">glob</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sbustitutions</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/better_launch/launcher.html#BetterLaunch.find"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#better_launch.launcher.BetterLaunch.find" title="Link to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">find</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">package</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">filename</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">subdir</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">substitutions</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/better_launch/launcher.html#BetterLaunch.find"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#better_launch.launcher.BetterLaunch.find" title="Link to this definition"></a></dt>
 <dd><p>Resolve a path to a file or package.</p>
 <p>If the <cite>filename</cite> is absolute, all other arguments will be ignored and the filename will be returned.</p>
 <p>If <cite>package</cite> is provided, the corresponding ROS2 package path will be used as the base path. Else we attempt to locate the current launch file’s package by searching its directory and parent directories for a <cite>package.xml</cite>. If the package cannot be determined the current working dir is used as the base path.</p>
-<p>If neither <cite>glob</cite> nor <cite>filename</cite> is provided the base path will be returned.</p>
-<p>If <cite>filename</cite> is provided but <cite>glob</cite> is not, the base path will be searched recursively for the given filename. Otherwise, <cite>glob</cite> will be used to locate valid candidate files and directories within the base path, allowing patterns like <cite>**/lib/</cite> (any lib folder) and <cite>*.py</cite> (any python file). See the <a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib-pattern-language">pathlib pattern language</a> for details.</p>
-<p>If only <cite>glob</cite> is provided but not <cite>filename</cite>, the first candidate is returned. Otherwise the discovered candidates will be searched for the given filename.</p>
+<p>If neither <cite>subdir</cite> nor <cite>filename</cite> is provided the base path will be returned.</p>
+<p>If <cite>filename</cite> is provided but <cite>subdir</cite> is not, the base path will be searched recursively for the given filename. Otherwise, <cite>subdir</cite> will be used to locate valid candidate files and directories within the base path, allowing patterns like <cite>**/lib/</cite> (any lib folder) and <cite>*.py</cite> (any python file).</p>
+<p>If only <cite>subdir</cite> is provided but not <cite>filename</cite>, the first candidate is returned. Otherwise the discovered candidates will be searched for the given filename.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>package</strong> (<em>str</em><em>, </em><em>optional</em>) – Name of a ROS2 package to resolve.</p></li>
 <li><p><strong>filename</strong> (<em>str</em><em>, </em><em>optional</em>) – Name of a file to look for.</p></li>
-<li><p><strong>glob</strong> (<em>str</em><em>, </em><em>optional</em>) – A glob pattern to locate subdirectories and files.</p></li>
-<li><p><strong>sbustitutions</strong> (<em>bool</em><em>, </em><em>optional</em>) – If True, text substitution strings within the package and base path will be resolved (see <a class="reference internal" href="better_launch_custom.html#better_launch.launcher.BetterLaunch.resolve_string" title="better_launch.launcher.BetterLaunch.resolve_string"><code class="xref py py-meth docutils literal notranslate"><span class="pre">resolve_string()</span></code></a>).</p></li>
+<li><p><strong>subdir</strong> (<em>str</em><em>, </em><em>optional</em>) – A glob pattern to locate subdirectories and files. See the <a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib-pattern-language">pathlib pattern language</a> for details.</p></li>
+<li><p><strong>substitutions</strong> (<em>bool</em><em>, </em><em>optional</em>) – If True, text substitution strings within the package and base path will be resolved (see <code class="xref py py-meth docutils literal notranslate"><span class="pre">resolve_strin​g()</span></code>).</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
@@ -1223,7 +1222,7 @@ Note that this will not appear in the logs!</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="better_launch.launcher.BetterLaunch.publish_message">
-<span class="sig-name descname"><span class="pre">publish_message</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">topic</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">message_type</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">message_args</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">qos_profile</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">10</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/better_launch/launcher.html#BetterLaunch.publish_message"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#better_launch.launcher.BetterLaunch.publish_message" title="Link to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">publish_message</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">topic</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">message_type</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">message_args</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">qos_profile</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">10</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">time_to_publish</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1.0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/better_launch/launcher.html#BetterLaunch.publish_message"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#better_launch.launcher.BetterLaunch.publish_message" title="Link to this definition"></a></dt>
 <dd><p>Convenience method to publish a single message. The publisher will be destroyed once the message has been published. If you plan to publish additional messages, use <a class="reference internal" href="better_launch_custom.html#better_launch.launcher.BetterLaunch.publisher" title="better_launch.launcher.BetterLaunch.publisher"><code class="xref py py-meth docutils literal notranslate"><span class="pre">publisher()</span></code></a> instead and use the instance.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -1232,6 +1231,7 @@ Note that this will not appear in the logs!</p>
 <li><p><strong>message_type</strong> (<em>str</em><em> | </em><em>type</em>) – The message type that will be published. Strings must follow the pattern <cite>&lt;package&gt;/msg/&lt;message&gt;</cite>.</p></li>
 <li><p><strong>message_args</strong> (<em>dict</em><em>[</em><em>str</em><em>, </em><em>Any</em><em>]</em>) – The keyword arguments from which the message will be constructed.</p></li>
 <li><p><strong>qos_profile</strong> (<em>QoSProfile</em><em> | </em><em>int</em><em>, </em><em>optional</em>) – A quality of service profile that changes how the publisher handles connections and retains data.</p></li>
+<li><p><strong>time_to_publish</strong> (<em>float</em><em>, </em><em>optional</em>) – How long to give the publisher to submit the message. Expect the message to get lost if you set this to 0.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Return type<span class="colon">:</span></dt>
@@ -1406,6 +1406,26 @@ for the duration of the context window.</p>
 </dd></dl>
 
 <dl class="py method">
+<dt class="sig sig-object py" id="better_launch.launcher.BetterLaunch.exec">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">exec</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cmd</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/better_launch/launcher.html#BetterLaunch.exec"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#better_launch.launcher.BetterLaunch.exec" title="Link to this definition"></a></dt>
+<dd><p>Run the specified command and return its output. The command can either be an absolute path to an executable or any file found on <cite>PATH</cite>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>cmd</strong> (<em>str</em><em> | </em><em>list</em><em>[</em><em>str</em><em>]</em>) – The command to run. If a string is passed it will be split on spaces to separate the command from its arguments. Pass a list instead to have more control over which arguments to treat as a single argument.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The output of the command without the trailing newline.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>str</p>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>subprocess.CalledProcessError</strong> – If the command had a non-zero exit code. See the raised error’s <cite>returncode</cite> and <cite>output</cite> attributes for details.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
 <dt class="sig sig-object py" id="better_launch.launcher.BetterLaunch.node">
 <span class="sig-name descname"><span class="pre">node</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">package</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">executable</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">remaps</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">params</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cmd_args</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">env</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">isolate_env</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">log_level</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">20</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'screen'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">anonymous</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hidden</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">on_exit</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_respawns</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">respawn_delay</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">use_shell</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">autostart_process</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ros_waittime</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">3.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lifecycle_waittime</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.01</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lifecycle_target</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">LifecycleStage.ACTIVE</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">raw</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/better_launch/launcher.html#BetterLaunch.node"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#better_launch.launcher.BetterLaunch.node" title="Link to this definition"></a></dt>
 <dd><p>Create a new ROS2 node process. The bread and butter of every ROS setup!</p>
@@ -1525,7 +1545,7 @@ for the duration of the context window.</p>
 <dt class="sig sig-object py" id="better_launch.launcher.BetterLaunch.include">
 <span class="sig-name descname"><span class="pre">include</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">package</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">launchfile</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">subdir</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pass_launch_func_args</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/better_launch/launcher.html#BetterLaunch.include"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#better_launch.launcher.BetterLaunch.include" title="Link to this definition"></a></dt>
 <dd><p>Include another launch file, resolving its path using <a class="reference internal" href="better_launch_custom.html#better_launch.launcher.BetterLaunch.find" title="better_launch.launcher.BetterLaunch.find"><code class="xref py py-meth docutils literal notranslate"><span class="pre">find()</span></code></a>.</p>
-<p>The file is first read into memory and checked. If it seems to be a <em>better_launch</em> launch file, it is executed immediately (using <code class="xref py py-func docutils literal notranslate"><span class="pre">exec()</span></code>). The BetterLaunch instance and global context will be shared. Any arguments to <code class="xref py py-meth docutils literal notranslate"><span class="pre">launch_this()</span></code> in the included launch file will be ignored.</p>
+<p>The file is first read into memory and checked. If it seems to be a <em>better_launch</em> launch file, it is executed immediately (using <a class="reference internal" href="better_launch_custom.html#better_launch.launcher.BetterLaunch.exec" title="better_launch.launcher.BetterLaunch.exec"><code class="xref py py-func docutils literal notranslate"><span class="pre">exec()</span></code></a>). The BetterLaunch instance and global context will be shared. Any arguments to <code class="xref py py-meth docutils literal notranslate"><span class="pre">launch_this()</span></code> in the included launch file will be ignored.</p>
 <p>If the file does not appear to be a <em>better_launch</em> launch file, it is assumed to be a regular ROS2 launch file. In this case a <code class="xref py py-class docutils literal notranslate"><span class="pre">launch.actions.IncludeLaunchDescription</span></code> instance is created and passed to <a class="reference internal" href="better_launch_custom.html#better_launch.launcher.BetterLaunch.ros2_actions" title="better_launch.launcher.BetterLaunch.ros2_actions"><code class="xref py py-meth docutils literal notranslate"><span class="pre">ros2_actions()</span></code></a>.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -1770,7 +1790,7 @@ Note that this will not appear in the logs!</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="better_launch.BetterLaunch.query_node">
-<span class="sig-name descname"><span class="pre">query_node</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name_regex</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">include_components</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">include_launch_service</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">include_foreign</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/better_launch/launcher.html#BetterLaunch.query_node"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#better_launch.BetterLaunch.query_node" title="Link to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">query_node</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fullname_regex</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">include_components</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">include_launch_service</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">include_foreign</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/better_launch/launcher.html#BetterLaunch.query_node"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#better_launch.BetterLaunch.query_node" title="Link to this definition"></a></dt>
 <dd><p>Retrieve the first node whos <code class="xref py py-meth docutils literal notranslate"><span class="pre">AbstractNode.fullname()</span></code> matches the provided regex.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -1918,20 +1938,21 @@ Note that this will not appear in the logs!</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="better_launch.BetterLaunch.find">
-<span class="sig-name descname"><span class="pre">find</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">package</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">filename</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">glob</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sbustitutions</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/better_launch/launcher.html#BetterLaunch.find"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#better_launch.BetterLaunch.find" title="Link to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">find</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">package</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">filename</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">subdir</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">substitutions</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/better_launch/launcher.html#BetterLaunch.find"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#better_launch.BetterLaunch.find" title="Link to this definition"></a></dt>
 <dd><p>Resolve a path to a file or package.</p>
 <p>If the <cite>filename</cite> is absolute, all other arguments will be ignored and the filename will be returned.</p>
 <p>If <cite>package</cite> is provided, the corresponding ROS2 package path will be used as the base path. Else we attempt to locate the current launch file’s package by searching its directory and parent directories for a <cite>package.xml</cite>. If the package cannot be determined the current working dir is used as the base path.</p>
-<p>If neither <cite>glob</cite> nor <cite>filename</cite> is provided the base path will be returned.</p>
-<p>If <cite>filename</cite> is provided but <cite>glob</cite> is not, the base path will be searched recursively for the given filename. Otherwise, <cite>glob</cite> will be used to locate valid candidate files and directories within the base path, allowing patterns like <cite>**/lib/</cite> (any lib folder) and <cite>*.py</cite> (any python file). See the <a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib-pattern-language">pathlib pattern language</a> for details.</p>
-<p>If only <cite>glob</cite> is provided but not <cite>filename</cite>, the first candidate is returned. Otherwise the discovered candidates will be searched for the given filename.</p>
+<p>If neither <cite>subdir</cite> nor <cite>filename</cite> is provided the base path will be returned.</p>
+<p>If <cite>filename</cite> is provided but <cite>subdir</cite> is not, the base path will be searched recursively for the given filename. Otherwise, <cite>subdir</cite> will be used to locate valid candidate files and directories within the base path, allowing patterns like <cite>**/lib/</cite> (any lib folder) and <cite>*.py</cite> (any python file).</p>
+<p>If only <cite>subdir</cite> is provided but not <cite>filename</cite>, the first candidate is returned. Otherwise the discovered candidates will be searched for the given filename.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>package</strong> (<em>str</em><em>, </em><em>optional</em>) – Name of a ROS2 package to resolve.</p></li>
 <li><p><strong>filename</strong> (<em>str</em><em>, </em><em>optional</em>) – Name of a file to look for.</p></li>
-<li><p><strong>glob</strong> (<em>str</em><em>, </em><em>optional</em>) – A glob pattern to locate subdirectories and files.</p></li>
-<li><p><strong>sbustitutions</strong> (<em>bool</em><em>, </em><em>optional</em>) – If True, text substitution strings within the package and base path will be resolved (see <a class="reference internal" href="#better_launch.BetterLaunch.resolve_string" title="better_launch.BetterLaunch.resolve_string"><code class="xref py py-meth docutils literal notranslate"><span class="pre">resolve_string()</span></code></a>).</p></li>
+<li><p><strong>subdir</strong> (<em>str</em><em>, </em><em>optional</em>) – <p>A glob pattern to locate subdirectories and files. See the <a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib-pattern-language">pathlib pattern language</a> for details.</p>
+</p></li>
+<li><p><strong>substitutions</strong> (<em>bool</em><em>, </em><em>optional</em>) – If True, text substitution strings within the package and base path will be resolved (see <code class="xref py py-meth docutils literal notranslate"><span class="pre">resolve_strin​g()</span></code>).</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
@@ -2081,7 +2102,7 @@ Note that this will not appear in the logs!</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="better_launch.BetterLaunch.publish_message">
-<span class="sig-name descname"><span class="pre">publish_message</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">topic</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">message_type</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">message_args</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">qos_profile</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">10</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/better_launch/launcher.html#BetterLaunch.publish_message"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#better_launch.BetterLaunch.publish_message" title="Link to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">publish_message</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">topic</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">message_type</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">message_args</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">qos_profile</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">10</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">time_to_publish</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1.0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/better_launch/launcher.html#BetterLaunch.publish_message"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#better_launch.BetterLaunch.publish_message" title="Link to this definition"></a></dt>
 <dd><p>Convenience method to publish a single message. The publisher will be destroyed once the message has been published. If you plan to publish additional messages, use <a class="reference internal" href="#better_launch.BetterLaunch.publisher" title="better_launch.BetterLaunch.publisher"><code class="xref py py-meth docutils literal notranslate"><span class="pre">publisher()</span></code></a> instead and use the instance.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -2090,6 +2111,7 @@ Note that this will not appear in the logs!</p>
 <li><p><strong>message_type</strong> (<em>str</em><em> | </em><em>type</em>) – The message type that will be published. Strings must follow the pattern <cite>&lt;package&gt;/msg/&lt;message&gt;</cite>.</p></li>
 <li><p><strong>message_args</strong> (<em>dict</em><em>[</em><em>str</em><em>, </em><em>Any</em><em>]</em>) – The keyword arguments from which the message will be constructed.</p></li>
 <li><p><strong>qos_profile</strong> (<em>QoSProfile</em><em> | </em><em>int</em><em>, </em><em>optional</em>) – A quality of service profile that changes how the publisher handles connections and retains data.</p></li>
+<li><p><strong>time_to_publish</strong> (<em>float</em><em>, </em><em>optional</em>) – How long to give the publisher to submit the message. Expect the message to get lost if you set this to 0.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Return type<span class="colon">:</span></dt>
@@ -2264,6 +2286,26 @@ for the duration of the context window.</p>
 </dd></dl>
 
 <dl class="py method">
+<dt class="sig sig-object py" id="better_launch.BetterLaunch.exec">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">exec</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cmd</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/better_launch/launcher.html#BetterLaunch.exec"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#better_launch.BetterLaunch.exec" title="Link to this definition"></a></dt>
+<dd><p>Run the specified command and return its output. The command can either be an absolute path to an executable or any file found on <cite>PATH</cite>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>cmd</strong> (<em>str</em><em> | </em><em>list</em><em>[</em><em>str</em><em>]</em>) – The command to run. If a string is passed it will be split on spaces to separate the command from its arguments. Pass a list instead to have more control over which arguments to treat as a single argument.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The output of the command without the trailing newline.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>str</p>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>subprocess.CalledProcessError</strong> – If the command had a non-zero exit code. See the raised error’s <cite>returncode</cite> and <cite>output</cite> attributes for details.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
 <dt class="sig sig-object py" id="better_launch.BetterLaunch.node">
 <span class="sig-name descname"><span class="pre">node</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">package</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">executable</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">remaps</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">params</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cmd_args</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">env</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">isolate_env</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">log_level</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">20</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'screen'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">anonymous</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hidden</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">on_exit</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_respawns</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">respawn_delay</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">use_shell</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">autostart_process</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ros_waittime</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">3.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lifecycle_waittime</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.01</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lifecycle_target</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">LifecycleStage.ACTIVE</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">raw</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/better_launch/launcher.html#BetterLaunch.node"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#better_launch.BetterLaunch.node" title="Link to this definition"></a></dt>
 <dd><p>Create a new ROS2 node process. The bread and butter of every ROS setup!</p>
@@ -2383,7 +2425,7 @@ for the duration of the context window.</p>
 <dt class="sig sig-object py" id="better_launch.BetterLaunch.include">
 <span class="sig-name descname"><span class="pre">include</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">package</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">launchfile</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">subdir</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pass_launch_func_args</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/better_launch/launcher.html#BetterLaunch.include"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#better_launch.BetterLaunch.include" title="Link to this definition"></a></dt>
 <dd><p>Include another launch file, resolving its path using <a class="reference internal" href="#better_launch.BetterLaunch.find" title="better_launch.BetterLaunch.find"><code class="xref py py-meth docutils literal notranslate"><span class="pre">find()</span></code></a>.</p>
-<p>The file is first read into memory and checked. If it seems to be a <em>better_launch</em> launch file, it is executed immediately (using <code class="xref py py-func docutils literal notranslate"><span class="pre">exec()</span></code>). The BetterLaunch instance and global context will be shared. Any arguments to <a class="reference internal" href="#better_launch.launch_this" title="better_launch.launch_this"><code class="xref py py-meth docutils literal notranslate"><span class="pre">launch_this()</span></code></a> in the included launch file will be ignored.</p>
+<p>The file is first read into memory and checked. If it seems to be a <em>better_launch</em> launch file, it is executed immediately (using <a class="reference internal" href="#better_launch.BetterLaunch.exec" title="better_launch.BetterLaunch.exec"><code class="xref py py-func docutils literal notranslate"><span class="pre">exec()</span></code></a>). The BetterLaunch instance and global context will be shared. Any arguments to <a class="reference internal" href="#better_launch.launch_this" title="better_launch.launch_this"><code class="xref py py-meth docutils literal notranslate"><span class="pre">launch_this()</span></code></a> in the included launch file will be ignored.</p>
 <p>If the file does not appear to be a <em>better_launch</em> launch file, it is assumed to be a regular ROS2 launch file. In this case a <code class="xref py py-class docutils literal notranslate"><span class="pre">launch.actions.IncludeLaunchDescription</span></code> instance is created and passed to <a class="reference internal" href="#better_launch.BetterLaunch.ros2_actions" title="better_launch.BetterLaunch.ros2_actions"><code class="xref py py-meth docutils literal notranslate"><span class="pre">ros2_actions()</span></code></a>.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>

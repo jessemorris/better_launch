@@ -5,7 +5,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Index &mdash; better_launch 0.9.1 documentation</title>
+  <title>Index &mdash; better_launch 1.0.0 documentation</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
 
@@ -13,7 +13,7 @@
     <link rel="shortcut icon" href="_static/logo.svg"/>
       <script src="_static/jquery.js?v=5d32c60e"></script>
       <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="_static/documentation_options.js?v=9dc39874"></script>
+      <script src="_static/documentation_options.js?v=8d563738"></script>
       <script src="_static/doctools.js?v=9bcbadda"></script>
       <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="_static/js/theme.js"></script>
@@ -94,7 +94,6 @@
  | <a href="#T"><strong>T</strong></a>
  | <a href="#U"><strong>U</strong></a>
  | <a href="#W"><strong>W</strong></a>
- | <a href="#Y"><strong>Y</strong></a>
  
 </div>
 <h2 id="_">_</h2>
@@ -426,18 +425,8 @@
         <li><a href="better_launch.html#better_launch.launcher.BetterLaunch.call_service">(better_launch.launcher.BetterLaunch method)</a>, <a href="better_launch_custom.html#better_launch.launcher.BetterLaunch.call_service">[1]</a>
 </li>
       </ul></li>
-      <li><a href="better_launch.elements.html#better_launch.elements.abstract_node.AbstractNode.check_lifecycle_node">check_lifecycle_node() (better_launch.elements.abstract_node.AbstractNode method)</a>
-
-      <ul>
-        <li><a href="better_launch.elements.html#better_launch.elements.ros2_launch_wrapper.Ros2LaunchWrapper.check_lifecycle_node">(better_launch.elements.ros2_launch_wrapper.Ros2LaunchWrapper method)</a>
+      <li><a href="better_launch.html#better_launch.gazebo.GazeboBridge.clock_bridge">clock_bridge() (better_launch.gazebo.GazeboBridge class method)</a>
 </li>
-      </ul></li>
-      <li><a href="better_launch.elements.html#better_launch.elements.abstract_node.AbstractNode.check_ros2_connected">check_ros2_connected() (better_launch.elements.abstract_node.AbstractNode method)</a>
-
-      <ul>
-        <li><a href="better_launch.elements.html#better_launch.elements.ros2_launch_wrapper.Ros2LaunchWrapper.check_ros2_connected">(better_launch.elements.ros2_launch_wrapper.Ros2LaunchWrapper method)</a>
-</li>
-      </ul></li>
       <li><a href="better_launch.elements.html#better_launch.elements.foreign_node.ForeignNode.cmd_args">cmd_args (better_launch.elements.foreign_node.ForeignNode property)</a>
 
       <ul>
@@ -522,8 +511,6 @@
 </li>
       <li><a href="better_launch.elements.html#better_launch.elements.ros2_launch_wrapper.Ros2LaunchWrapper.describe_launch_actions">describe_launch_actions() (better_launch.elements.ros2_launch_wrapper.Ros2LaunchWrapper method)</a>
 </li>
-      <li><a href="better_launch.html#better_launch.gazebo.GazeboBridge.Direction">Direction (better_launch.gazebo.GazeboBridge attribute)</a>
-</li>
   </ul></td>
 </tr></table>
 
@@ -532,6 +519,12 @@
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="better_launch.utils.html#better_launch.utils.better_logging.StubbornHandler.emit">emit() (better_launch.utils.better_logging.StubbornHandler method)</a>
 </li>
+      <li><a href="better_launch.html#better_launch.BetterLaunch.exec">exec() (better_launch.BetterLaunch class method)</a>
+
+      <ul>
+        <li><a href="better_launch.html#better_launch.launcher.BetterLaunch.exec">(better_launch.launcher.BetterLaunch class method)</a>, <a href="better_launch_custom.html#better_launch.launcher.BetterLaunch.exec">[1]</a>
+</li>
+      </ul></li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="better_launch.elements.html#better_launch.elements.abstract_node.AbstractNode.executable">executable (better_launch.elements.abstract_node.AbstractNode property)</a>
@@ -606,6 +599,8 @@
 </li>
       <li><a href="better_launch.utils.html#better_launch.utils.better_logging.PrettyLogFormatter.formatTime">formatTime() (better_launch.utils.better_logging.PrettyLogFormatter method)</a>
 </li>
+      <li><a href="better_launch.html#better_launch.gazebo.GazeboBridge.from_string">from_string() (better_launch.gazebo.GazeboBridge class method)</a>
+</li>
       <li><a href="better_launch.elements.html#better_launch.elements.abstract_node.AbstractNode.fullname">fullname (better_launch.elements.abstract_node.AbstractNode property)</a>
 </li>
   </ul></td>
@@ -615,6 +610,8 @@
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="better_launch.html#better_launch.gazebo.gazebo_launch">gazebo_launch() (in module better_launch.gazebo)</a>
+</li>
+      <li><a href="better_launch.html#better_launch.gazebo.GazeboBridge.gazebo_message_types">gazebo_message_types (better_launch.gazebo.GazeboBridge attribute)</a>
 </li>
       <li><a href="better_launch.html#better_launch.gazebo.GazeboBridge">GazeboBridge (class in better_launch.gazebo)</a>
 </li>
@@ -642,10 +639,6 @@
 </li>
       <li><a href="better_launch.utils.html#better_launch.utils.better_logging.PrettyLogFormatter.get_loglevel_color">get_loglevel_color() (better_launch.utils.better_logging.PrettyLogFormatter method)</a>
 </li>
-      <li><a href="better_launch.html#better_launch.gazebo.GazeboBridge.get_model_path">get_model_path() (better_launch.gazebo.GazeboBridge class method)</a>
-</li>
-      <li><a href="better_launch.html#better_launch.gazebo.GazeboBridge.get_model_topic">get_model_topic() (better_launch.gazebo.GazeboBridge class method)</a>
-</li>
       <li><a href="better_launch.ros.html#better_launch.ros.logging.get_output_loggers">get_output_loggers() (in module better_launch.ros.logging)</a>
 </li>
       <li><a href="better_launch.elements.html#better_launch.elements.foreign_node.get_package_for_path">get_package_for_path() (in module better_launch.elements.foreign_node)</a>
@@ -665,6 +658,8 @@
       <li><a href="better_launch.tui.html#better_launch.tui.footer_menu.FooterMenu.get_selected_item">get_selected_item() (better_launch.tui.footer_menu.FooterMenu method)</a>
 </li>
       <li><a href="better_launch.utils.html#better_launch.utils.better_logging.PrettyLogFormatter.get_source_color">get_source_color() (better_launch.utils.better_logging.PrettyLogFormatter method)</a>
+</li>
+      <li><a href="better_launch.elements.html#better_launch.elements.abstract_node.AbstractNode.get_subscribed_topics">get_subscribed_topics() (better_launch.elements.abstract_node.AbstractNode method)</a>
 </li>
       <li><a href="better_launch.html#better_launch.BetterLaunch.get_unique_name">get_unique_name() (better_launch.BetterLaunch method)</a>
 
@@ -696,8 +691,6 @@
         <li><a href="better_launch.html#better_launch.launcher.BetterLaunch.group_tip">(better_launch.launcher.BetterLaunch property)</a>, <a href="better_launch_custom.html#better_launch.launcher.BetterLaunch.group_tip">[1]</a>
 </li>
       </ul></li>
-      <li><a href="better_launch.html#better_launch.gazebo.GazeboBridge.gz_exec">gz_exec() (better_launch.gazebo.GazeboBridge class method)</a>
-</li>
   </ul></td>
 </tr></table>
 
@@ -746,6 +739,12 @@
         <li><a href="better_launch.elements.html#better_launch.elements.LifecycleManager.is_lifecycle">(better_launch.elements.LifecycleManager class method)</a>
 </li>
       </ul></li>
+      <li><a href="better_launch.elements.html#better_launch.elements.abstract_node.AbstractNode.is_lifecycle_node">is_lifecycle_node() (better_launch.elements.abstract_node.AbstractNode method)</a>
+
+      <ul>
+        <li><a href="better_launch.elements.html#better_launch.elements.ros2_launch_wrapper.Ros2LaunchWrapper.is_lifecycle_node">(better_launch.elements.ros2_launch_wrapper.Ros2LaunchWrapper method)</a>
+</li>
+      </ul></li>
       <li><a href="better_launch.elements.html#better_launch.elements.Component.is_loaded">is_loaded (better_launch.elements.Component property)</a>
 
       <ul>
@@ -754,6 +753,12 @@
       </ul></li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="better_launch.elements.html#better_launch.elements.abstract_node.AbstractNode.is_ros2_connected">is_ros2_connected() (better_launch.elements.abstract_node.AbstractNode method)</a>
+
+      <ul>
+        <li><a href="better_launch.elements.html#better_launch.elements.ros2_launch_wrapper.Ros2LaunchWrapper.is_ros2_connected">(better_launch.elements.ros2_launch_wrapper.Ros2LaunchWrapper method)</a>
+</li>
+      </ul></li>
       <li><a href="better_launch.elements.html#better_launch.elements.abstract_node.AbstractNode.is_running">is_running (better_launch.elements.abstract_node.AbstractNode property)</a>
 
       <ul>
@@ -788,6 +793,32 @@
 <h2 id="J">J</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="better_launch.elements.html#better_launch.elements.abstract_node.AbstractNode.join">join() (better_launch.elements.abstract_node.AbstractNode method)</a>
+
+      <ul>
+        <li><a href="better_launch.elements.html#better_launch.elements.Component.join">(better_launch.elements.Component method)</a>
+</li>
+        <li><a href="better_launch.elements.html#better_launch.elements.Composer.join">(better_launch.elements.Composer method)</a>
+</li>
+        <li><a href="better_launch.elements.html#better_launch.elements.composer.Component.join">(better_launch.elements.composer.Component method)</a>
+</li>
+        <li><a href="better_launch.elements.html#better_launch.elements.composer.Composer.join">(better_launch.elements.composer.Composer method)</a>
+</li>
+        <li><a href="better_launch.elements.html#better_launch.elements.foreign_node.ForeignNode.join">(better_launch.elements.foreign_node.ForeignNode method)</a>
+</li>
+        <li><a href="better_launch.elements.html#better_launch.elements.ForeignNode.join">(better_launch.elements.ForeignNode method)</a>
+</li>
+        <li><a href="better_launch.elements.html#better_launch.elements.Node.join">(better_launch.elements.Node method)</a>
+</li>
+        <li><a href="better_launch.elements.html#better_launch.elements.node.Node.join">(better_launch.elements.node.Node method)</a>
+</li>
+        <li><a href="better_launch.elements.html#better_launch.elements.ros2_launch_wrapper.Ros2LaunchWrapper.join">(better_launch.elements.ros2_launch_wrapper.Ros2LaunchWrapper method)</a>
+</li>
+      </ul></li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="better_launch.html#better_launch.gazebo.GazeboBridge.joint_state_bridge">joint_state_bridge() (better_launch.gazebo.GazeboBridge class method)</a>
+</li>
       <li><a href="better_launch.html#better_launch.convenience.joint_state_publisher">joint_state_publisher() (in module better_launch.convenience)</a>
 </li>
   </ul></td>
@@ -868,10 +899,6 @@
 <h2 id="M">M</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="better_launch.html#better_launch.gazebo.GazeboBridge.make_clock_bridge">make_clock_bridge() (better_launch.gazebo.GazeboBridge class method)</a>
-</li>
-      <li><a href="better_launch.html#better_launch.gazebo.GazeboBridge.make_joint_state_bridge">make_joint_state_bridge() (better_launch.gazebo.GazeboBridge class method)</a>
-</li>
       <li><a href="better_launch.elements.html#better_launch.elements.Composer.managed_components">managed_components (better_launch.elements.Composer property)</a>
 
       <ul>
@@ -935,10 +962,6 @@
         <li><a href="better_launch.html#module-better_launch.wrapper">better_launch.wrapper</a>, <a href="better_launch_custom.html#module-better_launch.wrapper">[1]</a>
 </li>
       </ul></li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="better_launch.html#better_launch.gazebo.GazeboBridge.msg_map">msg_map (better_launch.gazebo.GazeboBridge attribute)</a>
-</li>
   </ul></td>
 </tr></table>
 
@@ -1159,8 +1182,6 @@
 </li>
       <li><a href="better_launch.elements.html#better_launch.elements.live_params_mixin.LiveParamsMixin.set_live_params_atomic">set_live_params_atomic() (better_launch.elements.live_params_mixin.LiveParamsMixin method)</a>
 </li>
-      <li><a href="better_launch.html#better_launch.gazebo.GazeboBridge.set_world_name">set_world_name() (better_launch.gazebo.GazeboBridge class method)</a>
-</li>
       <li><a href="better_launch.utils.html#better_launch.utils.better_logging.RecordForwarder.setFormatterFor">setFormatterFor() (better_launch.utils.better_logging.RecordForwarder method)</a>
 
       <ul>
@@ -1203,9 +1224,11 @@
       </ul></li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="better_launch.html#better_launch.gazebo.spawn_image_bridge">spawn_image_bridge() (in module better_launch.gazebo)</a>
+</li>
       <li><a href="better_launch.html#better_launch.gazebo.spawn_model">spawn_model() (in module better_launch.gazebo)</a>
 </li>
-      <li><a href="better_launch.html#better_launch.gazebo.spawn_topic_bridges">spawn_topic_bridges() (in module better_launch.gazebo)</a>
+      <li><a href="better_launch.html#better_launch.gazebo.spawn_topic_bridge">spawn_topic_bridge() (in module better_launch.gazebo)</a>
 </li>
       <li><a href="better_launch.html#better_launch.gazebo.spawn_world_transform">spawn_world_transform() (in module better_launch.gazebo)</a>
 </li>
@@ -1241,6 +1264,8 @@
         <li><a href="better_launch.ros.html#better_launch.ros.ros_adapter.ROSAdapter.start">(better_launch.ros.ros_adapter.ROSAdapter method)</a>
 </li>
       </ul></li>
+      <li><a href="better_launch.html#better_launch.convenience.static_transform_publisher">static_transform_publisher() (in module better_launch.convenience)</a>
+</li>
       <li><a href="better_launch.utils.html#better_launch.utils.better_logging.StubbornHandler">StubbornHandler (class in better_launch.utils.better_logging)</a>
 </li>
       <li><a href="better_launch.tui.html#better_launch.tui.better_tui.LogLevel.style">style (better_launch.tui.better_tui.LogLevel attribute)</a>
@@ -1303,24 +1328,12 @@
 <h2 id="W">W</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="better_launch.html#better_launch.gazebo.GazeboBridge.world">world() (better_launch.gazebo.GazeboBridge class method)</a>
-</li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="better_launch.elements.html#better_launch.elements.foreign_node.ForeignNode.wrap_process">wrap_process() (better_launch.elements.foreign_node.ForeignNode class method)</a>
 
       <ul>
         <li><a href="better_launch.elements.html#better_launch.elements.ForeignNode.wrap_process">(better_launch.elements.ForeignNode class method)</a>
 </li>
       </ul></li>
-  </ul></td>
-</tr></table>
-
-<h2 id="Y">Y</h2>
-<table style="width: 100%" class="indextable genindextable"><tr>
-  <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="better_launch.html#better_launch.gazebo.GazeboBridge.yaml">yaml() (better_launch.gazebo.GazeboBridge method)</a>
-</li>
   </ul></td>
 </tr></table>
 

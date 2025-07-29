@@ -1,5 +1,0 @@
-# Add support for numpy docstrings
-make napoleon
-
-# Build the actual documentation
-make doc

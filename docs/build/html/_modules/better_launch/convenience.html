@@ -5,7 +5,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>better_launch.convenience &mdash; better_launch 0.9.1 documentation</title>
+  <title>better_launch.convenience &mdash; better_launch 1.0.0 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=e59714d7" />
 
@@ -13,7 +13,7 @@
     <link rel="shortcut icon" href="../../_static/logo.svg"/>
       <script src="../../_static/jquery.js?v=5d32c60e"></script>
       <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../../_static/documentation_options.js?v=9dc39874"></script>
+      <script src="../../_static/documentation_options.js?v=8d563738"></script>
       <script src="../../_static/doctools.js?v=9bcbadda"></script>
       <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../../_static/js/theme.js"></script>
@@ -78,9 +78,11 @@
     <span class="s2">&quot;read_robot_description&quot;</span><span class="p">,</span>
     <span class="s2">&quot;joint_state_publisher&quot;</span><span class="p">,</span>
     <span class="s2">&quot;robot_state_publisher&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;static_transform_publisher&quot;</span><span class="p">,</span>
 <span class="p">]</span>
 
 
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Sequence</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">subprocess</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">better_launch</span><span class="w"> </span><span class="kn">import</span> <span class="n">BetterLaunch</span>
@@ -125,7 +127,9 @@
         <span class="n">args</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">extra_args</span><span class="p">)</span>
 
     <span class="c1"># rviz2 doesn&#39;t support the --log-level argument nodes usually accept</span>
-    <span class="k">return</span> <span class="n">bl</span><span class="o">.</span><span class="n">node</span><span class="p">(</span><span class="s2">&quot;rviz2&quot;</span><span class="p">,</span> <span class="s2">&quot;rviz2&quot;</span><span class="p">,</span> <span class="s2">&quot;rviz2&quot;</span><span class="p">,</span> <span class="n">anonymous</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">cmd_args</span><span class="o">=</span><span class="n">args</span><span class="p">,</span> <span class="n">log_level</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span></div>
+    <span class="k">return</span> <span class="n">bl</span><span class="o">.</span><span class="n">node</span><span class="p">(</span>
+        <span class="s2">&quot;rviz2&quot;</span><span class="p">,</span> <span class="s2">&quot;rviz2&quot;</span><span class="p">,</span> <span class="s2">&quot;rviz2&quot;</span><span class="p">,</span> <span class="n">anonymous</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">cmd_args</span><span class="o">=</span><span class="n">args</span><span class="p">,</span> <span class="n">log_level</span><span class="o">=</span><span class="kc">None</span>
+    <span class="p">)</span></div>
 
 
 
@@ -133,7 +137,7 @@
 <a class="viewcode-back" href="../../better_launch.html#better_launch.convenience.read_robot_description">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">read_robot_description</span><span class="p">(</span>
     <span class="n">package</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-    <span class="n">urdf_or_xacro</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">description_file</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">subdir</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="o">*</span><span class="p">,</span>
     <span class="n">xacro_args</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -146,7 +150,7 @@
 <span class="sd">    ----------</span>
 <span class="sd">    package : str, optional</span>
 <span class="sd">        The package where the robot description file is located. May be `None` (see :py:meth:`BetterLaunch.find`)</span>
-<span class="sd">    urdf_or_xacro : str, optional</span>
+<span class="sd">    description_file : str, optional</span>
 <span class="sd">        The name of the robot description file (URDF or XACRO).</span>
 <span class="sd">    subdir : str, optional</span>
 <span class="sd">        A path fragment the description file must be located in.</span>
@@ -157,30 +161,28 @@
 <span class="sd">    -------</span>
 <span class="sd">    str | None</span>
 <span class="sd">        The parsed URDF XML as a string if successful, `None` otherwise.</span>
+
+<span class="sd">    Raises</span>
+<span class="sd">    ------</span>
+<span class="sd">    ValueError</span>
+<span class="sd">        If the xacro command encountered an error while processing the file.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">bl</span> <span class="o">=</span> <span class="n">BetterLaunch</span><span class="o">.</span><span class="n">instance</span><span class="p">()</span>
 
-    <span class="n">filepath</span> <span class="o">=</span> <span class="n">bl</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="n">package</span><span class="p">,</span> <span class="n">urdf_or_xacro</span><span class="p">,</span> <span class="n">subdir</span><span class="p">)</span>
+    <span class="n">filepath</span> <span class="o">=</span> <span class="n">bl</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="n">package</span><span class="p">,</span> <span class="n">description_file</span><span class="p">,</span> <span class="n">subdir</span><span class="p">)</span>
 
-    <span class="k">if</span> <span class="n">filepath</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">&quot;urdf&quot;</span><span class="p">)</span> <span class="ow">and</span> <span class="n">xacro_args</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">filepath</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">&quot;xacro&quot;</span><span class="p">)</span> <span class="ow">and</span> <span class="n">xacro_args</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">filepath</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
             <span class="k">return</span> <span class="n">f</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>
 
-    <span class="n">cmd</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;xacro&quot;</span><span class="p">,</span> <span class="n">filepath</span><span class="p">]</span> <span class="o">+</span> <span class="n">xacro_args</span>
+    <span class="n">args</span> <span class="o">=</span> <span class="p">[</span><span class="n">filepath</span><span class="p">]</span>
+    <span class="k">if</span> <span class="n">xacro_args</span><span class="p">:</span>
+        <span class="n">args</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">xacro_args</span><span class="p">)</span>
 
     <span class="k">try</span><span class="p">:</span>
-        <span class="k">with</span> <span class="n">subprocess</span><span class="o">.</span><span class="n">Popen</span><span class="p">(</span>
-            <span class="n">cmd</span><span class="p">,</span> <span class="n">stdout</span><span class="o">=</span><span class="n">subprocess</span><span class="o">.</span><span class="n">PIPE</span><span class="p">,</span> <span class="n">stderr</span><span class="o">=</span><span class="n">subprocess</span><span class="o">.</span><span class="n">PIPE</span><span class="p">,</span> <span class="n">text</span><span class="o">=</span><span class="kc">True</span>
-        <span class="p">)</span> <span class="k">as</span> <span class="n">proc</span><span class="p">:</span>
-            <span class="n">stdout</span><span class="p">,</span> <span class="n">stderr</span> <span class="o">=</span> <span class="n">proc</span><span class="o">.</span><span class="n">communicate</span><span class="p">()</span>
-            <span class="k">if</span> <span class="n">proc</span><span class="o">.</span><span class="n">returncode</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
-                <span class="k">return</span> <span class="n">stdout</span>
-            <span class="k">else</span><span class="p">:</span>
-                <span class="n">bl</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Error processing xacro: </span><span class="si">{</span><span class="n">stderr</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-                <span class="k">return</span> <span class="kc">None</span>
-    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
-        <span class="n">bl</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Failed to execute xacro command: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-        <span class="k">return</span> <span class="kc">None</span></div>
+        <span class="k">return</span> <span class="n">bl</span><span class="o">.</span><span class="n">exec</span><span class="p">([</span><span class="s2">&quot;xacro&quot;</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">])</span>
+    <span class="k">except</span> <span class="n">subprocess</span><span class="o">.</span><span class="n">CalledProcessError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Xacro failed (</span><span class="si">{</span><span class="n">e</span><span class="o">.</span><span class="n">returncode</span><span class="si">}</span><span class="s2">): </span><span class="si">{</span><span class="n">e</span><span class="o">.</span><span class="n">output</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="nn">e</span></div>
 
 
 
@@ -228,7 +230,7 @@
 <a class="viewcode-back" href="../../better_launch.html#better_launch.convenience.robot_state_publisher">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">robot_state_publisher</span><span class="p">(</span>
     <span class="n">package</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-    <span class="n">urdf_or_xacro</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">description_file</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">subdir</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="o">*</span><span class="p">,</span>
     <span class="n">xacro_args</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -241,8 +243,8 @@
 <span class="sd">    ----------</span>
 <span class="sd">    package : str, optional</span>
 <span class="sd">        The name of the package containing the robot description file.</span>
-<span class="sd">    urdf_or_xacro : str, optional</span>
-<span class="sd">        The name of the URDF or Xacro file describing the robot model.</span>
+<span class="sd">    description_file : str, optional</span>
+<span class="sd">        The name of the robot description for the robot. Typically a .sdf, .urdf or .xacro file.</span>
 <span class="sd">    subdir : str, optional</span>
 <span class="sd">        A path fragment the description file must be located in.</span>
 <span class="sd">    xacro_args : list of str, optional</span>
@@ -259,16 +261,16 @@
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">bl</span> <span class="o">=</span> <span class="n">BetterLaunch</span><span class="o">.</span><span class="n">instance</span><span class="p">()</span>
 
-    <span class="n">urdf_xml</span> <span class="o">=</span> <span class="n">read_robot_description</span><span class="p">(</span>
+    <span class="n">robot_description</span> <span class="o">=</span> <span class="n">read_robot_description</span><span class="p">(</span>
         <span class="n">package</span><span class="p">,</span>
-        <span class="n">urdf_or_xacro</span><span class="p">,</span>
+        <span class="n">description_file</span><span class="p">,</span>
         <span class="n">subdir</span><span class="p">,</span>
         <span class="n">xacro_args</span><span class="o">=</span><span class="n">xacro_args</span><span class="p">,</span>
     <span class="p">)</span>
 
     <span class="n">kwargs</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s2">&quot;anonymous&quot;</span><span class="p">,</span> <span class="kc">True</span><span class="p">)</span>
     <span class="n">params</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;params&quot;</span><span class="p">,</span> <span class="p">{})</span>
-    <span class="n">params</span><span class="p">[</span><span class="s2">&quot;robot_description&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">urdf_xml</span>
+    <span class="n">params</span><span class="p">[</span><span class="s2">&quot;robot_description&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">robot_description</span>
 
     <span class="k">return</span> <span class="n">bl</span><span class="o">.</span><span class="n">node</span><span class="p">(</span>
         <span class="s2">&quot;robot_state_publisher&quot;</span><span class="p">,</span>
@@ -278,6 +280,97 @@
         <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
     <span class="p">)</span></div>
 
+
+
+<div class="viewcode-block" id="static_transform_publisher">
+<a class="viewcode-back" href="../../better_launch.html#better_launch.convenience.static_transform_publisher">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">static_transform_publisher</span><span class="p">(</span>
+    <span class="n">parent_frame</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">child_frame</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">pos</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">rot</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Node</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Publish a static transform between two frames.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    parent_frame : str</span>
+<span class="sd">        The parent or source frame.</span>
+<span class="sd">    child_frame : str</span>
+<span class="sd">        The child or target frame.</span>
+<span class="sd">    pos : Sequence[float], optional</span>
+<span class="sd">        The xyz-translation from parent to child frame. You may also pass a sequence of 6 or 7 floats in order to specify a full pose. In this case, `rot` will be ignored.</span>
+<span class="sd">    rot : Sequence[float], optional</span>
+<span class="sd">        The rotation between the parent and child frame. If length is 3, the values are interpreted as roll-pitch-yaw euler angles. If length is 4, an xyzw-quaternion is assumed.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    Node</span>
+<span class="sd">        The node running the publisher process.</span>
+
+<span class="sd">    Raises</span>
+<span class="sd">    ------</span>
+<span class="sd">    ValueError</span>
+<span class="sd">        If pos or rot have the wrong length.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">args</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;--frame-id&quot;</span><span class="p">,</span> <span class="n">parent_frame</span><span class="p">,</span> <span class="s2">&quot;--child-frame-id&quot;</span><span class="p">,</span> <span class="n">child_frame</span><span class="p">]</span>
+
+    <span class="c1"># Position may also hold the pose</span>
+    <span class="k">if</span> <span class="n">pos</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">args</span><span class="o">.</span><span class="n">extend</span><span class="p">([</span><span class="s2">&quot;--x&quot;</span><span class="p">,</span> <span class="n">pos</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="s2">&quot;--y&quot;</span><span class="p">,</span> <span class="n">pos</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="s2">&quot;--z&quot;</span><span class="p">,</span> <span class="n">pos</span><span class="p">[</span><span class="mi">2</span><span class="p">]])</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">pos</span><span class="p">)</span> <span class="o">==</span> <span class="mi">3</span><span class="p">:</span>
+            <span class="k">pass</span>
+        <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">pos</span><span class="p">)</span> <span class="o">==</span> <span class="mi">4</span> <span class="ow">and</span> <span class="n">pos</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span> <span class="o">==</span> <span class="mf">1.0</span><span class="p">:</span>
+            <span class="c1"># Homogenous translation vector, it&#39;s fine</span>
+            <span class="k">pass</span>
+        <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">pos</span><span class="p">)</span> <span class="ow">in</span> <span class="p">(</span><span class="mi">6</span><span class="p">,</span> <span class="mi">7</span><span class="p">):</span>
+            <span class="n">rot</span> <span class="o">=</span> <span class="n">pos</span><span class="p">[</span><span class="mi">3</span><span class="p">:]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Position has dubious length </span><span class="si">%d</span><span class="s2">&quot;</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">pos</span><span class="p">))</span>
+
+    <span class="k">if</span> <span class="n">rot</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">rot</span><span class="p">)</span> <span class="o">==</span> <span class="mi">3</span><span class="p">:</span>
+            <span class="n">args</span><span class="o">.</span><span class="n">extend</span><span class="p">([</span><span class="s2">&quot;--roll&quot;</span><span class="p">,</span> <span class="n">rot</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="s2">&quot;--pitch&quot;</span><span class="p">,</span> <span class="n">rot</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="s2">&quot;--yaw&quot;</span><span class="p">,</span> <span class="n">rot</span><span class="p">[</span><span class="mi">2</span><span class="p">]])</span>
+        <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">rot</span><span class="p">)</span> <span class="o">==</span> <span class="mi">4</span><span class="p">:</span>
+            <span class="n">args</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span>
+                <span class="p">[</span><span class="s2">&quot;--qx&quot;</span><span class="p">,</span> <span class="n">rot</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="s2">&quot;--qy&quot;</span><span class="p">,</span> <span class="n">rot</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="s2">&quot;--qz&quot;</span><span class="p">,</span> <span class="n">rot</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span> <span class="s2">&quot;--qw&quot;</span><span class="p">,</span> <span class="n">rot</span><span class="p">[</span><span class="mi">3</span><span class="p">]]</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Rotation has dubious length </span><span class="si">%d</span><span class="s2">&quot;</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">rot</span><span class="p">))</span>
+
+    <span class="n">bl</span> <span class="o">=</span> <span class="n">BetterLaunch</span><span class="o">.</span><span class="n">instance</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">bl</span><span class="o">.</span><span class="n">node</span><span class="p">(</span>
+        <span class="s2">&quot;tf2_ros&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;static_transform_publisher&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;gazebo_world_tf&quot;</span><span class="p">,</span>
+        <span class="n">cmd_args</span><span class="o">=</span><span class="n">args</span><span class="p">,</span>
+        <span class="n">raw</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="p">)</span></div>
+
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">spawn_controller</span><span class="p">(</span><span class="n">controller</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">manager</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;controller_manager&quot;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Node</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Spawn the specified controller. </span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    controller : str</span>
+<span class="sd">        The controller to spwawn.</span>
+<span class="sd">    manager : str</span>
+<span class="sd">        The name of the controller_manager node.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    Node</span>
+<span class="sd">        The node running the spawner process.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">bl</span> <span class="o">=</span> <span class="n">BetterLaunch</span><span class="o">.</span><span class="n">instance</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">bl</span><span class="o">.</span><span class="n">node</span><span class="p">(</span>
+        <span class="n">package</span><span class="o">=</span><span class="s2">&quot;controller_manager&quot;</span><span class="p">,</span>
+        <span class="n">executable</span><span class="o">=</span><span class="s2">&quot;spawner&quot;</span><span class="p">,</span>
+        <span class="n">cmd_args</span><span class="o">=</span><span class="p">[</span><span class="n">controller</span><span class="p">,</span> <span class="s2">&quot;--controller-manager&quot;</span><span class="p">,</span> <span class="n">manager</span><span class="p">],</span>
+        <span class="n">raw</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="p">)</span>
 </pre></div>
 
            </div>

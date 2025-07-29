@@ -6,7 +6,7 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>better_launch.elements package &mdash; better_launch 0.9.1 documentation</title>
+  <title>better_launch.elements package &mdash; better_launch 1.0.0 documentation</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
 
@@ -14,7 +14,7 @@
     <link rel="shortcut icon" href="_static/logo.svg"/>
       <script src="_static/jquery.js?v=5d32c60e"></script>
       <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="_static/documentation_options.js?v=9dc39874"></script>
+      <script src="_static/documentation_options.js?v=8d563738"></script>
       <script src="_static/doctools.js?v=9bcbadda"></script>
       <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="_static/js/theme.js"></script>
@@ -184,6 +184,23 @@
 </dd></dl>
 
 <dl class="py method">
+<dt class="sig sig-object py" id="better_launch.elements.abstract_node.AbstractNode.join">
+<span class="sig-name descname"><span class="pre">join</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">timeout</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/better_launch/elements/abstract_node.html#AbstractNode.join"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#better_launch.elements.abstract_node.AbstractNode.join" title="Link to this definition"></a></dt>
+<dd><p>Join this node and return once it is shut down. Return immediately if it is not running.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>timeout</strong> (<em>float</em><em>, </em><em>optional</em>) – How long to wait in seconds. Wait forever if None.</p>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>TimeoutError</strong> – If a timeout was set and the node is still running by the time it expires.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
 <dt class="sig sig-object py" id="better_launch.elements.abstract_node.AbstractNode.start">
 <span class="sig-name descname"><span class="pre">start</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/better_launch/elements/abstract_node.html#AbstractNode.start"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#better_launch.elements.abstract_node.AbstractNode.start" title="Link to this definition"></a></dt>
 <dd><p>Start this node. Once this succeeds, <a class="reference internal" href="#better_launch.elements.abstract_node.AbstractNode.is_running" title="better_launch.elements.abstract_node.AbstractNode.is_running"><code class="xref py py-meth docutils literal notranslate"><span class="pre">is_running()</span></code></a> will return True.</p>
@@ -216,12 +233,12 @@
 </dd></dl>
 
 <dl class="py method">
-<dt class="sig sig-object py" id="better_launch.elements.abstract_node.AbstractNode.check_ros2_connected">
-<span class="sig-name descname"><span class="pre">check_ros2_connected</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">timeout</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/better_launch/elements/abstract_node.html#AbstractNode.check_ros2_connected"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#better_launch.elements.abstract_node.AbstractNode.check_ros2_connected" title="Link to this definition"></a></dt>
+<dt class="sig sig-object py" id="better_launch.elements.abstract_node.AbstractNode.is_ros2_connected">
+<span class="sig-name descname"><span class="pre">is_ros2_connected</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">timeout</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/better_launch/elements/abstract_node.html#AbstractNode.is_ros2_connected"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#better_launch.elements.abstract_node.AbstractNode.is_ros2_connected" title="Link to this definition"></a></dt>
 <dd><p>Check whether this node is registered within ROS.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>timeout</strong> (<em>float</em><em>, </em><em>optional</em>) – How long to wait for the node to sign up with ROS. Wait forever if negative.</p>
+<dd class="field-odd"><p><strong>timeout</strong> (<em>float</em><em>, </em><em>optional</em>) – How long to wait for the node to sign up with ROS. Wait forever if None.</p>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>True if the node can be discovered by ROS, False otherwise.</p>
@@ -233,24 +250,24 @@
 </dd></dl>
 
 <dl class="py method">
-<dt class="sig sig-object py" id="better_launch.elements.abstract_node.AbstractNode.check_lifecycle_node">
-<span class="sig-name descname"><span class="pre">check_lifecycle_node</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">timeout</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/better_launch/elements/abstract_node.html#AbstractNode.check_lifecycle_node"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#better_launch.elements.abstract_node.AbstractNode.check_lifecycle_node" title="Link to this definition"></a></dt>
+<dt class="sig sig-object py" id="better_launch.elements.abstract_node.AbstractNode.is_lifecycle_node">
+<span class="sig-name descname"><span class="pre">is_lifecycle_node</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">timeout</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/better_launch/elements/abstract_node.html#AbstractNode.is_lifecycle_node"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#better_launch.elements.abstract_node.AbstractNode.is_lifecycle_node" title="Link to this definition"></a></dt>
 <dd><p>Checks if this is a lifecycle node and initializes a : py:class:<cite>LifecycleManager</cite> if supported and not done so before.</p>
 <p>Note that if you simply want to check whether this node supports lifecycle management right now, check whether <a class="reference internal" href="#better_launch.elements.abstract_node.AbstractNode.lifecycle" title="better_launch.elements.abstract_node.AbstractNode.lifecycle"><code class="xref py py-meth docutils literal notranslate"><span class="pre">lifecycle()</span></code></a> is None will be considerably cheaper.</p>
 <p>Whether a node supports lifecycle management can only be known from outside once its process is started and it has registered with ROS. When this is called while the node is alive and it supports lifecycle management, a <code class="xref py py-class docutils literal notranslate"><span class="pre">LifecycleManager</span></code> object will be initialized for it. This will persist even if the node is shutdown, but will obviously no longer provide useful functionality.</p>
 <p>Note that at the time of writing (Jazzy), the ROS node registers with ROS before the lifecycle topics are created. This makes sense of course, but also means that there is a short window where the node is registered with ROS but not a lifecycle node yet. This can be a problem, especially on slower devices like a Raspberry Pi 3. In these cases I advise you follow this pattern:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">node</span> <span class="o">=</span> <span class="n">Node</span><span class="p">(</span><span class="o">...</span><span class="p">)</span>
 <span class="c1"># Wait until the node is registered in ROS</span>
-<span class="k">if</span> <span class="n">node</span><span class="o">.</span><span class="n">check_ros2_connected</span><span class="p">(</span><span class="n">timeout</span><span class="o">=</span><span class="mf">5.0</span><span class="p">):</span>
+<span class="k">if</span> <span class="n">node</span><span class="o">.</span><span class="n">is_ros2_connected</span><span class="p">(</span><span class="n">timeout</span><span class="o">=</span><span class="mf">5.0</span><span class="p">):</span>
     <span class="c1"># Give the node some additional time to create its lifecycle topics</span>
-    <span class="k">if</span> <span class="n">node</span><span class="o">.</span><span class="n">check_lifecycle_node</span><span class="p">(</span><span class="n">timeout</span><span class="o">=</span><span class="mf">0.1</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">node</span><span class="o">.</span><span class="n">is_lifecycle_node</span><span class="p">(</span><span class="n">timeout</span><span class="o">=</span><span class="mf">0.1</span><span class="p">):</span>
         <span class="c1"># Now the node can be managed</span>
         <span class="n">node</span><span class="o">.</span><span class="n">lifecycle</span><span class="o">.</span><span class="n">transition</span><span class="p">(</span><span class="o">...</span><span class="p">)</span>
 </pre></div>
 </div>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>timeout</strong> (<em>float</em><em>, </em><em>optional</em>) – How long to wait for the node to reveal its lifecycle capabilities. Wait forever if negative.</p>
+<dd class="field-odd"><p><strong>timeout</strong> (<em>float</em><em>, </em><em>optional</em>) – How long to wait for the node to reveal its lifecycle capabilities. Wait forever if None.</p>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>True if the node supports lifecycle management, False otherwise.</p>
@@ -265,10 +282,10 @@
 <dt class="sig sig-object py" id="better_launch.elements.abstract_node.AbstractNode.lifecycle">
 <em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">lifecycle</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="#better_launch.elements.lifecycle_manager.LifecycleManager" title="better_launch.elements.lifecycle_manager.LifecycleManager"><span class="pre">LifecycleManager</span></a></em><a class="headerlink" href="#better_launch.elements.abstract_node.AbstractNode.lifecycle" title="Link to this definition"></a></dt>
 <dd><p>Returns this node’s <code class="xref py py-class docutils literal notranslate"><span class="pre">LifecyceManager</span></code>.</p>
-<p><strong>Note:</strong> make sure to call <a class="reference internal" href="#better_launch.elements.abstract_node.AbstractNode.check_lifecycle_node" title="better_launch.elements.abstract_node.AbstractNode.check_lifecycle_node"><code class="xref py py-meth docutils literal notranslate"><span class="pre">check_lifecycle_node()</span></code></a> before retrieving this object!</p>
+<p><strong>Note:</strong> make sure to call <a class="reference internal" href="#better_launch.elements.abstract_node.AbstractNode.is_lifecycle_node" title="better_launch.elements.abstract_node.AbstractNode.is_lifecycle_node"><code class="xref py py-meth docutils literal notranslate"><span class="pre">is_lifecycle_node()</span></code></a> before retrieving this object!</p>
 <dl class="field-list simple">
 <dt class="field-odd">Returns<span class="colon">:</span></dt>
-<dd class="field-odd"><p>The object used for managing this node’s lifecycle. Will be None if lifecycle management is not supported or <cite>check_lifecycle_node</cite> has not been called before.</p>
+<dd class="field-odd"><p>The object used for managing this node’s lifecycle. Will be None if lifecycle management is not supported or <cite>is_lifecycle_node</cite> has not been called before.</p>
 </dd>
 <dt class="field-even">Return type<span class="colon">:</span></dt>
 <dd class="field-even"><p><a class="reference internal" href="#better_launch.elements.lifecycle_manager.LifecycleManager" title="better_launch.elements.lifecycle_manager.LifecycleManager">LifecycleManager</a></p>
@@ -282,7 +299,7 @@
 <dd><p>Get the ROS2 services provided by this node.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Returns<span class="colon">:</span></dt>
-<dd class="field-odd"><p>The service topics and message types. Will be empty if <a class="reference internal" href="#better_launch.elements.abstract_node.AbstractNode.check_ros2_connected" title="better_launch.elements.abstract_node.AbstractNode.check_ros2_connected"><code class="xref py py-meth docutils literal notranslate"><span class="pre">check_ros2_connected()</span></code></a> is False.</p>
+<dd class="field-odd"><p>The service topics and message types. Will be empty if <a class="reference internal" href="#better_launch.elements.abstract_node.AbstractNode.is_ros2_connected" title="better_launch.elements.abstract_node.AbstractNode.is_ros2_connected"><code class="xref py py-meth docutils literal notranslate"><span class="pre">is_ros2_connected()</span></code></a> is False.</p>
 </dd>
 <dt class="field-even">Return type<span class="colon">:</span></dt>
 <dd class="field-even"><p>dict[str, list[str]]</p>
@@ -296,7 +313,21 @@
 <dd><p>Get the ROS2 topics published by this node.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Returns<span class="colon">:</span></dt>
-<dd class="field-odd"><p>The topics and their message types. Will be empty if <a class="reference internal" href="#better_launch.elements.abstract_node.AbstractNode.check_ros2_connected" title="better_launch.elements.abstract_node.AbstractNode.check_ros2_connected"><code class="xref py py-meth docutils literal notranslate"><span class="pre">check_ros2_connected()</span></code></a> is False.</p>
+<dd class="field-odd"><p>The topics and their message types. Will be empty if <a class="reference internal" href="#better_launch.elements.abstract_node.AbstractNode.is_ros2_connected" title="better_launch.elements.abstract_node.AbstractNode.is_ros2_connected"><code class="xref py py-meth docutils literal notranslate"><span class="pre">is_ros2_connected()</span></code></a> is False.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>dict[str, list[str]]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="better_launch.elements.abstract_node.AbstractNode.get_subscribed_topics">
+<span class="sig-name descname"><span class="pre">get_subscribed_topics</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/better_launch/elements/abstract_node.html#AbstractNode.get_subscribed_topics"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#better_launch.elements.abstract_node.AbstractNode.get_subscribed_topics" title="Link to this definition"></a></dt>
+<dd><p>Get the ROS2 topics this node is subscribed to.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The topics and their message types. Will be empty if <a class="reference internal" href="#better_launch.elements.abstract_node.AbstractNode.is_ros2_connected" title="better_launch.elements.abstract_node.AbstractNode.is_ros2_connected"><code class="xref py py-meth docutils literal notranslate"><span class="pre">is_ros2_connected()</span></code></a> is False.</p>
 </dd>
 <dt class="field-even">Return type<span class="colon">:</span></dt>
 <dd class="field-even"><p>dict[str, list[str]]</p>
@@ -387,6 +418,23 @@
 </dd></dl>
 
 <dl class="py method">
+<dt class="sig sig-object py" id="better_launch.elements.composer.Component.join">
+<span class="sig-name descname"><span class="pre">join</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">timeout</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/better_launch/elements/composer.html#Component.join"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#better_launch.elements.composer.Component.join" title="Link to this definition"></a></dt>
+<dd><p>Join this node and return once it is shut down. Return immediately if it is not running.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>timeout</strong> (<em>float</em><em>, </em><em>optional</em>) – How long to wait in seconds. Wait forever if None.</p>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>TimeoutError</strong> – If a timeout was set and the node is still running by the time it expires.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
 <dt class="sig sig-object py" id="better_launch.elements.composer.Component.start">
 <span class="sig-name descname"><span class="pre">start</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">use_intra_process_comms</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">composer_extra_params</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/better_launch/elements/composer.html#Component.start"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#better_launch.elements.composer.Component.start" title="Link to this definition"></a></dt>
 <dd><p>Load this component into its composer.</p>
@@ -426,7 +474,7 @@
 <dd><p>Bases: <a class="reference internal" href="#better_launch.elements.abstract_node.AbstractNode" title="better_launch.elements.abstract_node.AbstractNode"><code class="xref py py-class docutils literal notranslate"><span class="pre">AbstractNode</span></code></a></p>
 <dl class="py method">
 <dt class="sig sig-object py" id="better_launch.elements.composer.Composer.is_composer">
-<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">is_composer</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">node</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">timeout</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/better_launch/elements/composer.html#Composer.is_composer"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#better_launch.elements.composer.Composer.is_composer" title="Link to this definition"></a></dt>
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">is_composer</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">node</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">timeout</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/better_launch/elements/composer.html#Composer.is_composer"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#better_launch.elements.composer.Composer.is_composer" title="Link to this definition"></a></dt>
 <dd><p>Checks whether a node provides services for loading components.</p>
 <p>For a node to be a composer, it must be running, be registered with ROS and offer the ROS composition services. This method <strong>only</strong> checks whether one of the key services is present.</p>
 <p>If a timeout is specified, the check will be repeated until it succeeds or the specified amount of time has passed. This is to ensure that a freshly started node had enough time to create its topics, especially on slower devices.</p>
@@ -434,7 +482,7 @@
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>node</strong> (<a class="reference internal" href="#better_launch.elements.abstract_node.AbstractNode" title="better_launch.elements.abstract_node.AbstractNode"><em>AbstractNode</em></a>) – The node object to check.</p></li>
-<li><p><strong>timeout</strong> (<em>float</em>) – How long to wait at most for the composition services to appear. Wait forever if negative.</p></li>
+<li><p><strong>timeout</strong> (<em>float</em>) – How long to wait at most for the composition services to appear. Wait forever if None.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
@@ -508,6 +556,23 @@
 </dd></dl>
 
 <dl class="py method">
+<dt class="sig sig-object py" id="better_launch.elements.composer.Composer.join">
+<span class="sig-name descname"><span class="pre">join</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">timeout</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/better_launch/elements/composer.html#Composer.join"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#better_launch.elements.composer.Composer.join" title="Link to this definition"></a></dt>
+<dd><p>Join this node and return once it is shut down. Return immediately if it is not running.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>timeout</strong> (<em>float</em><em>, </em><em>optional</em>) – How long to wait in seconds. Wait forever if None.</p>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>TimeoutError</strong> – If a timeout was set and the node is still running by the time it expires.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
 <dt class="sig sig-object py" id="better_launch.elements.composer.Composer.start">
 <span class="sig-name descname"><span class="pre">start</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">service_timeout</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">5.0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/better_launch/elements/composer.html#Composer.start"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#better_launch.elements.composer.Composer.start" title="Link to this definition"></a></dt>
 <dd><p>Start this node. Once this succeeds, <a class="reference internal" href="#better_launch.elements.composer.Composer.is_running" title="better_launch.elements.composer.Composer.is_running"><code class="xref py py-meth docutils literal notranslate"><span class="pre">is_running()</span></code></a> will return True.</p>
@@ -523,7 +588,7 @@
 
 <dl class="py method">
 <dt class="sig sig-object py" id="better_launch.elements.composer.Composer.shutdown">
-<span class="sig-name descname"><span class="pre">shutdown</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">reason</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">signum</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">Signals.SIGTERM</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">timeout</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/better_launch/elements/composer.html#Composer.shutdown"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#better_launch.elements.composer.Composer.shutdown" title="Link to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">shutdown</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">reason</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">signum</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">Signals.SIGTERM</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">timeout</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/better_launch/elements/composer.html#Composer.shutdown"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#better_launch.elements.composer.Composer.shutdown" title="Link to this definition"></a></dt>
 <dd><p>This will shutdown the composer node. Unloading any loaded components is left to the actual composer implementation.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -572,7 +637,7 @@
 
 <dl class="py method">
 <dt class="sig sig-object py" id="better_launch.elements.composer.Composer.unload_component">
-<span class="sig-name descname"><span class="pre">unload_component</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">component</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">timeout</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/better_launch/elements/composer.html#Composer.unload_component"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#better_launch.elements.composer.Composer.unload_component" title="Link to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">unload_component</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">component</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">timeout</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/better_launch/elements/composer.html#Composer.unload_component"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#better_launch.elements.composer.Composer.unload_component" title="Link to this definition"></a></dt>
 <dd><p>Unload the specified component, essentially stopping its node.</p>
 <p>Note that an unload request will be issued even if the component reports it is not loaded.</p>
 <dl class="field-list simple">
@@ -758,6 +823,26 @@
 </dd></dl>
 
 <dl class="py method">
+<dt class="sig sig-object py" id="better_launch.elements.foreign_node.ForeignNode.join">
+<span class="sig-name descname"><span class="pre">join</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">timeout</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/better_launch/elements/foreign_node.html#ForeignNode.join"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#better_launch.elements.foreign_node.ForeignNode.join" title="Link to this definition"></a></dt>
+<dd><p>Wait for the underlying process to terminate and return its exit code. Returns immediately if the process is not running.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>timeout</strong> (<em>float</em><em>, </em><em>optional</em>) – How long to wait for the process to finish. Wait forever if None.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The exit code of the process, or None if it is already terminated.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>int</p>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>TimeoutError</strong> – If a timeout was specified and the process is still running by the time the timeout expires.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
 <dt class="sig sig-object py" id="better_launch.elements.foreign_node.ForeignNode.start">
 <span class="sig-name descname"><span class="pre">start</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/better_launch/elements/foreign_node.html#ForeignNode.start"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#better_launch.elements.foreign_node.ForeignNode.start" title="Link to this definition"></a></dt>
 <dd><p>Start this node. Once this succeeds, <a class="reference internal" href="#better_launch.elements.foreign_node.ForeignNode.is_running" title="better_launch.elements.foreign_node.ForeignNode.is_running"><code class="xref py py-meth docutils literal notranslate"><span class="pre">is_running()</span></code></a> will return True.</p>
@@ -927,12 +1012,12 @@ recreate and restart the node with the same arguments as the original node.</p>
 <em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">is_lifecycle</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">node</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">timeout</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/better_launch/elements/lifecycle_manager.html#LifecycleManager.is_lifecycle"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#better_launch.elements.lifecycle_manager.LifecycleManager.is_lifecycle" title="Link to this definition"></a></dt>
 <dd><p>Checks whether a node supports lifecycle management.</p>
 <p>For a node to support lifecycle management, it must be running, be registered with ROS and offer the ROS lifecycle management services. This method <strong>only</strong> checks whether one of the key services is present.</p>
-<p>If a timeout is specified, the check will be repeated until it succeeds or the specified amount of time has passed. This is to ensure that a freshly started node had enough time to create its topics, especially on slower devices. See <code class="xref py py-meth docutils literal notranslate"><span class="pre">AbstractNode.check_lifecycle_node()</span></code> for additional information.</p>
+<p>If a timeout is specified, the check will be repeated until it succeeds or the specified amount of time has passed. This is to ensure that a freshly started node had enough time to create its topics, especially on slower devices. See <code class="xref py py-meth docutils literal notranslate"><span class="pre">AbstractNode.is_lifecycle_node()</span></code> for additional information.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>node</strong> (<a class="reference internal" href="#better_launch.elements.lifecycle_manager.AbstractNode" title="better_launch.elements.lifecycle_manager.AbstractNode"><em>AbstractNode</em></a>) – The node object to check for lifecycle support.</p></li>
-<li><p><strong>timeout</strong> (<em>float</em>) – How long to wait at most for the lifecycle services to appear. Wait forever if negative.</p></li>
+<li><p><strong>timeout</strong> (<em>float</em>) – How long to wait at most for the lifecycle services to appear. Wait forever if None.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
@@ -1173,6 +1258,26 @@ recreate and restart the node with the same arguments as the original node.</p>
 </dd></dl>
 
 <dl class="py method">
+<dt class="sig sig-object py" id="better_launch.elements.node.Node.join">
+<span class="sig-name descname"><span class="pre">join</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">timeout</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/better_launch/elements/node.html#Node.join"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#better_launch.elements.node.Node.join" title="Link to this definition"></a></dt>
+<dd><p>Wait for the underlying process to terminate and return its exit code. Returns immediately if the process is not running.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>timeout</strong> (<em>float</em><em>, </em><em>optional</em>) – How long to wait for the process to finish. Wait forever if None.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The exit code of the process, or None if it is already terminated.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>int</p>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>TimeoutError</strong> – If a timeout was specified and the process is still running by the time the timeout expires.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
 <dt class="sig sig-object py" id="better_launch.elements.node.Node.start">
 <span class="sig-name descname"><span class="pre">start</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/better_launch/elements/node.html#Node.start"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#better_launch.elements.node.Node.start" title="Link to this definition"></a></dt>
 <dd><p>Start this node. Once this succeeds, <a class="reference internal" href="#better_launch.elements.node.Node.is_running" title="better_launch.elements.node.Node.is_running"><code class="xref py py-meth docutils literal notranslate"><span class="pre">is_running()</span></code></a> will return True.</p>
@@ -1253,8 +1358,8 @@ recreate and restart the node with the same arguments as the original node.</p>
 </dd></dl>
 
 <dl class="py method">
-<dt class="sig sig-object py" id="better_launch.elements.ros2_launch_wrapper.Ros2LaunchWrapper.check_ros2_connected">
-<span class="sig-name descname"><span class="pre">check_ros2_connected</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">timeout</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/better_launch/elements/ros2_launch_wrapper.html#Ros2LaunchWrapper.check_ros2_connected"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#better_launch.elements.ros2_launch_wrapper.Ros2LaunchWrapper.check_ros2_connected" title="Link to this definition"></a></dt>
+<dt class="sig sig-object py" id="better_launch.elements.ros2_launch_wrapper.Ros2LaunchWrapper.is_ros2_connected">
+<span class="sig-name descname"><span class="pre">is_ros2_connected</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">timeout</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/better_launch/elements/ros2_launch_wrapper.html#Ros2LaunchWrapper.is_ros2_connected"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#better_launch.elements.ros2_launch_wrapper.Ros2LaunchWrapper.is_ros2_connected" title="Link to this definition"></a></dt>
 <dd><p>Equal to <a class="reference internal" href="#better_launch.elements.ros2_launch_wrapper.Ros2LaunchWrapper.is_running" title="better_launch.elements.ros2_launch_wrapper.Ros2LaunchWrapper.is_running"><code class="xref py py-meth docutils literal notranslate"><span class="pre">is_running()</span></code></a> for this class.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
@@ -1264,8 +1369,8 @@ recreate and restart the node with the same arguments as the original node.</p>
 </dd></dl>
 
 <dl class="py method">
-<dt class="sig sig-object py" id="better_launch.elements.ros2_launch_wrapper.Ros2LaunchWrapper.check_lifecycle_node">
-<span class="sig-name descname"><span class="pre">check_lifecycle_node</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">timeout</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/better_launch/elements/ros2_launch_wrapper.html#Ros2LaunchWrapper.check_lifecycle_node"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#better_launch.elements.ros2_launch_wrapper.Ros2LaunchWrapper.check_lifecycle_node" title="Link to this definition"></a></dt>
+<dt class="sig sig-object py" id="better_launch.elements.ros2_launch_wrapper.Ros2LaunchWrapper.is_lifecycle_node">
+<span class="sig-name descname"><span class="pre">is_lifecycle_node</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">timeout</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/better_launch/elements/ros2_launch_wrapper.html#Ros2LaunchWrapper.is_lifecycle_node"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#better_launch.elements.ros2_launch_wrapper.Ros2LaunchWrapper.is_lifecycle_node" title="Link to this definition"></a></dt>
 <dd><p>This is never a lifecycle node.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
@@ -1281,6 +1386,26 @@ recreate and restart the node with the same arguments as the original node.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="better_launch.elements.ros2_launch_wrapper.Ros2LaunchWrapper.join">
+<span class="sig-name descname"><span class="pre">join</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">timeout</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/better_launch/elements/ros2_launch_wrapper.html#Ros2LaunchWrapper.join"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#better_launch.elements.ros2_launch_wrapper.Ros2LaunchWrapper.join" title="Link to this definition"></a></dt>
+<dd><p>Wait for the underlying process to terminate and return its exit code. Returns immediately if the process is not running.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>timeout</strong> (<em>float</em><em>, </em><em>optional</em>) – How long to wait for the process to finish. Wait forever if None.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The exit code of the process, or None if it is already terminated.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>int</p>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>TimeoutError</strong> – If a timeout was specified and the process is still running by the time the timeout expires.</p>
 </dd>
 </dl>
 </dd></dl>
@@ -1463,6 +1588,26 @@ recreate and restart the node with the same arguments as the original node.</p>
 </dd></dl>
 
 <dl class="py method">
+<dt class="sig sig-object py" id="better_launch.elements.Node.join">
+<span class="sig-name descname"><span class="pre">join</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">timeout</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/better_launch/elements/node.html#Node.join"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#better_launch.elements.Node.join" title="Link to this definition"></a></dt>
+<dd><p>Wait for the underlying process to terminate and return its exit code. Returns immediately if the process is not running.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>timeout</strong> (<em>float</em><em>, </em><em>optional</em>) – How long to wait for the process to finish. Wait forever if None.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The exit code of the process, or None if it is already terminated.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>int</p>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>TimeoutError</strong> – If a timeout was specified and the process is still running by the time the timeout expires.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
 <dt class="sig sig-object py" id="better_launch.elements.Node.start">
 <span class="sig-name descname"><span class="pre">start</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/better_launch/elements/node.html#Node.start"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#better_launch.elements.Node.start" title="Link to this definition"></a></dt>
 <dd><p>Start this node. Once this succeeds, <a class="reference internal" href="#better_launch.elements.Node.is_running" title="better_launch.elements.Node.is_running"><code class="xref py py-meth docutils literal notranslate"><span class="pre">is_running()</span></code></a> will return True.</p>
@@ -1532,12 +1677,12 @@ recreate and restart the node with the same arguments as the original node.</p>
 <em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">is_lifecycle</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">node</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">timeout</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/better_launch/elements/lifecycle_manager.html#LifecycleManager.is_lifecycle"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#better_launch.elements.LifecycleManager.is_lifecycle" title="Link to this definition"></a></dt>
 <dd><p>Checks whether a node supports lifecycle management.</p>
 <p>For a node to support lifecycle management, it must be running, be registered with ROS and offer the ROS lifecycle management services. This method <strong>only</strong> checks whether one of the key services is present.</p>
-<p>If a timeout is specified, the check will be repeated until it succeeds or the specified amount of time has passed. This is to ensure that a freshly started node had enough time to create its topics, especially on slower devices. See <code class="xref py py-meth docutils literal notranslate"><span class="pre">AbstractNode.check_lifecycle_node()</span></code> for additional information.</p>
+<p>If a timeout is specified, the check will be repeated until it succeeds or the specified amount of time has passed. This is to ensure that a freshly started node had enough time to create its topics, especially on slower devices. See <code class="xref py py-meth docutils literal notranslate"><span class="pre">AbstractNode.is_lifecycle_node()</span></code> for additional information.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>node</strong> (<a class="reference internal" href="#better_launch.elements.abstract_node.AbstractNode" title="better_launch.elements.abstract_node.AbstractNode"><em>AbstractNode</em></a>) – The node object to check for lifecycle support.</p></li>
-<li><p><strong>timeout</strong> (<em>float</em>) – How long to wait at most for the lifecycle services to appear. Wait forever if negative.</p></li>
+<li><p><strong>timeout</strong> (<em>float</em>) – How long to wait at most for the lifecycle services to appear. Wait forever if None.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
@@ -1625,7 +1770,7 @@ recreate and restart the node with the same arguments as the original node.</p>
 <dd><p>Bases: <a class="reference internal" href="#better_launch.elements.abstract_node.AbstractNode" title="better_launch.elements.abstract_node.AbstractNode"><code class="xref py py-class docutils literal notranslate"><span class="pre">AbstractNode</span></code></a></p>
 <dl class="py method">
 <dt class="sig sig-object py" id="better_launch.elements.Composer.is_composer">
-<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">is_composer</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">node</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">timeout</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/better_launch/elements/composer.html#Composer.is_composer"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#better_launch.elements.Composer.is_composer" title="Link to this definition"></a></dt>
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">is_composer</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">node</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">timeout</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/better_launch/elements/composer.html#Composer.is_composer"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#better_launch.elements.Composer.is_composer" title="Link to this definition"></a></dt>
 <dd><p>Checks whether a node provides services for loading components.</p>
 <p>For a node to be a composer, it must be running, be registered with ROS and offer the ROS composition services. This method <strong>only</strong> checks whether one of the key services is present.</p>
 <p>If a timeout is specified, the check will be repeated until it succeeds or the specified amount of time has passed. This is to ensure that a freshly started node had enough time to create its topics, especially on slower devices.</p>
@@ -1633,7 +1778,7 @@ recreate and restart the node with the same arguments as the original node.</p>
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>node</strong> (<a class="reference internal" href="#better_launch.elements.abstract_node.AbstractNode" title="better_launch.elements.abstract_node.AbstractNode"><em>AbstractNode</em></a>) – The node object to check.</p></li>
-<li><p><strong>timeout</strong> (<em>float</em>) – How long to wait at most for the composition services to appear. Wait forever if negative.</p></li>
+<li><p><strong>timeout</strong> (<em>float</em>) – How long to wait at most for the composition services to appear. Wait forever if None.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
@@ -1707,6 +1852,23 @@ recreate and restart the node with the same arguments as the original node.</p>
 </dd></dl>
 
 <dl class="py method">
+<dt class="sig sig-object py" id="better_launch.elements.Composer.join">
+<span class="sig-name descname"><span class="pre">join</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">timeout</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/better_launch/elements/composer.html#Composer.join"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#better_launch.elements.Composer.join" title="Link to this definition"></a></dt>
+<dd><p>Join this node and return once it is shut down. Return immediately if it is not running.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>timeout</strong> (<em>float</em><em>, </em><em>optional</em>) – How long to wait in seconds. Wait forever if None.</p>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>TimeoutError</strong> – If a timeout was set and the node is still running by the time it expires.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
 <dt class="sig sig-object py" id="better_launch.elements.Composer.start">
 <span class="sig-name descname"><span class="pre">start</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">service_timeout</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">5.0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/better_launch/elements/composer.html#Composer.start"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#better_launch.elements.Composer.start" title="Link to this definition"></a></dt>
 <dd><p>Start this node. Once this succeeds, <a class="reference internal" href="#better_launch.elements.Composer.is_running" title="better_launch.elements.Composer.is_running"><code class="xref py py-meth docutils literal notranslate"><span class="pre">is_running()</span></code></a> will return True.</p>
@@ -1722,7 +1884,7 @@ recreate and restart the node with the same arguments as the original node.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="better_launch.elements.Composer.shutdown">
-<span class="sig-name descname"><span class="pre">shutdown</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">reason</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">signum</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">Signals.SIGTERM</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">timeout</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/better_launch/elements/composer.html#Composer.shutdown"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#better_launch.elements.Composer.shutdown" title="Link to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">shutdown</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">reason</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">signum</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">Signals.SIGTERM</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">timeout</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/better_launch/elements/composer.html#Composer.shutdown"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#better_launch.elements.Composer.shutdown" title="Link to this definition"></a></dt>
 <dd><p>This will shutdown the composer node. Unloading any loaded components is left to the actual composer implementation.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -1771,7 +1933,7 @@ recreate and restart the node with the same arguments as the original node.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="better_launch.elements.Composer.unload_component">
-<span class="sig-name descname"><span class="pre">unload_component</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">component</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">timeout</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/better_launch/elements/composer.html#Composer.unload_component"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#better_launch.elements.Composer.unload_component" title="Link to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">unload_component</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">component</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">timeout</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/better_launch/elements/composer.html#Composer.unload_component"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#better_launch.elements.Composer.unload_component" title="Link to this definition"></a></dt>
 <dd><p>Unload the specified component, essentially stopping its node.</p>
 <p>Note that an unload request will be issued even if the component reports it is not loaded.</p>
 <dl class="field-list simple">
@@ -1859,6 +2021,23 @@ recreate and restart the node with the same arguments as the original node.</p>
 <dt class="sig sig-object py" id="better_launch.elements.Component.is_running">
 <em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">is_running</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">bool</span></em><a class="headerlink" href="#better_launch.elements.Component.is_running" title="Link to this definition"></a></dt>
 <dd><p>True if the node is currently running.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="better_launch.elements.Component.join">
+<span class="sig-name descname"><span class="pre">join</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">timeout</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/better_launch/elements/composer.html#Component.join"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#better_launch.elements.Component.join" title="Link to this definition"></a></dt>
+<dd><p>Join this node and return once it is shut down. Return immediately if it is not running.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>timeout</strong> (<em>float</em><em>, </em><em>optional</em>) – How long to wait in seconds. Wait forever if None.</p>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>TimeoutError</strong> – If a timeout was set and the node is still running by the time it expires.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span></p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py method">
@@ -1955,6 +2134,26 @@ recreate and restart the node with the same arguments as the original node.</p>
 <dt class="sig sig-object py" id="better_launch.elements.ForeignNode.is_running">
 <em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">is_running</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">bool</span></em><a class="headerlink" href="#better_launch.elements.ForeignNode.is_running" title="Link to this definition"></a></dt>
 <dd><p>True if the node is currently running.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="better_launch.elements.ForeignNode.join">
+<span class="sig-name descname"><span class="pre">join</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">timeout</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/better_launch/elements/foreign_node.html#ForeignNode.join"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#better_launch.elements.ForeignNode.join" title="Link to this definition"></a></dt>
+<dd><p>Wait for the underlying process to terminate and return its exit code. Returns immediately if the process is not running.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>timeout</strong> (<em>float</em><em>, </em><em>optional</em>) – How long to wait for the process to finish. Wait forever if None.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The exit code of the process, or None if it is already terminated.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>int</p>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>TimeoutError</strong> – If a timeout was specified and the process is still running by the time the timeout expires.</p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py method">

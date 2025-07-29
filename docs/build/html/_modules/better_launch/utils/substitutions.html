@@ -5,7 +5,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>better_launch.utils.substitutions &mdash; better_launch 0.9.1 documentation</title>
+  <title>better_launch.utils.substitutions &mdash; better_launch 1.0.0 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=e59714d7" />
 
@@ -13,7 +13,7 @@
     <link rel="shortcut icon" href="../../../_static/logo.svg"/>
       <script src="../../../_static/jquery.js?v=5d32c60e"></script>
       <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../../../_static/documentation_options.js?v=9dc39874"></script>
+      <script src="../../../_static/documentation_options.js?v=8d563738"></script>
       <script src="../../../_static/doctools.js?v=9bcbadda"></script>
       <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../../../_static/js/theme.js"></script>
@@ -76,9 +76,6 @@
 <span class="kn">import</span><span class="w"> </span><span class="nn">yaml</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">ast</span><span class="w"> </span><span class="kn">import</span> <span class="n">literal_eval</span>
 
-<span class="kn">from</span><span class="w"> </span><span class="nn">rcl_interfaces.srv</span><span class="w"> </span><span class="kn">import</span> <span class="n">GetParameters</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">rcl_interfaces.msg</span><span class="w"> </span><span class="kn">import</span> <span class="n">ParameterType</span>
-
 
 <span class="n">_sentinel</span> <span class="o">=</span> <span class="nb">object</span><span class="p">()</span>
 
@@ -118,6 +115,9 @@
 <span class="sd">    dict[str, Callable]</span>
 <span class="sd">        A dict mapping substitution keys to handler functions. Note that handler functions are allowed to throw instances of :py:class:`SubstitutionError` when invalid parameters are passed.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># Try to delay ROS2 imports until we actually need them</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">rcl_interfaces.srv</span><span class="w"> </span><span class="kn">import</span> <span class="n">GetParameters</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">rcl_interfaces.msg</span><span class="w"> </span><span class="kn">import</span> <span class="n">ParameterType</span>
     <span class="kn">from</span><span class="w"> </span><span class="nn">better_launch</span><span class="w"> </span><span class="kn">import</span> <span class="n">BetterLaunch</span>
 
     <span class="n">bl</span> <span class="o">=</span> <span class="n">BetterLaunch</span><span class="o">.</span><span class="n">instance</span><span class="p">()</span>
@@ -152,7 +152,7 @@
 
         <span class="k">try</span><span class="p">:</span>
             <span class="n">value</span> <span class="o">=</span> <span class="n">yaml</span><span class="o">.</span><span class="n">safe_load</span><span class="p">(</span><span class="n">res</span><span class="o">.</span><span class="n">values</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
-        <span class="k">except</span><span class="p">:</span>
+        <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
             <span class="c1"># Treat it as a string</span>
             <span class="n">value</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">res</span><span class="o">.</span><span class="n">values</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
 

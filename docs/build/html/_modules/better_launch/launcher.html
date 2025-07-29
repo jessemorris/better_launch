@@ -5,7 +5,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>better_launch.launcher &mdash; better_launch 0.9.1 documentation</title>
+  <title>better_launch.launcher &mdash; better_launch 1.0.0 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=e59714d7" />
 
@@ -13,7 +13,7 @@
     <link rel="shortcut icon" href="../../_static/logo.svg"/>
       <script src="../../_static/jquery.js?v=5d32c60e"></script>
       <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../../_static/documentation_options.js?v=9dc39874"></script>
+      <script src="../../_static/documentation_options.js?v=8d563738"></script>
       <script src="../../_static/doctools.js?v=9bcbadda"></script>
       <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../../_static/js/theme.js"></script>
@@ -80,6 +80,7 @@
 <span class="kn">import</span><span class="w"> </span><span class="nn">time</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">re</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">threading</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">subprocess</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">concurrent.futures</span><span class="w"> </span><span class="kn">import</span> <span class="n">Future</span><span class="p">,</span> <span class="n">CancelledError</span><span class="p">,</span> <span class="ne">TimeoutError</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">contextlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">contextmanager</span>
@@ -107,13 +108,16 @@
     <span class="c1"># For anonymous nodes</span>
     <span class="kn">import</span><span class="w"> </span><span class="nn">wonderwords</span>
 
-    <span class="n">_uuid_generator</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">g</span><span class="o">=</span><span class="n">wonderwords</span><span class="o">.</span><span class="n">RandomWord</span><span class="p">(</span>
-        <span class="n">exclude_with_spaces</span><span class="o">=</span><span class="kc">True</span>
-    <span class="p">):</span> <span class="n">g</span><span class="o">.</span><span class="n">word</span><span class="p">()</span>
+    <span class="n">_uuid_source</span> <span class="o">=</span> <span class="n">wonderwords</span><span class="o">.</span><span class="n">RandomWord</span><span class="p">(</span><span class="n">exclude_with_spaces</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_generate_uuid</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">_uuid_source</span><span class="o">.</span><span class="n">word</span><span class="p">()</span>
+
 <span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
     <span class="kn">import</span><span class="w"> </span><span class="nn">uuid</span>
 
-    <span class="n">_uuid_generator</span> <span class="o">=</span> <span class="k">lambda</span><span class="p">:</span> <span class="n">uuid</span><span class="o">.</span><span class="n">uuid4</span><span class="p">()</span><span class="o">.</span><span class="n">hex</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_generate_uuid</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">uuid</span><span class="o">.</span><span class="n">uuid4</span><span class="p">()</span><span class="o">.</span><span class="n">hex</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">better_launch.elements</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">Group</span><span class="p">,</span>
@@ -311,25 +315,21 @@
 <span class="sd">        exit_with_last_node : bool, optional</span>
 <span class="sd">            If True this function will return when all nodes have been stopped.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="c1"># The ros_adapter takes up quite a bit of memory (around 6 MiB), however, killing it by </span>
-        <span class="c1"># default once we spin is not a good option right now, as some types like composers will</span>
-        <span class="c1"># create services needed for shutdown that would become invalid once we kill the adapter.</span>
         <span class="k">if</span> <span class="n">exit_with_last_node</span><span class="p">:</span>
             <span class="k">while</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_shutdown_future</span><span class="o">.</span><span class="n">done</span><span class="p">():</span>
-                <span class="c1"># TODO not a nice solution, find something smarter</span>
-                <span class="k">try</span><span class="p">:</span>
-                    <span class="bp">self</span><span class="o">.</span><span class="n">_shutdown_future</span><span class="o">.</span><span class="n">result</span><span class="p">(</span><span class="mf">0.1</span><span class="p">)</span>
-                <span class="k">except</span> <span class="ne">TimeoutError</span><span class="p">:</span>
-                    <span class="n">nodes</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">all_nodes</span><span class="p">(</span>
+                <span class="n">nodes</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">all_nodes</span><span class="p">(</span>
                         <span class="n">include_components</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
                         <span class="n">include_launch_service</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-                        <span class="n">include_foreign</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-                    <span class="p">)</span>
+                        <span class="n">include_foreign</span><span class="o">=</span><span class="kc">False</span>
+                <span class="p">)</span>
 
-                    <span class="k">if</span> <span class="nb">all</span><span class="p">(</span><span class="ow">not</span> <span class="n">n</span><span class="o">.</span><span class="n">is_running</span> <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="n">nodes</span><span class="p">):</span>
-                        <span class="bp">self</span><span class="o">.</span><span class="n">shutdown</span><span class="p">(</span><span class="s2">&quot;all nodes have stopped&quot;</span><span class="p">)</span>
-                        <span class="k">break</span>
+                <span class="k">if</span> <span class="nb">all</span><span class="p">(</span><span class="ow">not</span> <span class="n">n</span><span class="o">.</span><span class="n">is_running</span> <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="n">nodes</span><span class="p">):</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">shutdown</span><span class="p">(</span><span class="s2">&quot;all nodes have stopped&quot;</span><span class="p">)</span>
+                    <span class="k">break</span>
 
+                <span class="c1"># Sleep until every node has terminated, then check again</span>
+                <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="n">nodes</span><span class="p">:</span>
+                    <span class="n">n</span><span class="o">.</span><span class="n">join</span><span class="p">()</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="k">try</span><span class="p">:</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">_shutdown_future</span><span class="o">.</span><span class="n">result</span><span class="p">()</span>
@@ -352,7 +352,7 @@
 <span class="sd">        str</span>
 <span class="sd">            The passed in string with a unique suffix.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">return</span> <span class="n">name</span> <span class="o">+</span> <span class="s2">&quot;_&quot;</span> <span class="o">+</span> <span class="n">_uuid_generator</span><span class="p">()</span></div>
+        <span class="k">return</span> <span class="n">name</span> <span class="o">+</span> <span class="s2">&quot;_&quot;</span> <span class="o">+</span> <span class="n">_generate_uuid</span><span class="p">()</span></div>
 
 
 <div class="viewcode-block" id="BetterLaunch.all_groups">
@@ -425,7 +425,7 @@
 <a class="viewcode-back" href="../../better_launch_custom.html#better_launch.launcher.BetterLaunch.query_node">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">query_node</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
-        <span class="n">name_regex</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="n">fullname_regex</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
         <span class="o">*</span><span class="p">,</span>
         <span class="n">include_components</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
         <span class="n">include_launch_service</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
@@ -449,13 +449,13 @@
 <span class="sd">        AbstractNode</span>
 <span class="sd">            The first node matching the provided regex, or None if none matched.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">reg</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="n">name_regex</span><span class="p">)</span>
+        <span class="n">reg</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="n">fullname_regex</span><span class="p">)</span>
         <span class="k">for</span> <span class="n">node</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">all_nodes</span><span class="p">(</span>
             <span class="n">include_components</span><span class="o">=</span><span class="n">include_components</span><span class="p">,</span>
             <span class="n">include_launch_service</span><span class="o">=</span><span class="n">include_launch_service</span><span class="p">,</span>
             <span class="n">include_foreign</span><span class="o">=</span><span class="n">include_foreign</span><span class="p">,</span>
         <span class="p">):</span>
-            <span class="k">if</span> <span class="n">reg</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="n">node</span><span class="o">.</span><span class="n">fullname</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">reg</span><span class="o">.</span><span class="n">fullmatch</span><span class="p">(</span><span class="n">node</span><span class="o">.</span><span class="n">fullname</span><span class="p">):</span>
                 <span class="k">return</span> <span class="n">node</span>
 
         <span class="k">return</span> <span class="kc">None</span></div>
@@ -580,11 +580,11 @@
 
     <span class="k">def</span><span class="w"> </span><span class="nf">_on_sigint</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sig</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">frame</span><span class="p">:</span> <span class="n">inspect</span><span class="o">.</span><span class="n">FrameInfo</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_sigint_received</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Received (SIGINT), forwarding to child processes...&quot;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;Received (SIGINT), forwarding to child processes...&quot;</span><span class="p">)</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_sigint_received</span> <span class="o">=</span> <span class="kc">True</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">shutdown</span><span class="p">(</span><span class="s2">&quot;user interrupt&quot;</span><span class="p">,</span> <span class="n">signal</span><span class="o">.</span><span class="n">SIGINT</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Received (SIGINT) again, escalating to sigterm&quot;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;Received (SIGINT) again, escalating to sigterm&quot;</span><span class="p">)</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_on_sigterm</span><span class="p">(</span><span class="n">sig</span><span class="p">,</span> <span class="n">frame</span><span class="p">)</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">_on_sigterm</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sig</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">frame</span><span class="p">:</span> <span class="n">inspect</span><span class="o">.</span><span class="n">FrameInfo</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
@@ -595,10 +595,10 @@
                 <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">_sigterm_received</span> <span class="o">=</span> <span class="kc">True</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Using (SIGTERM) can result in orphaned processes!&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;Using (SIGTERM) can result in orphaned processes!&quot;</span><span class="p">)</span>
 
         <span class="c1"># Final chance for the processes to shut down, but we will no longer wait</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">shutdown</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;received (SIGTERM)&quot;</span><span class="p">,</span> <span class="n">signal</span><span class="o">.</span><span class="n">SIGTERM</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">shutdown</span><span class="p">(</span><span class="s2">&quot;received (SIGTERM)&quot;</span><span class="p">,</span> <span class="n">signal</span><span class="o">.</span><span class="n">SIGTERM</span><span class="p">)</span>
 
         <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_shutdown</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_shutdown_future</span><span class="o">.</span><span class="n">cancel</span><span class="p">()</span>
@@ -639,9 +639,9 @@
                 <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
                     <span class="sa">f</span><span class="s2">&quot;Shutdown was called from </span><span class="si">{</span><span class="n">frame</span><span class="o">.</span><span class="n">function</span><span class="si">}</span><span class="s2">, but no reason was given&quot;</span>
                 <span class="p">)</span>
-            <span class="k">except</span><span class="p">:</span>
+            <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
-                    <span class="sa">f</span><span class="s2">&quot;Shutdown was called without providing a reason and the calling frame could not be determined&quot;</span>
+                    <span class="s2">&quot;Shutdown was called without providing a reason and the calling frame could not be determined&quot;</span>
                 <span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Shutdown: </span><span class="si">{</span><span class="n">reason</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
@@ -677,7 +677,7 @@
 
         <span class="k">try</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_shutdown_future</span><span class="o">.</span><span class="n">set_result</span><span class="p">(</span><span class="kc">None</span><span class="p">)</span>
-        <span class="k">except</span><span class="p">:</span>
+        <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
             <span class="k">pass</span>
 
         <span class="c1"># Call any callbacks, but only once</span>
@@ -697,8 +697,9 @@
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">package</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">filename</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-        <span class="n">glob</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-        <span class="n">sbustitutions</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="n">subdir</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="o">*</span><span class="p">,</span>
+        <span class="n">substitutions</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Resolve a path to a file or package.</span>
 
@@ -706,11 +707,11 @@
 
 <span class="sd">        If `package` is provided, the corresponding ROS2 package path will be used as the base path. Else we attempt to locate the current launch file&#39;s package by searching its directory and parent directories for a `package.xml`. If the package cannot be determined the current working dir is used as the base path.</span>
 
-<span class="sd">        If neither `glob` nor `filename` is provided the base path will be returned.</span>
+<span class="sd">        If neither `subdir` nor `filename` is provided the base path will be returned.</span>
 
-<span class="sd">        If `filename` is provided but `glob` is not, the base path will be searched recursively for the given filename. Otherwise, `glob` will be used to locate valid candidate files and directories within the base path, allowing patterns like `**/lib/` (any lib folder) and `*.py` (any python file). See the `pathlib pattern language &lt;https://docs.python.org/3/library/pathlib.html#pathlib-pattern-language&gt;`_ for details.</span>
+<span class="sd">        If `filename` is provided but `subdir` is not, the base path will be searched recursively for the given filename. Otherwise, `subdir` will be used to locate valid candidate files and directories within the base path, allowing patterns like `**/lib/` (any lib folder) and `*.py` (any python file).</span>
 
-<span class="sd">        If only `glob` is provided but not `filename`, the first candidate is returned. Otherwise the discovered candidates will be searched for the given filename.</span>
+<span class="sd">        If only `subdir` is provided but not `filename`, the first candidate is returned. Otherwise the discovered candidates will be searched for the given filename.</span>
 
 <span class="sd">        Parameters</span>
 <span class="sd">        ----------</span>
@@ -718,10 +719,10 @@
 <span class="sd">            Name of a ROS2 package to resolve.</span>
 <span class="sd">        filename : str, optional</span>
 <span class="sd">            Name of a file to look for.</span>
-<span class="sd">        glob : str, optional</span>
-<span class="sd">            A glob pattern to locate subdirectories and files.</span>
-<span class="sd">        sbustitutions : bool, optional</span>
-<span class="sd">            If True, text substitution strings within the package and base path will be resolved (see :py:meth:`resolve_string`).</span>
+<span class="sd">        subdir : str, optional</span>
+<span class="sd">            A glob pattern to locate subdirectories and files. See the `pathlib pattern language &lt;https://docs.python.org/3/library/pathlib.html#pathlib-pattern-language&gt;`_ for details.</span>
+<span class="sd">        substitutions : bool, optional</span>
+<span class="sd">            If True, text substitution strings within the package and base path will be resolved (see :py:meth:`resolve_strin​g`).</span>
 
 <span class="sd">        Returns</span>
 <span class="sd">        -------</span>
@@ -733,13 +734,14 @@
 <span class="sd">        ValueError</span>
 <span class="sd">            If `package` contains path separators, or if a `filename` is provided but could not be found within base path.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">if</span> <span class="n">sbustitutions</span><span class="p">:</span>
+        <span class="n">resolve</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="n">substitutions</span><span class="p">:</span>
             <span class="n">resolve</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">resolve_string</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="n">resolve</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">s</span><span class="p">:</span> <span class="n">s</span>
 
         <span class="k">if</span> <span class="n">filename</span><span class="p">:</span>
-            <span class="n">filename</span> <span class="o">=</span> <span class="n">resolve</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">resolve</span><span class="p">:</span>
+                <span class="n">filename</span> <span class="o">=</span> <span class="n">resolve</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span>
+
             <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isabs</span><span class="p">(</span><span class="n">filename</span><span class="p">):</span>
                 <span class="k">return</span> <span class="n">filename</span>
 
@@ -748,19 +750,23 @@
 
         <span class="k">if</span> <span class="n">package</span><span class="p">:</span>
             <span class="k">if</span> <span class="s2">&quot;/&quot;</span> <span class="ow">in</span> <span class="n">package</span> <span class="ow">or</span> <span class="n">os</span><span class="o">.</span><span class="n">pathsep</span> <span class="ow">in</span> <span class="n">package</span><span class="p">:</span>
-                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Package must be a single name, not a path (</span><span class="si">{</span><span class="n">package</span><span class="si">}</span><span class="s2">)&quot;</span><span class="p">)</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;Package must be a single name, not a path (</span><span class="si">{</span><span class="n">package</span><span class="si">}</span><span class="s2">)&quot;</span>
+                <span class="p">)</span>
             <span class="n">base_path</span> <span class="o">=</span> <span class="n">get_package_prefix</span><span class="p">(</span><span class="n">package</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="n">base_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">getcwd</span><span class="p">()</span>
 
-        <span class="n">base_path</span> <span class="o">=</span> <span class="n">resolve</span><span class="p">(</span><span class="n">base_path</span><span class="p">)</span>
-        <span class="k">if</span> <span class="ow">not</span> <span class="n">filename</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">glob</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">resolve</span><span class="p">:</span>
+            <span class="n">base_path</span> <span class="o">=</span> <span class="n">resolve</span><span class="p">(</span><span class="n">base_path</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">filename</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">subdir</span><span class="p">:</span>
             <span class="k">return</span> <span class="n">base_path</span>
 
-        <span class="k">if</span> <span class="ow">not</span> <span class="n">glob</span><span class="p">:</span>
-            <span class="n">glob</span> <span class="o">=</span> <span class="s2">&quot;**&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">subdir</span><span class="p">:</span>
+            <span class="n">subdir</span> <span class="o">=</span> <span class="s2">&quot;**&quot;</span>
 
-        <span class="k">for</span> <span class="n">candidate</span> <span class="ow">in</span> <span class="n">Path</span><span class="p">(</span><span class="n">base_path</span><span class="p">)</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="n">glob</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">candidate</span> <span class="ow">in</span> <span class="n">Path</span><span class="p">(</span><span class="n">base_path</span><span class="p">)</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="n">subdir</span><span class="p">):</span>
             <span class="k">if</span> <span class="ow">not</span> <span class="n">filename</span><span class="p">:</span>
                 <span class="c1"># Return the first candidate</span>
                 <span class="k">return</span> <span class="nb">str</span><span class="p">(</span><span class="n">candidate</span><span class="o">.</span><span class="n">resolve</span><span class="p">()</span><span class="o">.</span><span class="n">absolute</span><span class="p">())</span>
@@ -776,7 +782,7 @@
                     <span class="k">return</span> <span class="nb">str</span><span class="p">(</span><span class="n">ret</span><span class="o">.</span><span class="n">resolve</span><span class="p">()</span><span class="o">.</span><span class="n">absolute</span><span class="p">())</span>
 
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-            <span class="sa">f</span><span class="s2">&quot;Could not find file or directory (filename=</span><span class="si">{</span><span class="n">filename</span><span class="si">}</span><span class="s2">, package=</span><span class="si">{</span><span class="n">package</span><span class="si">}</span><span class="s2">, glob=</span><span class="si">{</span><span class="n">glob</span><span class="si">}</span><span class="s2">)&quot;</span>
+            <span class="sa">f</span><span class="s2">&quot;Could not find file or directory (filename=</span><span class="si">{</span><span class="n">filename</span><span class="si">}</span><span class="s2">, package=</span><span class="si">{</span><span class="n">package</span><span class="si">}</span><span class="s2">, glob=</span><span class="si">{</span><span class="n">subdir</span><span class="si">}</span><span class="s2">)&quot;</span>
         <span class="p">)</span></div>
 
 
@@ -987,7 +993,7 @@
         <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">message_type</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
             <span class="n">message_type</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_ros_message_type</span><span class="p">(</span><span class="n">message_type</span><span class="p">)</span>
 
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">shared_node</span><span class="o">.</span><span class="n">create_subscriber</span><span class="p">(</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">shared_node</span><span class="o">.</span><span class="n">create_subscription</span><span class="p">(</span>
             <span class="n">message_type</span><span class="p">,</span>
             <span class="n">topic</span><span class="p">,</span>
             <span class="n">callback</span><span class="p">,</span>
@@ -1034,6 +1040,8 @@
         <span class="n">message_type</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="nb">type</span><span class="p">,</span>
         <span class="n">message_args</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
         <span class="n">qos_profile</span><span class="p">:</span> <span class="n">QoSProfile</span> <span class="o">|</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">10</span><span class="p">,</span>
+        <span class="o">*</span><span class="p">,</span>
+        <span class="n">time_to_publish</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Convenience method to publish a single message. The publisher will be destroyed once the message has been published. If you plan to publish additional messages, use :py:meth:`publisher` instead and use the instance.</span>
 
@@ -1047,6 +1055,8 @@
 <span class="sd">            The keyword arguments from which the message will be constructed.</span>
 <span class="sd">        qos_profile : QoSProfile | int, optional</span>
 <span class="sd">            A quality of service profile that changes how the publisher handles connections and retains data.</span>
+<span class="sd">        time_to_publish: float, optional</span>
+<span class="sd">            How long to give the publisher to submit the message. Expect the message to get lost if you set this to 0.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">message_type</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
             <span class="n">message_type</span><span class="p">:</span> <span class="nb">type</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_ros_message_type</span><span class="p">(</span><span class="n">message_type</span><span class="p">)</span>
@@ -1054,6 +1064,10 @@
         <span class="n">pub</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">publisher</span><span class="p">(</span><span class="n">topic</span><span class="p">,</span> <span class="n">message_type</span><span class="p">,</span> <span class="n">qos_profile</span><span class="p">)</span>
         <span class="n">msg</span> <span class="o">=</span> <span class="n">message_type</span><span class="p">(</span><span class="o">**</span><span class="n">message_args</span><span class="p">)</span>
         <span class="n">pub</span><span class="o">.</span><span class="n">publish</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">time_to_publish</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">time_to_publish</span> <span class="o">&gt;</span> <span class="mf">0.0</span><span class="p">:</span>
+            <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="n">time_to_publish</span><span class="p">)</span>
+
         <span class="n">pub</span><span class="o">.</span><span class="n">destroy</span><span class="p">()</span></div>
 
 
@@ -1203,8 +1217,7 @@
             <span class="n">res</span><span class="o">.</span><span class="n">add_done_callback</span><span class="p">(</span><span class="k">lambda</span> <span class="n">f</span><span class="p">:</span> <span class="n">srv</span><span class="o">.</span><span class="n">destroy</span><span class="p">())</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="n">res</span> <span class="o">=</span> <span class="n">srv</span><span class="o">.</span><span class="n">call</span><span class="p">(</span><span class="n">req</span><span class="p">)</span>
-            <span class="n">srv</span><span class="o">.</span><span class="n">destroy</span><span class="p">()</span>
-        
+
         <span class="k">return</span> <span class="n">res</span></div>
 
 
@@ -1384,6 +1397,37 @@
             <span class="bp">self</span><span class="o">.</span><span class="n">_group_stack</span> <span class="o">=</span> <span class="n">old_stack</span></div>
 
 
+    <span class="c1"># There&#39;s no real need to have this as a member of BetterLaunch, but it&#39;s kind of expected to</span>
+    <span class="c1"># be there. By making it a class method it can still be used without a BL instance.</span>
+<div class="viewcode-block" id="BetterLaunch.exec">
+<a class="viewcode-back" href="../../better_launch_custom.html#better_launch.launcher.BetterLaunch.exec">[docs]</a>
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">exec</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">cmd</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Run the specified command and return its output. The command can either be an absolute path to an executable or any file found on `PATH`.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        cmd : str | list[str]</span>
+<span class="sd">            The command to run. If a string is passed it will be split on spaces to separate the command from its arguments. Pass a list instead to have more control over which arguments to treat as a single argument.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        str</span>
+<span class="sd">            The output of the command without the trailing newline.</span>
+
+<span class="sd">        Raises</span>
+<span class="sd">        ------</span>
+<span class="sd">        subprocess.CalledProcessError</span>
+<span class="sd">            If the command had a non-zero exit code. See the raised error&#39;s `returncode` and `output` attributes for details.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">cmd</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+            <span class="n">cmd</span> <span class="o">=</span> <span class="n">cmd</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot; &quot;</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="p">(</span>
+            <span class="n">subprocess</span><span class="o">.</span><span class="n">check_output</span><span class="p">(</span><span class="n">cmd</span><span class="p">,</span> <span class="n">stderr</span><span class="o">=</span><span class="n">subprocess</span><span class="o">.</span><span class="n">STDOUT</span><span class="p">)</span><span class="o">.</span><span class="n">decode</span><span class="p">()</span><span class="o">.</span><span class="n">rstrip</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="p">)</span></div>
+
+
 <div class="viewcode-block" id="BetterLaunch.node">
 <a class="viewcode-back" href="../../better_launch_custom.html#better_launch.launcher.BetterLaunch.node">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">node</span><span class="p">(</span>
@@ -1511,11 +1555,11 @@
         <span class="k">if</span> <span class="n">autostart_process</span><span class="p">:</span>
             <span class="n">node</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
 
-            <span class="k">if</span> <span class="n">ros_waittime</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">node</span><span class="o">.</span><span class="n">check_ros2_connected</span><span class="p">(</span><span class="n">ros_waittime</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">ros_waittime</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">node</span><span class="o">.</span><span class="n">is_ros2_connected</span><span class="p">(</span><span class="n">ros_waittime</span><span class="p">):</span>
                 <span class="k">if</span> <span class="p">(</span>
                     <span class="n">lifecycle_target</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="n">LifecycleStage</span><span class="o">.</span><span class="n">PRISTINE</span><span class="p">)</span>
                     <span class="ow">and</span> <span class="n">lifecycle_waittime</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
-                    <span class="ow">and</span> <span class="n">node</span><span class="o">.</span><span class="n">check_lifecycle_node</span><span class="p">(</span><span class="n">lifecycle_waittime</span><span class="p">)</span>
+                    <span class="ow">and</span> <span class="n">node</span><span class="o">.</span><span class="n">is_lifecycle_node</span><span class="p">(</span><span class="n">lifecycle_waittime</span><span class="p">)</span>
                 <span class="p">):</span>
                     <span class="n">node</span><span class="o">.</span><span class="n">lifecycle</span><span class="o">.</span><span class="n">transition</span><span class="p">(</span><span class="n">lifecycle_target</span><span class="p">)</span>
 
@@ -1636,7 +1680,7 @@
                     <span class="k">else</span><span class="p">:</span>
                         <span class="n">node_ref</span> <span class="o">=</span> <span class="n">ForeignNode</span><span class="o">.</span><span class="n">wrap_process</span><span class="p">(</span><span class="n">node_processes</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
 
-        <span class="k">if</span> <span class="n">node_ref</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">Composer</span><span class="o">.</span><span class="n">is_composer</span><span class="p">(</span><span class="n">node_ref</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">node_ref</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">Composer</span><span class="o">.</span><span class="n">is_composer</span><span class="p">(</span><span class="n">node_ref</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="n">ros_waittime</span><span class="p">):</span>
             <span class="c1"># We will still reuse it but raise some awareness</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
                 <span class="sa">f</span><span class="s2">&quot;Reused composer node </span><span class="si">{</span><span class="n">node_ref</span><span class="o">.</span><span class="n">fullname</span><span class="si">}</span><span class="s2"> does not provide the expected services (yet)&quot;</span>
@@ -1768,11 +1812,11 @@
             <span class="o">**</span><span class="n">extra_composer_args</span><span class="p">,</span>
         <span class="p">)</span>
 
-        <span class="k">if</span> <span class="n">ros_waittime</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">comp</span><span class="o">.</span><span class="n">check_ros2_connected</span><span class="p">(</span><span class="n">ros_waittime</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">ros_waittime</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">comp</span><span class="o">.</span><span class="n">is_ros2_connected</span><span class="p">(</span><span class="n">ros_waittime</span><span class="p">):</span>
             <span class="k">if</span> <span class="p">(</span>
                 <span class="n">lifecycle_target</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="n">LifecycleStage</span><span class="o">.</span><span class="n">PRISTINE</span><span class="p">)</span>
                 <span class="ow">and</span> <span class="n">lifecycle_waittime</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
-                <span class="ow">and</span> <span class="n">comp</span><span class="o">.</span><span class="n">check_lifecycle_node</span><span class="p">(</span><span class="n">lifecycle_waittime</span><span class="p">)</span>
+                <span class="ow">and</span> <span class="n">comp</span><span class="o">.</span><span class="n">is_lifecycle_node</span><span class="p">(</span><span class="n">lifecycle_waittime</span><span class="p">)</span>
             <span class="p">):</span>
                 <span class="n">comp</span><span class="o">.</span><span class="n">lifecycle</span><span class="o">.</span><span class="n">transition</span><span class="p">(</span><span class="n">lifecycle_target</span><span class="p">)</span>
 
@@ -1822,7 +1866,9 @@
 
         <span class="k">if</span> <span class="n">find_launchthis_function</span><span class="p">(</span><span class="n">file_path</span><span class="p">):</span>
             <span class="k">try</span><span class="p">:</span>
-                <span class="n">source</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">file_path</span><span class="p">)</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>
+                <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">file_path</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+                    <span class="n">source</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>
+                    
                 <span class="n">code</span> <span class="o">=</span> <span class="nb">compile</span><span class="p">(</span><span class="n">source</span><span class="p">,</span> <span class="n">launchfile</span><span class="p">,</span> <span class="s2">&quot;exec&quot;</span><span class="p">)</span>
 
                 <span class="c1"># Make sure the included launch file reuses our BetterLaunch instance</span>
