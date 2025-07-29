@@ -1,5 +1,4 @@
-examples/example_listener.py
-examples/example_talker.py
+.vscode
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
