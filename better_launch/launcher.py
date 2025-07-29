@@ -1522,7 +1522,7 @@ Takeoff in 3... 2... 1...
                     else:
                         node_ref = ForeignNode.wrap_process(node_processes[0])
 
-        if node_ref and not Composer.is_composer(node_ref):
+        if node_ref and not Composer.is_composer(node_ref, timeout=ros_waittime):
             # We will still reuse it but raise some awareness
             self.logger.warning(
                 f"Reused composer node {node_ref.fullname} does not provide the expected services (yet)"

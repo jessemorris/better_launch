@@ -144,7 +144,7 @@ class Component(AbstractNode, LiveParamsMixin):
 
 class Composer(AbstractNode):
     @classmethod
-    def is_composer(cls, node: AbstractNode, timeout: float = None) -> bool:
+    def is_composer(cls, node: AbstractNode, timeout: float = 0.0) -> bool:
         """Checks whether a node provides services for loading components.
 
         For a node to be a composer, it must be running, be registered with ROS and offer the ROS composition services. This method **only** checks whether one of the key services is present.
@@ -156,7 +156,7 @@ class Composer(AbstractNode):
         node : AbstractNode
             The node object to check.
         timeout : float
-            How long to wait at most for the composition services to appear. Wait forever if negative.
+            How long to wait at most for the composition services to appear. Wait forever if None.
 
         Returns
         -------
@@ -174,7 +174,7 @@ class Composer(AbstractNode):
                 ):
                     return True
 
-            if timeout is None or (timeout > 0 and time.time() > now + timeout):
+            if timeout is not None and time.time() > now + timeout:
                 break
 
             time.sleep(0.1)
@@ -305,7 +305,7 @@ class Composer(AbstractNode):
                 srv = bl.service_client(topic, srv_type, timeout=service_timeout)
                 srv.destroy()
 
-    def shutdown(self, reason: str, signum: int = signal.SIGTERM, timeout: float = 0.0) -> None:
+    def shutdown(self, reason: str, signum: int = signal.SIGTERM, timeout: float = None) -> None:
         """This will shutdown the composer node. Unloading any loaded components is left to the actual composer implementation.
 
         Parameters
@@ -322,18 +322,18 @@ class Composer(AbstractNode):
         TimeoutError
             If a timeout > 0 was set and any of the components or the composer did not shutdown before then.
         """
-        # components = list(self.managed_components)
-        # for comp in components:
-        #     try:
-        #         self.unload_component(comp, timeout=timeout)
-        #     except:
-        #         pass
+        for comp in self.managed_components:
+            try:
+                comp.shutdown(reason, signum, timeout)
+            except Exception as e:
+                self.logger.warning(f"Failed to unload component {comp}: {e}")
 
         try:
-            self._wrapped_node.shutdown(reason, signum, timeout)
-            self.managed_components.clear()
+            self._wrapped_node.shutdown(reason, signum, 0.0)
         except NotImplementedError:
             pass
+        
+        self.managed_components.clear()
 
     def load_component(
         self,
@@ -448,7 +448,7 @@ class Composer(AbstractNode):
             )
             raise RuntimeError(res.error_message)
 
-    def unload_component(self, component: Component | int, timeout: float = 0.0) -> None:
+    def unload_component(self, component: Component | int, timeout: float = None) -> None:
         """Unload the specified component, essentially stopping its node.
 
         Note that an unload request will be issued even if the component reports it is not loaded.

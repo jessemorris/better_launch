@@ -64,7 +64,7 @@ class LifecycleManager:
         node : AbstractNode
             The node object to check for lifecycle support.
         timeout : float
-            How long to wait at most for the lifecycle services to appear. Wait forever if negative.
+            How long to wait at most for the lifecycle services to appear. Wait forever if None.
 
         Returns
         -------
@@ -82,7 +82,7 @@ class LifecycleManager:
                 ):
                     return True
 
-            if timeout is None or (timeout > 0 and time.time() > now + timeout):
+            if timeout is not None and time.time() > now + timeout:
                 break
 
             time.sleep(0.1)

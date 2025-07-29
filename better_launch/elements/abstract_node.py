@@ -222,13 +222,13 @@ class AbstractNode:
         """
         raise NotImplementedError()
 
-    def check_ros2_connected(self, timeout: float = None) -> bool:
+    def check_ros2_connected(self, timeout: float = 0.0) -> bool:
         """Check whether this node is registered within ROS.
 
         Parameters
         ----------
         timeout : float, optional
-            How long to wait for the node to sign up with ROS. Wait forever if negative.
+            How long to wait for the node to sign up with ROS. Wait forever if None.
 
         Returns
         -------
@@ -255,7 +255,7 @@ class AbstractNode:
                 if self.fullname in living_nodes:
                     return True
 
-                if timeout is None or (timeout > 0 and time.time() >= now + timeout):
+                if timeout is not None and time.time() >= now + timeout:
                     return False
 
                 time.sleep(0.1)
@@ -263,7 +263,7 @@ class AbstractNode:
             # Cannot check if the shared node was shut down
             return None
 
-    def check_lifecycle_node(self, timeout: float = None) -> bool:
+    def check_lifecycle_node(self, timeout: float = 0.0) -> bool:
         """Checks if this is a lifecycle node and initializes a : py:class:`LifecycleManager` if supported and not done so before.
 
         Note that if you simply want to check whether this node supports lifecycle management right now, check whether :py:meth:`lifecycle` is None will be considerably cheaper.
@@ -285,7 +285,7 @@ class AbstractNode:
         Parameters
         ----------
         timeout : float, optional
-            How long to wait for the node to reveal its lifecycle capabilities. Wait forever if negative.
+            How long to wait for the node to reveal its lifecycle capabilities. Wait forever if None.
 
         Returns
         -------
