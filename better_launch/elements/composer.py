@@ -329,7 +329,7 @@ class Composer(AbstractNode):
                 self.logger.warning(f"Failed to unload component {comp}: {e}")
 
         try:
-            self._wrapped_node.shutdown(reason, signum, 0.0)
+            self._wrapped_node.shutdown(reason, signum, timeout)
         except NotImplementedError:
             pass
         
