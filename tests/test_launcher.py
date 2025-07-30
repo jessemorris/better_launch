@@ -29,6 +29,13 @@ def some_function_name():
         assert all(still_alive), f"The following nodes refused to shutdown: {still_alive}"
 
 
+@pytest.fixture(autouse=True)
+def test_setup():
+    yield
+    # Allow some time to pass for ROS to clean up topics and such
+    time.sleep(2.0)
+
+
 def _assert_talker_listener_running(talker: Node, listener: Node, topic: str) -> bool:
     """Verify the given talker and listener are running and using the given topic."""
     time.sleep(5.0)
@@ -201,7 +208,8 @@ def test_ros2_actions():
         ),
     )
 
-    time.sleep(5.0)
+    bl.wait_for_topic("/test/better_launch/chatter_ros2", timeout=10.0)
+    time.sleep(2.0)
 
     publishers = bl.shared_node.get_publishers_info_by_topic(
         "/test/better_launch/chatter_ros2"

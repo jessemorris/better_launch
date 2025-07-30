@@ -840,6 +840,68 @@ Takeoff in 3... 2... 1...
         module = importlib.import_module(module_name.replace("/", "."))
         return getattr(module, message_name)
 
+    def wait_for_topic(
+        self,
+        topic: str,
+        timeout: float = None,
+    ) -> bool:
+        """Wait for the specified topic to appear.
+
+        Parameters
+        ----------
+        topic : str
+            The full path of the topic to wait for.
+        timeout : float, optional
+            How long to wait for the topic. Wait forever if None.
+
+        Returns
+        -------
+        bool
+            True if the topic appeared within the timeout, False otherwise.
+        """
+        now = time.time()
+        while True:
+            published = self.shared_node.get_topic_names_and_types()
+            for name, _ in published:
+                if name == topic:
+                    return True
+
+            if timeout is not None and time.time() > now + timeout:
+                return False
+
+            time.sleep(0.1)
+
+    def wait_for_service(
+        self,
+        service: str,
+        timeout: float = None,
+    ) -> bool:
+        """Wait for the specified service to appear.
+
+        Parameters
+        ----------
+        service : str
+            The full path of the service to wait for.
+        timeout : float, optional
+            How long to wait for the service. Wait forever if None.
+
+        Returns
+        -------
+        bool
+            True if the service appeared within the timeout, False otherwise.
+        """
+        now = time.time()
+        while True:
+            published = self.shared_node.get_service_names_and_types()
+            for name, _ in published:
+                if name == service:
+                    return True
+
+            if timeout is not None and time.time() > now + timeout:
+                return False
+
+            time.sleep(0.1)
+
     def subscriber(
         self,
         topic: str,
