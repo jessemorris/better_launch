@@ -27,7 +27,12 @@ jobs:
       - name: Install dependencies
         run: |
           # launch-ros is not included by default
-          sudo apt-get install -y ros-jazzy-launch-ros
+          sudo apt-get install -y \
+              ros-jazzy-launch-ros \
+              ros-jazzy-std-msgs \
+              ros-jazzy-examples-rclpy-minimal-publisher \
+              ros-jazzy-examples-rclpy-minimal-subscriber \
+              ros-humble-examples-rclcpp-minimal-composition
           python -m pip install --upgrade pip
           pip install pytest
           pip install --break-system-packages -r workspace/requirements.txt
