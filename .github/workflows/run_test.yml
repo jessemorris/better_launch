@@ -32,7 +32,7 @@ jobs:
               ros-jazzy-std-msgs \
               ros-jazzy-examples-rclpy-minimal-publisher \
               ros-jazzy-examples-rclpy-minimal-subscriber \
-              ros-humble-examples-rclcpp-minimal-composition
+              ros-jazzy-examples-rclcpp-minimal-composition
           python -m pip install --upgrade pip
           pip install pytest
           pip install --break-system-packages -r workspace/requirements.txt
