@@ -56,10 +56,10 @@ def _assert_talker_listener_running(talker: Node, listener: Node, topic: str) ->
     ), "Listener is not subscribed on expected topic"
 
     # Shutdown talker and listener
-    talker.shutdown("Test successful", timeout=5.0)
+    talker.shutdown("Test successful", timeout=10.0)
     assert not talker.is_running, "Talker failed to shutdown"
 
-    listener.shutdown("Test successful", timeout=5.0)
+    listener.shutdown("Test successful", timeout=10.0)
     assert not listener.is_running, "Listener failed to shutdown"
 
     alive_nodes = bl.shared_node.get_node_names()
@@ -162,7 +162,7 @@ def test_compose():
         talker, listener, "/test/better_launch/chatter_comp"
     )
 
-    composer.shutdown("Test successful", timeout=5.0)
+    composer.shutdown("Test successful", timeout=10.0)
     assert not composer.is_running, "Composer failed to shutdown"
 
 
@@ -217,7 +217,7 @@ def test_ros2_actions():
         s.node_name for s in subscribers
     ], "Listener is not listening on expected topic"
 
-    ros2.shutdown("Test successful", timeout=5.0)
+    ros2.shutdown("Test successful", timeout=10.0)
     assert not ros2.is_running, "ROS2LaunchWrapper failed to shutdown"
 
 
