@@ -215,7 +215,7 @@ class Ros2LaunchFile(LaunchFile):
         def eval_arg(arg: Any) -> Any:
             try:
                 return ast.literal_eval(arg)
-            except:
+            except Exception:
                 return None
 
         name = eval_arg(kwargs.get("name", None))
@@ -251,7 +251,7 @@ class Ros2LaunchFile(LaunchFile):
                 source = f.read()
 
             tree = ast.parse(source)
-        except:
+        except Exception:
             raise ValueError("Not valid python code")
 
         has_launch_func = False
@@ -522,7 +522,12 @@ In contrast to ROS2 launch, it also generates useful shell completion suggestion
 
     def get_command(self, ctx: click.Context, name: str) -> click.Command:
         # return a the command that will handle selecting launch files from the package
-        return LaunchfileSelectionCLI(name)
+        try:
+            return LaunchfileSelectionCLI(name)
+        except Exception:
+            # The LaunchfileSelectionCLI will throw a PackageNotFoundError if colcon failed 
+            # to install a package, and ValueError if the package name is invalid
+            return None
 
     def format_commands(
         self, ctx: click.Context, formatter: click.HelpFormatter
