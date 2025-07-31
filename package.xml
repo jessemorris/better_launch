@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <package format="2">
   <name>better_launch</name>
-  <version>1.0.0</version>
+  <version>1.0.1</version>
   
   <description>
     A better replacement for the ROS2 launch system: intuitive, simple, memorable.
