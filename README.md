@@ -5,7 +5,7 @@
 
 -> [Just looking for the documentation?](https://dfki-ric.github.io/better_launch/)
 
-# About
+# 🚀 About
 Let's face it: ROS2 has been a severe downgrade in terms of usability compared to ROS1. While there are many considerable improvements, the current launch system is borderline unusable. I've listed my personal gripes below, but if you're here you likely feel the same. This is why I wrote ***better_launch***.
 
 Instead of dozens of imports and class instances for even the most basic tasks, your launch files could look as simple and beautiful as this:
@@ -38,13 +38,13 @@ $> bl my_package my_launch_file.py --enable_x True
 *Do I have your attention? Read on to learn more!*
 
 
-# Why not improve the existing ROS2 launch?
+# 🤔 Why not improve the existing ROS2 launch?
 Because I think it is beyond redemption and no amount of refactoring and REPs (ROS enhancement proposals) will turn the sails. Tools like the highly rated [simple_launch](https://github.com/oKermorgant/simple_launch) or [launch-generator](https://github.com/Tacha-S/launch_generator/) exist, but still use ROS2 launch under the hood and so inherit much of its clunkiness. Rather than fixing an inherently broken solution, I decided to make a RAP - a ROS abandonment proposal :)
 
 Essentially, *better_launch* is what I wish ROS2 launch would be: intuitive to use, simple to understand, easy to remember. This is why *better_launch* is **not** yet another abstraction layer over ROS2 launch; it is a **full replacement** with no required dependencies on the existing launch system.
 
 
-# Okay, what can I do with it?
+# 🧩 Okay, what can I do with it?
 Everything you would expect and a little more! The `BetterLaunch` instance allows you to
 - create *subscribers*, *publishers*, *services*, *service clients*, *action servers* and *action clients* on the fly
 - start and stop *nodes*
@@ -193,7 +193,7 @@ def my_start(
 </details>
 
 
-# How do I use it?
+# 🛠️ How do I use it?
 The best way to get to know *better_launch* is to explore the included [examples](examples/). Unlike ROS2, all examples and functions come with proper [documentation](https://dfki-ric.github.io/better_launch/). If anything is left unclear, feel free to contact me.
 
 You will mainly interact with *better_launch* through the following classes and modules:
@@ -216,7 +216,7 @@ bl better_launch 05_launch_arguments.py --help
 - `BL_FILE_LOG_FORMAT_OVERRIDE`: overrides the format for messages logged to log files. Check the [PrettyLogFormatter](better_launch/utils/better_logging.py) for valid syntax.
 
 
-# The TUI
+# 📟 The TUI
 *better_launch* comes with a sneaky, unobstrusive TUI (terminal user interface) based on [prompt_toolkit](https://github.com/prompt-toolkit/python-prompt-toolkit), which will hover below the log output. You can start it by either passing `ui=True` to the `launch_this` wrapper, or by adding `--bl_ui_override=enable` on the command line. Use *\<tab>* to switch between menu items.
 
 ![TUI](media/tui.png)
@@ -238,7 +238,7 @@ The TUI is also able to manage nodes started from different shells and processes
 > Foreign node processes are identified by having one of the following parameters in their arguments: `__ns`, `__name`, `__node`, `--ros-args`. This is always true for nodes started from launch files, but fails when they were started via `ros2 run` or other means. As far as I'm aware, there is no better way right now.
 
 
-# What are the differences?
+# ⚖️ What are the differences?
 Because *better_launch* does not use the ROS2 launch system, some aspects work differently from what you may be used to.
 
 
@@ -280,7 +280,7 @@ I also added a reformatting layer so that colors and nicer screen output are pos
 ROS2 launch has a bad reputation of leaving stale and abandoned processes behind after terminating. In my testing so far this has never been an issue with *better_launch* yet - except when you hard kill (-9) its process.
 
 
-# Performance
+# 💯 Performance
 I am not an expert on profiling code. Even though *better_launch* uses synchronous calls (or classic threads if necessary), and does some additional work to reformat output from nodes, it was able to achieve similar performance to `ros2 launch`. The scripts and results from the benchmarks can be found under [media/benchmarks](media/benchmarks/). This section will only show the most relevant parts.
 
 > `bl` is just a script to locate the launch file and then run it, so I decided to not use `bl` for these benchmarks and instead run the launch file directly; otherwise the resources used by the launch file will not be visible to most profilers.
@@ -321,7 +321,9 @@ I use [py-spy](https://github.com/benfred/py-spy) to see where *better_launch* i
 </details>
 
 
-# Installation
+# 📥 Installation
+I'm working on getting a .deb package up and running. Until then you may follow the steps below!
+
 *better_launch* is a regular ROS2 package, which means you can install it in your workspace and then use it in all launch files within that workspace. Since ROS2 has no good way of handling python depencies yet you'll have to do a few things by hand.
 
 
@@ -389,7 +391,7 @@ bl --help
 ```
 
 
-# What's so bad about ROS2 launch?
+# 📢 What's so bad about ROS2 launch?
 Here is a "simple" launch file from the [official documentation](https://docs.ros.org/en/jazzy/Tutorials/Intermediate/Launch/Using-Substitutions.html) that does nothing but include another launch file:
 
 ```python
@@ -451,7 +453,7 @@ def main(turtlesim_ns = "turtlesim2", use_provided_red = True, new_background_r 
 Overall, ROS2 launch seems like a system architect's wet fever dream, and I don't enjoy it.
 
 
-# Contributors
+# 🌱 Contributors
 *Author:* [Nikolas Dahn](https://github.com/ndahn/)
 
 *Testing & Feedback:*
