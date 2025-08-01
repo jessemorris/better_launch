@@ -322,6 +322,13 @@ class Composer(AbstractNode):
         TimeoutError
             If a timeout > 0 was set and any of the components or the composer did not shutdown before then.
         """
+        if not self._wrapped_node.is_running:
+            # Clear up internal states
+            for comp in self.managed_components:
+                comp._component_id = None
+            self.managed_components.clear()
+            return
+
         for comp in self.managed_components:
             try:
                 comp.shutdown(reason, signum, timeout)
