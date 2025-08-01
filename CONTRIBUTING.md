@@ -47,7 +47,10 @@ documented and tested. Breaking changes must be discussed and announced
 in advance with deprecation warnings.
 
 ## Roadmap
-Who knows :)
+- a tool for generating launch graphs from *better_launch* launch files
+- more interactions for the TUI like setting live parameters
+- a tool for converting regular ROS2 launch files to *better_launch*. This is a big maybe as it seems quite annoying to do
+- who knows :)
 
 ## Funding
 *better_launch* was initiated and is currently developed at the [Robotics Innovation Center](http://robotik.dfki-bremen.de/en/startpage.html) of the [German Research Center for Artificial Intelligence (DFKI)](http://www.dfki.de) in Bremen.
