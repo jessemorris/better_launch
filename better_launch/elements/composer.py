@@ -4,7 +4,7 @@ import time
 import re
 from threading import Event
 from rclpy import Parameter
-# NOTE messages are imported late because the composer is not always used
+# NOTE message types are imported late because the composer is not always used
 
 from better_launch.utils.better_logging import LogSink
 from .abstract_node import AbstractNode
@@ -26,9 +26,11 @@ class Component(AbstractNode, LiveParamsMixin):
     ):
         """Representation of a component, a composable object that can be loaded into a running process. Components will always use their composer's namespace.
 
-        Note that in ROS2 launch files you can reference existing composers by name when creating components. This is a clutch because you ROS2 you can never obtain a reference to a meaningful object to refer to. Since we have actual instances in better_launch, referring to composers by name is not supported. Use :py:meth:`BetterLaunch.component` or construct your own component and pass a :py:class:`Composer` instance.
+        Note that in ROS2 launch files you can reference existing composers by name when creating components. This is a clutch because ROS2 does not have a way to retrieve a reference to an already existing node. Since in better_launch we have actual node instances, referring to composers by name is not supported. Use :py:meth:`BetterLaunch.component` or construct your own component and pass a :py:class:`Composer` instance.
 
         Also note that since components are loaded via a service call there are some additional restrictions on the types of `params`. In particular, they must be compatible with the `ROS2 Parameter message type <https://github.com/ros2/rcl_interfaces/blob/rolling/rcl_interfaces/msg/ParameterValue.msg>`_. This is *not* verified on construction.
+
+        In addition, note that new nodes created by a component are using the composer's remaps. See the `related issue <https://github.com/ros2/rclcpp/issues/2404>`_ in rclcpp.
 
         .. seealso::
 
@@ -192,6 +194,8 @@ class Composer(AbstractNode):
 
         As it is possible to reuse already running composers (even without a reference to the actual process), this is merely a wrapper around another :py:class:`AbstractNode` providing additional functionality. The wrapped node instance is typically a :py:class:`Node` or :py:class:`ForeignNode`. See :py:meth:`BetterLaunch.compose` for the most common use cases. 
 
+        Note that new nodes created by a component are using the composer's remaps. See the `related issue <https://github.com/ros2/rclcpp/issues/2404>`_ in rclcpp.
+
         .. seealso::
 
             `ROS2 About Composition <https://docs.ros.org/en/jazzy/Concepts/Intermediate/About-Composition.html>`_
@@ -322,6 +326,13 @@ class Composer(AbstractNode):
         TimeoutError
             If a timeout > 0 was set and any of the components or the composer did not shutdown before then.
         """
+        if not self._wrapped_node.is_running:
+            # Clear up internal states
+            for comp in self.managed_components:
+                comp._component_id = None
+            self.managed_components.clear()
+            return
+
         for comp in self.managed_components:
             try:
                 comp.shutdown(reason, signum, timeout)
@@ -346,6 +357,8 @@ class Composer(AbstractNode):
         Additional keyword arguments will be passed as ROS parameters to the component. If the component is not associated with this composer yet, a warning will be logged and its association will be updated.
 
         Note that since components are loaded via a service call that there are some additional restrictions on the types of :py:meth:`Component.params` and `composer_extra_params`. In particular, they must be compatible with the `ROS2 Parameter message type <https://github.com/ros2/rcl_interfaces/blob/rolling/rcl_interfaces/msg/ParameterValue.msg>`_.
+
+        Also note that new nodes created by a component are using the composer's remaps. See the `related issue <https://github.com/ros2/rclcpp/issues/2404>`_ in rclcpp.
 
         Parameters
         ----------
