@@ -1499,6 +1499,8 @@ Takeoff in 3... 2... 1...
             with bl.compose("my-composer"):
                 bl.component("my_package", "mystuff:TheComponentOfDreams", "normal-component")
 
+        Note that new nodes created by a component are using the composer's remaps. This for example applies to transform listeners (but not transform publishers). See the `related issue <https://github.com/ros2/rclcpp/issues/2404>`_ in rclcpp.
+
         Parameters
         ----------
         name : str, optional
