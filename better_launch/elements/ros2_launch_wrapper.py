@@ -3,6 +3,7 @@ import os
 import platform
 import signal
 import logging
+import asyncio  # keep this so we can use await and async def
 import threading
 from multiprocessing import Process, Queue
 import subprocess
@@ -104,27 +105,33 @@ def _launchservice_worker(
             ld = launch_action_queue.get()
 
             if ld is None:
-                loop.call_soon_threadsafe(loop.create_task, launch_service.shutdown())
+                # Most launch_service functions are thread safe and in fact DON'T seem
+                # to work when called using loop.call_soon_threadsafe
+                launch_service.shutdown()
                 break
 
-            loop.call_soon_threadsafe(launch_service.include_launch_description, ld)
+            launch_service.include_launch_description(ld)
 
-    threading.Thread(target=queue_watcher, daemon=True).start()
-
-    # Start the launch service
     async def run():
         logger.info("Starting ROS2 launch service")
+        
+        # Start queue_watcher AFTER the event loop is running
+        def start_queue_watcher():
+            threading.Thread(target=queue_watcher, daemon=True).start()
+        
+        # Schedule queue_watcher to start after a brief delay
+        loop.call_soon(start_queue_watcher)
+        
         await launch_service.run_async(shutdown_when_idle=False)
+        logger.info("ROS2 launch service has terminated")
 
     task = loop.create_task(run())
-
-    while True:
-        try:
-            loop.run_until_complete(task)
-        except Exception as e:
-            logger.warning(f"ROS2 launch service terminated: {e}")
-            raise
-
+    
+    try:
+        loop.run_until_complete(task)
+    except Exception as e:
+        logger.warning(f"Error while running ROS2 launch service: {e}")
+        raise
 
 class Ros2LaunchWrapper(AbstractNode):
     def __init__(

@@ -1785,7 +1785,7 @@ Takeoff in 3... 2... 1...
             # Was not a better_launch launch file, assume it's a ROS2 launch file (py, xml, yaml)
             self._include_ros2_launchfile(file_path, **include_args)
 
-    def _include_ros2_launchfile(self, file_path, **kwargs) -> None:
+    def _include_ros2_launchfile(self, file_path: str, **kwargs) -> None:
         # Delegate to ros2 launch service
         from launch.actions import IncludeLaunchDescription
         from launch.launch_description_sources import (
@@ -1841,7 +1841,7 @@ Takeoff in 3... 2... 1...
                 output=output,
             )
 
-        if start_immediately:
+        if start_immediately and not self._ros2_launcher.is_running:
             self._ros2_launcher.start()
 
         return self._ros2_launcher
