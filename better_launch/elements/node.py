@@ -17,6 +17,7 @@ import json
 from better_launch.utils.better_logging import LogSink
 from .abstract_node import AbstractNode
 from .live_params_mixin import LiveParamsMixin
+from .lifecycle_manager import LifecycleStage
 
 
 class Node(AbstractNode, LiveParamsMixin):
@@ -335,6 +336,13 @@ class Node(AbstractNode, LiveParamsMixin):
 
         signame = signal.Signals(signum).name
         self.logger.warning(f"Received shutdown request: {reason} ({signame})")
+
+        if signum == signal.SIGTERM and self._lifecycle_manager:
+            try:
+                self._lifecycle_manager.transition(LifecycleStage.FINALIZED)
+            except Exception as e:
+                self.logger.warning(f"Lifecycle transition to FINALIZED failed: {e}")
+
         self._on_signal(signum)
 
         if timeout == 0.0:

@@ -11,8 +11,9 @@ from xml.etree import ElementTree
 from ament_index_python.packages import get_packages_with_prefixes
 
 from better_launch.utils.better_logging import LogSink
-from . import AbstractNode, Node
-from . import LiveParamsMixin
+from .abstract_node import AbstractNode
+from .live_params_mixin import LiveParamsMixin
+from .lifecycle_manager import LifecycleStage
 
 
 def find_ros2_node_processes() -> list[psutil.Process]:
@@ -451,6 +452,13 @@ class ForeignNode(AbstractNode, LiveParamsMixin):
             return
 
         signame = signal.Signals(signum).name
+
+        if signum == signal.SIGTERM and self._lifecycle_manager:
+            try:
+                self._lifecycle_manager.transition(LifecycleStage.FINALIZED)
+            except Exception as e:
+                self.logger.warning(f"Lifecycle transition to FINALIZED failed: {e}")
+
         self.logger.warning(
             f"Forwarding shutdown signal to foreign process: {reason} ({signame})"
         )

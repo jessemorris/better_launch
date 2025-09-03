@@ -9,6 +9,7 @@ from rclpy import Parameter
 from better_launch.utils.better_logging import LogSink
 from .abstract_node import AbstractNode
 from .live_params_mixin import LiveParamsMixin
+from .lifecycle_manager import LifecycleStage
 
 
 class Component(AbstractNode, LiveParamsMixin):
@@ -134,6 +135,12 @@ class Component(AbstractNode, LiveParamsMixin):
         """
         if not self.is_loaded:
             return
+
+        if signum == signal.SIGTERM and self._lifecycle_manager:
+            try:
+                self._lifecycle_manager.transition(LifecycleStage.FINALIZED)
+            except Exception as e:
+                self.logger.warning(f"Lifecycle transition to FINALIZED failed: {e}")
 
         self.logger.warning(f"Unloading component {self.name}: {reason}")
         self.composer.unload_component(self, timeout=timeout)
