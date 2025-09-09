@@ -73,7 +73,7 @@ def _launchservice_worker(
     std_handler = RecordForwarder(
         # TODO should reflect the main process formatter configuration regarding colors and such
         PrettyLogFormatter(
-            roslog_pattern=r"\[(.+)] *%%(\w+)%%([\d.]+)%%(.*)",
+            roslog_pattern=r"\[(.+)] *%%(\w+)%%([\d.]+)%%([\s\S]*)",
             pattern_info=["name", "levelname", "created", "msg"],
         )
     )

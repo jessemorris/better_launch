@@ -12,6 +12,7 @@ from ament_index_python.packages import get_packages_with_prefixes
 
 from better_launch.utils.better_logging import LogSink
 from .abstract_node import AbstractNode
+from .node import Node
 from .live_params_mixin import LiveParamsMixin
 from .lifecycle_manager import LifecycleStage
 
@@ -473,7 +474,7 @@ class ForeignNode(AbstractNode, LiveParamsMixin):
             raise TimeoutError("Node did not shutdown within the specified timeout")
 
     def takeover(self, kill_after: float = 0, **node_args) -> Node:
-        """Turns a foreign node into a node belonging to this better_launch process. This allows
+        """Replaces a foreign node with a node belonging to this better_launch process. This allows
         to e.g. capture the node's output and control a few additional runtime parameters. Any
         interactions with this foreign node instance after this function returns are undefined
         behavior.

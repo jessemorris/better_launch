@@ -72,7 +72,7 @@ class PrettyLogFormatter(logging.Formatter):
         timestamp_format: str = "%Y-%m-%d %H:%M:%S.%f",
         *,
         defaults: dict[str, Any] = None,
-        roslog_pattern: str = r"%%(\w+)%%([\d.]+)%%(.*)",
+        roslog_pattern: str = r"%%(\w+)%%([\d.]+)%%([\s\S]*)",  # Also match newlines!
         pattern_info: list[str] = ("levelname", "created", "msg"),
         source_colors: str | int | Iterable[int] | dict[str, Any] = default_source_color,
         log_colors: str | int | Iterable[int] | dict[str, Any] = None,
