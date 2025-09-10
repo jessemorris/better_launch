@@ -10,7 +10,14 @@ import subprocess
 import osrf_pycommon.process_utils
 from setproctitle import setproctitle, getproctitle
 
-from better_launch.utils.better_logging import LogSink, PrettyLogFormatter, RecordForwarder, StubbornHandler
+from better_launch.utils.better_logging import (
+    LogSink,
+    ROSLOG_PATTERN_BL,
+    ROSLOG_PATTERN_ROS,
+    PrettyLogFormatter,
+    RecordForwarder,
+    StubbornHandler,
+)
 from better_launch.utils.colors import get_contrast_color
 from .abstract_node import AbstractNode
 
@@ -21,18 +28,17 @@ def _launchservice_worker(
     launch_action_queue: Queue,
     log_queue: Queue,
 ) -> None:
-    """This function will run in a child process and will not have access to any objects already in memory UNLESS they are passed to it as arguments. See the comments for further details.
-    """
+    """This function will run in a child process and will not have access to any objects already in memory UNLESS they are passed to it as arguments. See the comments for further details."""
     # Makes it easier to tell what's going on in the process table
     setproctitle(f"{getproctitle()} ({name})")
 
     if platform.system() != "Windows":
-        # On unix-based systems this will make this process independent from the host process. This 
+        # On unix-based systems this will make this process independent from the host process. This
         # way we can terminate it and its child processes without affecting the host process. Since
         # it's not supported on windows, we handle this in our shutdown function instead.
         os.setsid()
 
-    # The child process will have clones of the host process' signal handlers installed (i.e. those 
+    # The child process will have clones of the host process' signal handlers installed (i.e. those
     # defined in launch_this), so we should rewire these, otherwise we'll get parallel calls
     def _on_sigint(signum: int, frame):
         try:
@@ -55,9 +61,10 @@ def _launchservice_worker(
     import launch
 
     # LaunchService is a little stubborn about log formatting and always prepends the node's
-    # name and then appends the output format, but this also allows us to capture the actual 
+    # name and then appends the output format, but this also allows us to capture the actual
     # source of the message
-    os.environ["RCUTILS_CONSOLE_OUTPUT_FORMAT"] = "%%{severity}%%{time}%%{message}"
+    # NOTE this must be compatible with ROSLOG_PATTERN
+    os.environ["RCUTILS_CONSOLE_OUTPUT_FORMAT"] = ROSLOG_PATTERN_ROS
     os.environ["RCUTILS_COLORIZED_OUTPUT"] = "0"
 
     # Create an offset to avoid going through the same sequence of colors as the host process
@@ -71,10 +78,9 @@ def _launchservice_worker(
             pass
 
     std_handler = RecordForwarder(
-        # TODO should reflect the main process formatter configuration regarding colors and such
+        # TODO should always mimic the main process formatter configuration regarding colors etc.
         PrettyLogFormatter(
-            roslog_pattern=r"\[(.+)] *%%(\w+)%%([\d.]+)%%(.*)",
-            pattern_info=["name", "levelname", "created", "msg"],
+            roslog_pattern=r"\[(?P<name>.+)] *" + ROSLOG_PATTERN_BL,
         )
     )
     std_handler.add_listener(handle_record)
@@ -87,7 +93,7 @@ def _launchservice_worker(
     logger = launch.logging.get_logger(name)
 
     launch_service = launch.LaunchService(argv=launchservice_args, noninteractive=True)
-    
+
     # This feels highly illegal and I love it! :>
     setattr(
         launch_service,
@@ -97,10 +103,10 @@ def _launchservice_worker(
 
     # Handle the queue through which we are receiving new launch actions
     loop = osrf_pycommon.process_utils.get_loop()
-    
+
     def queue_watcher():
         while True:
-            # multiprocessing.Queue cannot be awaited, so instead we are using a thread to block 
+            # multiprocessing.Queue cannot be awaited, so instead we are using a thread to block
             # indefinitely until we either receive something or the queue is closed.
             ld = launch_action_queue.get()
 
@@ -114,24 +120,25 @@ def _launchservice_worker(
 
     async def run():
         logger.info("Starting ROS2 launch service")
-        
+
         # Start queue_watcher AFTER the event loop is running
         def start_queue_watcher():
             threading.Thread(target=queue_watcher, daemon=True).start()
-        
+
         # Schedule queue_watcher to start after a brief delay
         loop.call_soon(start_queue_watcher)
-        
+
         await launch_service.run_async(shutdown_when_idle=False)
         logger.info("ROS2 launch service has terminated")
 
     task = loop.create_task(run())
-    
+
     try:
         loop.run_until_complete(task)
     except Exception as e:
         logger.warning(f"Error while running ROS2 launch service: {e}")
         raise
+
 
 class Ros2LaunchWrapper(AbstractNode):
     def __init__(
@@ -140,10 +147,10 @@ class Ros2LaunchWrapper(AbstractNode):
         launchservice_args: list[str] = None,
         output: LogSink | set[LogSink] = "screen",
     ):
-        """Hosts a separate process running a ROS2 `LaunchService` instance (the main entrypoint of the ROS2 launch system). 
-        
+        """Hosts a separate process running a ROS2 `LaunchService` instance (the main entrypoint of the ROS2 launch system).
+
         Note that although the ROS2 launch service may start an arbitrary number of nodes they will not be accessible for interaction beyond showing log output. Output on stdout and stderr from the process (and its nodes) will be captured, reformatted and separated by source.
-        
+
         While this is a node-like object, it does not represent a node in ROS. This was done so that e.g. the TUI can be used to interact with the ROS2 launch system to e.g. include regular ROS2 launch files. Running a full process and a separate launch system is fairly resource heavy, however, `LaunchService` insists on running on the main thread.
 
         .. seealso::
@@ -180,16 +187,14 @@ class Ros2LaunchWrapper(AbstractNode):
 
     @property
     def pid(self) -> int:
-        """The process ID of the node process. Will be -1 if the process is not running.
-        """
+        """The process ID of the node process. Will be -1 if the process is not running."""
         if self._process:
             return self._process.pid
         return -1
 
     @property
     def launchservice_args(self) -> list[str]:
-        """Additional arguments that are passed to the launch service.
-        """
+        """Additional arguments that are passed to the launch service."""
         return self._launchservice_args
 
     @property
@@ -201,18 +206,15 @@ class Ros2LaunchWrapper(AbstractNode):
             return False
 
     def is_ros2_connected(self, timeout: float = None) -> bool:
-        """Equal to :py:meth:`is_running` for this class.
-        """
+        """Equal to :py:meth:`is_running` for this class."""
         return self.is_running
 
     def is_lifecycle_node(self, timeout: float = None) -> bool:
-        """This is never a lifecycle node.
-        """
+        """This is never a lifecycle node."""
         return False
 
     def queue_ros2_actions(self, *actions) -> None:
-        """Add ROS2 actions that will be loaded asynchronously by the launch service once it is running. Actions are bundled as a `LaunchDescription` before sending them off.
-        """
+        """Add ROS2 actions that will be loaded asynchronously by the launch service once it is running. Actions are bundled as a `LaunchDescription` before sending them off."""
         import launch
 
         ld = launch.LaunchDescription(list(actions))
@@ -250,7 +252,7 @@ class Ros2LaunchWrapper(AbstractNode):
             return
 
         # Note that passing loggers will not work for the TUI, as they would have to communicate
-        # across the process boundaries. In general, only basic values and instances from the 
+        # across the process boundaries. In general, only basic values and instances from the
         # multiprocessing module should be passed to the process
         self._process = Process(
             target=_launchservice_worker,
@@ -265,9 +267,7 @@ class Ros2LaunchWrapper(AbstractNode):
         )
         self._process.start()
 
-        threading.Thread(
-            target=self._process_watcher, daemon=True
-        ).start()
+        threading.Thread(target=self._process_watcher, daemon=True).start()
 
     def _process_watcher(self):
         q = self._process_log_queue
@@ -285,7 +285,9 @@ class Ros2LaunchWrapper(AbstractNode):
 
         self._process.close()
 
-    def shutdown(self, reason: str, signum: int = signal.SIGTERM, timeout: float = 0.0) -> None:
+    def shutdown(
+        self, reason: str, signum: int = signal.SIGTERM, timeout: float = 0.0
+    ) -> None:
         if self._terminate_requested and self.is_running:
             # Give the process a little bit of time to terminate
             try:
@@ -293,7 +295,7 @@ class Ros2LaunchWrapper(AbstractNode):
             except Exception:
                 # Might fail during shutdown
                 pass
-        
+
         if not self.is_running:
             return
 
@@ -327,7 +329,9 @@ class Ros2LaunchWrapper(AbstractNode):
         try:
             self._process.join(timeout)
         except subprocess.TimeoutExpired:
-            raise TimeoutError("ROS2 launch service did not shutdown within the specified timeout")
+            raise TimeoutError(
+                "ROS2 launch service did not shutdown within the specified timeout"
+            )
 
     def send_signal(self, signum: int) -> None:
         if not self.is_running:

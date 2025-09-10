@@ -584,7 +584,7 @@ Takeoff in 3... 2... 1...
         self,
         package: str = None,
         filename: str = None,
-        subdir: str = None,
+        subdir: str = "**",
         *,
         substitutions: bool = True,
     ) -> str:
@@ -647,7 +647,7 @@ Takeoff in 3... 2... 1...
         if resolve:
             base_path = resolve(base_path)
 
-        if not filename and not subdir:
+        if not filename and subdir in (None, "", "**"):
             return base_path
 
         if not subdir:
@@ -669,7 +669,7 @@ Takeoff in 3... 2... 1...
                     return str(ret.resolve().absolute())
 
         raise ValueError(
-            f"Could not find file or directory (filename={filename}, package={package}, glob={subdir})"
+            f"Could not find file or directory (filename={filename}, package={package}, subdir={subdir}), searched path was {base_path}"
         )
 
     def resolve_string(self, s: str) -> str:
