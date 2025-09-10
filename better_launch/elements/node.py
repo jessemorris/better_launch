@@ -13,7 +13,7 @@ from pprint import pformat
 from textwrap import indent
 import json
 
-from better_launch.utils.better_logging import LogSink
+from better_launch.utils.better_logging import LogSink, ROSLOG_PATTERN_BL
 from .abstract_node import AbstractNode
 from .live_params_mixin import LiveParamsMixin
 from .lifecycle_manager import LifecycleStage
@@ -229,8 +229,7 @@ class Node(AbstractNode, LiveParamsMixin):
         stderr_queue = queue.Queue()
 
         # Same pattern as what our PrettyLogFormatter is looking for
-        # TODO make this pattern a global constant somewhere
-        ros_message_pattern = re.compile(r"%%(\w+)%%([\d.]+)%%([\s\S]*)")
+        ros_message_pattern = re.compile(ROSLOG_PATTERN_BL)
 
         def read_stream(stream, q):
             try:

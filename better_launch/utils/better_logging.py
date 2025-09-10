@@ -8,6 +8,14 @@ import better_launch.ros.logging as roslog
 from .colors import get_contrast_color
 
 
+# Log format string for ROS so that we can identify and reformat its log messages.
+ROSLOG_PATTERN_ROS = "%%{severity}%%{time}%%{message}"
+
+# Regular expression matching ROSLOG_PATTERN_ROS. The named groups will be matched to log
+# Record attributes via their group names. 
+ROSLOG_PATTERN_BL = r"%%(?P<levelname>\w+)%%(?P<created>[\d.]+)%%(?P<msg>[\s\S]*)"
+
+
 Colormode = Literal["default", "severity", "source", "none", "rainbow"]
 
 
@@ -72,8 +80,7 @@ class PrettyLogFormatter(logging.Formatter):
         timestamp_format: str = "%Y-%m-%d %H:%M:%S.%f",
         *,
         defaults: dict[str, Any] = None,
-        roslog_pattern: str = r"%%(\w+)%%([\d.]+)%%([\s\S]*)",  # Also match newlines!
-        pattern_info: list[str] = ("levelname", "created", "msg"),
+        roslog_pattern: str = None,
         source_colors: str | int | Iterable[int] | dict[str, Any] = default_source_color,
         log_colors: str | int | Iterable[int] | dict[str, Any] = None,
         no_colors: bool = False,
@@ -98,9 +105,7 @@ class PrettyLogFormatter(logging.Formatter):
         defaults : dict[str, Any], optional
             Defaults the formatter may use when formatting strings.
         roslog_pattern : str, optional
-            The pattern used for matching incoming log messages. The pattern's regex groups will be associated with `pattern_info`.
-        pattern_info : list[str], optional
-            Formatting keys that can be extracted from incoming log messages using `roslog_pattern`, one for each regex group.
+            The pattern used for matching incoming log messages. The pattern should define named groups that will be matched to logging.Record attributes via their names. 
         source_colors : str | int | Iterable[int] | dict[str, Any], optional
             Colors to use when formatting `sourcecolor_start` tags based on the source of the log report. If a string, integer or iterable, use this as the color for all sources. If None, use a different color for every source. Pass a dict to specify custom colors for a set of sources.
         log_colors : str | int | Iterable[int] | dict[str, Any], optional
@@ -111,8 +116,10 @@ class PrettyLogFormatter(logging.Formatter):
         super().__init__(format, timestamp_format, "{", True, defaults=defaults)
 
         self.converter = datetime.fromtimestamp
+
+        if not roslog_pattern:
+            roslog_pattern = ROSLOG_PATTERN_BL
         self.roslog_pattern = re.compile(roslog_pattern)
-        self.pattern_info = pattern_info
 
         self.source_colors = {}
         if isinstance(source_colors, dict):
@@ -180,18 +187,18 @@ class PrettyLogFormatter(logging.Formatter):
         match = self.roslog_pattern.match(record.msg)
 
         if match:
-            for idx, key in enumerate(self.pattern_info):
+            for key, val in match.groupdict().items():
                 # If we replace an existing key, make sure the value type matches the original,
                 # otherwise we will get some problems with formatting down the line
                 key_type = type(getattr(record, key, ""))
-                val = key_type(match.group(idx + 1))
+                val = key_type(match.group(key))
                 setattr(record, key, val)
 
-            if "levelname" in self.pattern_info and "levelno" not in self.pattern_info:
+            if "levelname" in match.groupdict() and "levelno" not in match.groupdict():
                 record.levelno = logging.getLevelName(record.levelname)
 
             elif (
-                "levelno" in self.pattern_info and "levelname" not in self.pattern_info
+                "levelno" in match.groupdict() and "levelname" not in match.groupdict()
             ):
                 record.levelname = logging.getLevelName(record.levelno)
 
@@ -335,7 +342,7 @@ def init_logging(
         raise ValueError("Invalid colormode " + colormode)
 
     # We'll handle formatting and color ourselves, just get the nodes to comply
-    os.environ["RCUTILS_CONSOLE_OUTPUT_FORMAT"] = "%%{severity}%%{time}%%{message}"
+    os.environ["RCUTILS_CONSOLE_OUTPUT_FORMAT"] = ROSLOG_PATTERN_ROS
     os.environ["RCUTILS_COLORIZED_OUTPUT"] = "0"
 
     log_config.level = logging.INFO
