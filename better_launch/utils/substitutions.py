@@ -1,4 +1,4 @@
-from typing import Any, Literal, Callable
+from typing import Any, Literal, Callable, Optional
 import os
 import yaml
 from ast import literal_eval
@@ -204,6 +204,44 @@ def _parse_substitution_syntax(s: str) -> list[list | str]:
         return current
 
     return parse(tokenize(s))
+
+def parse_remap_tokens(token:Any) -> Optional[list[tuple[str, str]]]:
+    """
+    Parse remapping arguments into the form from -> to
+    Handle different input types to account for the many different ways (and places) someone could enter the remapping argument from
+
+    Args:
+        text (Any): _description_
+
+    Returns:
+        Optional[tuple[str, str]]: _description_
+    """
+    def is_string_tuple(token) -> bool:
+        return (isinstance(token, tuple) 
+                and len(token) == 2 
+                and all(isinstance(x, str) for x in token))
+
+    def is_tuple_list(token):
+        return (isinstance(token, list)
+                and all(is_string_tuple(x) for x in token))
+    
+    # if token is list[tuple[str, str]
+    if is_tuple_list(token):
+        return token
+    
+    # if token is [tuple[str, str]
+    if is_string_tuple(token):
+        return [token]
+    
+
+    if isinstance(token, str):
+        import re
+        pattern = r"([\w\/]+)@([\w\/]+)"  # captures left and right side of '->'
+        # for now lets give it a
+        remapping_pairs = re.findall(pattern, token)
+        return remapping_pairs
+    
+    return None
 
 
 def substitute_tokens(text: str, substitutions: dict[str, Callable[..., str]]) -> str:

@@ -164,6 +164,9 @@ class Node(AbstractNode, LiveParamsMixin):
                 final_cmd.extend(self.cmd_args)
 
             if not self.raw:
+                if self.node_log_level is not None:
+                    final_cmd += ["--log-level", self.node_log_level]
+
                 final_cmd += ["--ros-args"]
 
                 # Attach node parameters
@@ -176,9 +179,6 @@ class Node(AbstractNode, LiveParamsMixin):
                 for src, dst in self._ros_args().items():
                     # launch_ros/actions/node.py:481
                     final_cmd.extend(["-r", f"{src}:={dst}"])
-
-                if self.node_log_level is not None:
-                    final_cmd += ["--log-level", self.node_log_level]
 
             # If an env is specified ROS2 lets it completely replace the host env. We cover this
             # through an additional flag, as often you just want to make certain overrides.
@@ -195,6 +195,8 @@ class Node(AbstractNode, LiveParamsMixin):
             self.logger.info(
                 f"Starting process '{' '.join(final_cmd)}'\n-> env ={env_str}"
             )
+
+            print(final_cmd)
 
             # Start the node process
             self._process = subprocess.Popen(

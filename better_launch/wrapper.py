@@ -19,6 +19,7 @@ from better_launch.utils.better_logging import (
 )
 from better_launch.utils.introspection import find_calling_frame
 from better_launch.ros import logging as roslog
+from better_launch.utils.substitutions import parse_remap_tokens
 
 
 _is_launcher_defined = "__better_launch_this_defined"
@@ -90,6 +91,10 @@ def _launch_this_wrapper(
     manage_foreign_nodes: bool = False,
     keep_alive: bool = False,
 ):
+    import sys
+    print(f"ARGS {sys.argv}" )
+    print(f"O-ARGS {sys.orig_argv}" )
+    
     # Globals of the calling module
     glob = find_calling_frame(_launch_this_wrapper).frame.f_globals
 
@@ -124,6 +129,7 @@ def _launch_this_wrapper(
         launch_func(*bound_args.args, **bound_args.kwargs)
 
         return
+    
 
     # At this point we know that we are the main launch file
 
@@ -277,6 +283,22 @@ def _launch_this_wrapper(
         ]
     )
 
+    def click_remapping_options(ctx: click.Context, param: click.Parameter, value: tuple[str]):
+        remappings = parse_remap_tokens(value)
+        if remappings:
+            bl = BetterLaunch()
+            bl._remapping_stack.append(remappings)
+
+    # # needs to be here and in bl script (but expose value) so that the argument is taken from the cmd-line but NOT passed to the
+    # # run method
+    test_opt = click.Option(
+            ["--remap"],
+            expose_value=False,  # not passed to our run method
+            multiple=False, # here we expect a single value since the external --remap (which actually takes stuff from the cmd) is converted to a str
+            callback=click_remapping_options
+        )
+    options.extend([test_opt])
+
     @click.pass_context
     def run(ctx: click.Context, *args, **kwargs):
         init_logging(
@@ -293,8 +315,8 @@ def _launch_this_wrapper(
                 ), "extra arguments need to be '--<key> <value>' tuples"
                 extra_kwargs = {}
 
-                for (i,) in range(0, len(ctx.args), 2):
-                    (key,) = ctx.args[i]
+                for i in range(0, len(ctx.args), 2):
+                    key = ctx.args[i]
                     if not key.startswith("-"):
                         raise ValueError("Extra argument keys must start with a dash")
 
@@ -306,8 +328,13 @@ def _launch_this_wrapper(
                         pass
 
                     extra_kwargs[key.strip("-")] = val
-
-                kwargs[launch_func_kwarg] = extra_kwargs
+                
+                # this seems to geive a nested list where kwargs maps to a dictionary
+                #kwargs[launch_func_kwarg] = extra_kwargs
+                # for some reason we will haev somne structure like {'kwargs': None, 'test': 1, 'another_test': 2}
+                # if unknown args are test and another test...
+                del kwargs[launch_func_kwarg]
+                kwargs.update(extra_kwargs)
 
             # Execute the launch function!
             try:
@@ -351,6 +378,8 @@ def _launch_this_wrapper(
     argspec = inspect.getfullargspec(launch_func)
     launch_func_kwarg = argspec[2]
 
+    print(launch_func_kwarg)
+
     if launch_func_kwarg is not None:
         click_cmd.allow_extra_args = True
         click_cmd.ignore_unknown_options = True
@@ -370,9 +399,39 @@ def _expose_ros2_launch_function(launch_func: Callable):
     launch_func : Callable
         The launch function.
     """
+    import launch
+    from launch import Action
+    from launch import LaunchDescription, LaunchContext
+    import asyncio
+    from typing import Optional
+
+    class MonitorBlNode(Action):
+        def __init__(self, node:'AbstractNode', check_interval: float = 1.0):
+            super().__init__()
+            self._node: 'AbstractNode' = node
+            self.__check_interval = check_interval
+            self.__logger =  launch.logging.get_logger(self._node.fullname + ".monitor")
+            self.__completed_future = None
+
+
+        async def _monitor(self, context: LaunchContext):
+            while True:
+                if not self._node.is_running:
+                    self.__logger.info(f"Node {self._node} no longer exists")
+                    self.__completed_future.set_result(None)
+                await asyncio.sleep(self.__check_interval)
+
+
+        def execute(self, context: LaunchContext):
+            self.__completed_future = context.asyncio_loop.create_future()
+            context.asyncio_loop.create_task(self._monitor(context))
+            return None  # no subactions
+        
+        def get_asyncio_future(self) -> Optional[asyncio.Future[None]]:
+            """Return an asyncio Future, used to let the launch system know when we're done."""
+            return self.__completed_future
 
     def generate_launch_description():
-        from launch import LaunchDescription, LaunchContext
         from launch.actions import DeclareLaunchArgument, OpaqueFunction
 
         ld = LaunchDescription()
@@ -380,30 +439,54 @@ def _expose_ros2_launch_function(launch_func: Callable):
         # Declare launch arguments from the function signature
         sig = inspect.signature(launch_func)
         for param in sig.parameters.values():
-            default = param.default
-            if default is not inspect.Parameter.empty:
+            if param.default is not inspect.Parameter.empty:
                 default = str(param.default)
+            else:
+                default = None
 
             ld.add_action(DeclareLaunchArgument(param.name, default_value=default))
+
+        # test to add remap here 
+        ld.add_action(DeclareLaunchArgument("remap", default_value=""))
 
         def ros2_wrapper(context: LaunchContext, *args, **kwargs):
             # args and kwargs are only used by OpaqueFunction when using it like partial
             launch_args = {}
             for k, v in context.launch_configurations.items():
+                # dont include remap in the arguments parsed to to the function - instead set bl so we can get it later
+                if k == "remap":
+                    remappings = parse_remap_tokens(v)
+                    bl = BetterLaunch()
+                    bl._remapping_stack.append(remappings)
+                    continue
                 try:
                     launch_args[k] = literal_eval(v)
-                except ValueError:
+                except (ValueError, SyntaxError):
                     # Probably a string
+                    # issue #11: SyntaxError happens when a path is passed without quotes
                     # NOTE this should also make passing args to ROS2 much easier
                     launch_args[k] = v
+
+            bl = BetterLaunch()
+            existing_node_names = [an.fullname for an in bl.all_nodes(include_foreign=False)]
 
             # Call the launch function
             launch_func(**launch_args)
 
+            new_nodes = [an for an in bl.all_nodes(include_foreign=False) if an.fullname not in existing_node_names]
+            for new_an in new_nodes:
+                ld.add_action(MonitorBlNode(
+                    new_an,
+                    1.0
+                ))
+            
             # Not needed right now, but opaque functions may return additional ROS2 actions
             return
+        
 
         ld.add_action(OpaqueFunction(function=ros2_wrapper))
+
+
         return ld
 
     # Add our generate_launch_description function to the module launch_this was called from

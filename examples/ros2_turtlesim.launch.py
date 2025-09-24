@@ -30,16 +30,16 @@ def generate_launch_description():
             executable='turtlesim_node',
             name='sim'
         ),
-        ExecuteProcess(
-            cmd=[[
-                'ros2 service call ',
-                turtlesim_ns,
-                '/spawn ',
-                'turtlesim_msgs/srv/Spawn ',
-                '"{x: 2, y: 2, theta: 0.2}"'
-            ]],
-            shell=True
-        ),
+        # ExecuteProcess(
+        #     cmd=[[
+        #         'ros2 service call ',
+        #         turtlesim_ns,
+        #         '/spawn ',
+        #         'turtlesim_msgs/srv/Spawn ',
+        #         '"{x: 2, y: 2, theta: 0.2}"'
+        #     ]],
+        #     shell=True
+        # ),
         ExecuteProcess(
             cmd=[[
                 'ros2 param set ',

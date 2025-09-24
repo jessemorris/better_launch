@@ -433,6 +433,13 @@ class ForeignNode(AbstractNode, LiveParamsMixin):
         self._watch_process()
 
     def _watch_process(self) -> None:
+        # TODO Capture process output!
+        # To capture output we can use `strace -p1234 -s9999 -e write` where 1234 is the process 
+        # pid. However, this requires sudo rights unless we got the "cap_sys_ptrace+ep" capability
+        # granted. This can only be granted to binary programs, not to python scripts, so we'd have
+        # to create a small C++ binary (bl?). Alternatively we need to request sudo permissions, 
+        # but the input line might get swepped away by other node logs...
+
         def wait():
             ret = self.join()
 

@@ -175,6 +175,9 @@ class BetterLaunch(metaclass=_BetterLaunchMeta):
         self._group_root = Group(None, root_namespace)
         self._group_stack = [self._group_root]
 
+        # for now very simple
+        self._remapping_stack = []
+
         self._composition_node = None
 
         # Allows to run traditional ros2 launch actions and descriptions
@@ -1439,6 +1442,19 @@ Takeoff in 3... 2... 1...
         group = self.group_tip
         namespace = group.assemble_namespace()
 
+    
+        if len(self._remapping_stack) > 0:
+            # shoudl be a list of tuples
+            parsed_remaps = self._remapping_stack[-1]
+            if remaps is None:
+                remaps = {}
+            for from_topic, to_topic in parsed_remaps:
+                # should check we're not overriting anything?
+                remaps[from_topic] = to_topic
+
+            print(remaps)
+            
+
         node = Node(
             package,
             executable,
@@ -1457,7 +1473,6 @@ Takeoff in 3... 2... 1...
             use_shell=use_shell,
             raw=raw,
         )
-
         group.add_node(node)
         if autostart_process:
             node.start()
@@ -1606,7 +1621,7 @@ Takeoff in 3... 2... 1...
             else:
                 raise ValueError(f"Unknown container mode '{variant}")
 
-            node_ref = Node(package, executable, name, namespace, remaps=component_remaps, output=output)
+            node_ref = Node(package, executable, name, namespace, output=output)
 
         if isinstance(node_ref, Composer):
             comp = node_ref

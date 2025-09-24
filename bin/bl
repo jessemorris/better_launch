@@ -183,6 +183,12 @@ class BetterLaunchFile(LaunchFile):
             )
         ])
 
+        options.extend([
+            click.Option(
+                ["--remap"],
+                multiple=True
+            )])
+
         return options, launchfunc_doc
 
     def __init__(self, package: str, filepath: str):
@@ -196,12 +202,16 @@ class BetterLaunchFile(LaunchFile):
             flush=True,
         )
 
+
         # First argument becomes argv[0], so should be the program name
         args = ["python3", self.filepath]
         for key, arg in kwargs.items():
             if arg is not None:
                 args.extend([f"--{key}", arg])
 
+        # extend args with additional python args intended for kwargs in the launch_func
+        args.extend(ctx.args)
+        
         # This does NOT return and will replace our executable with the new executable in the same process
         os.execvp("python3", [str(a) for a in args])
 
@@ -277,6 +287,7 @@ class Ros2LaunchFile(LaunchFile):
 
                     # XML and YAML are very consistent here, but DeclareLaunchArgument is... not
                     kwargs["default"] = kwargs.get("default_value", None)
+
 
                     option = cls._option_from_ros2_kwargs(kwargs)
                     options.append(option)
